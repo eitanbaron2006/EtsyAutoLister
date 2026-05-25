@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Definition (Reusable hardened global helpers)
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation blueprints - Schema & Type Guarding
+    function isValidUserProfile(data) {
+      return data.uid is string &&
+             data.uid == request.auth.uid &&
+             data.email is string &&
+             data.email.size() <= 256 &&
+             data.etsyConnected is bool &&
+             data.createdAt is timestamp &&
+             (!('etsyToken' in data) || data.etsyToken == null || (data.etsyToken is string && data.etsyToken.size() <= 1024)) &&
+             (!('lastProductType' in data) || data.lastProductType == null || (data.lastProductType is string && data.lastProductType.size() <= 64)) &&
+             (!('updatedAt' in data) || data.updatedAt == null || data.updatedAt is timestamp);
+    }
+
+    function isValidEtsyListing(data) {
+      return data.id is string &&
+             data.id.size() <= 128 &&
+             data.userId == request.auth.uid &&
+             data.folderName is string &&
+             data.folderName.size() <= 200 &&
+             data.status in [
+               'idle', 'scanning', 'mockups', 'thumbnail', 'compiling', 
+               'seo', 'ready', 'publishing', 'published'
+             ] &&
+             data.createdAt is timestamp &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp) &&
+             (!('productType' in data) || (data.productType is string && data.productType.size() <= 64)) &&
+             (!('pipelineStepText' in data) || (data.pipelineStepText is string && data.pipelineStepText.size() <= 512)) &&
+             (!('mockupImage' in data) || (data.mockupImage is string && data.mockupImage.size() <= 1500000)) &&
+             (!('title' in data) || (data.title is string && data.title.size() <= 256)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 10000)) &&
+             (!('price' in data) || (data.price is number && data.price >= 0)) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 13 && (data.tags.size() == 0 || data.tags[0] is string))) &&
+             (!('listingId' in data) || (data.listingId is string && data.listingId.size() <= 128)) &&
+             (!('listingUrl' in data) || (data.listingUrl is string && data.listingUrl.size() <= 1024));
+    }
+
+    // User Profile matching
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                      isValidId(userId) && 
+                      isValidUserProfile(incoming()) && 
+                      incoming().createdAt == request.time;
+                      
+      allow update: if isOwner(userId) && 
+                      isValidUserProfile(incoming()) && 
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly([
+                        'etsyConnected', 'etsyToken', 'lastProductType', 'updatedAt'
+                      ]);
+                      
+      allow delete: if isOwner(userId);
+
+      // Listings nested under the user context
+      match /listings/{listingId} {
+        allow read: if isOwner(userId);
+        
+        allow create: if isOwner(userId) && 
+                        isValidId(listingId) && 
+                        isValidEtsyListing(incoming()) && 
+                        incoming().createdAt == request.time &&
+                        incoming().updatedAt == request.time;
+
+        allow update: if isOwner(userId) && 
+                        isValidEtsyListing(incoming()) && 
+                        incoming().createdAt == existing().createdAt &&
+                        incoming().updatedAt == request.time &&
+                        incoming().diff(existing()).affectedKeys().hasOnly([
+                          'status', 'title', 'description', 'price', 'tags', 
+                          'listingId', 'listingUrl', 'productType', 'pipelineStepText', 
+                          'mockupImage', 'updatedAt'
+                        ]);
+
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

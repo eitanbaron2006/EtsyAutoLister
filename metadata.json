@@ -1,0 +1,8 @@
+{
+  "name": "Etsy AutoLister",
+  "description": "An automation app that connects to Etsy to automatically generate descriptions and listings from digital product folders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

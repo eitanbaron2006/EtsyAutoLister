@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing Etsy API connection status and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The Firebase User Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "etsyConnected": { "type": "boolean", "description": "Whether the user's Etsy account is connected" },
+        "etsyToken": { "type": "string", "description": "Encrypted or temporary Etsy access token, if connected" },
+        "lastProductType": { "type": "string", "description": "The most recently selected product type" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["uid", "email", "etsyConnected", "createdAt"]
+    },
+    "EtsyListing": {
+      "title": "EtsyListing",
+      "description": "Information about a digital product listing generated and saved by the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique listing identifier" },
+        "userId": { "type": "string", "description": "The UID of the owning user" },
+        "folderName": { "type": "string", "description": "Name of the digital product folder" },
+        "status": { "type": "string", "enum": ["idle", "scanning", "mockups", "thumbnail", "compiling", "seo", "ready", "publishing", "published"], "description": "Current status of the listing process" },
+        "productType": { "type": "string", "description": "Category folder type (png_graphics, printable_wallart, presets, planners)" },
+        "pipelineStepText": { "type": "string", "description": "Current description text of pipeline step progress" },
+        "mockupImage": { "type": "string", "description": "Base64 coded mockup illustration or previews data url" },
+        "title": { "type": "string", "description": "Etsy listing title" },
+        "description": { "type": "string", "description": "Etsy listing body description" },
+        "price": { "type": "number", "description": "Suggested or final listing price in USD" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Etsy SEO tags" },
+        "listingId": { "type": "string", "description": "The physical Etsy Listing ID, if published successfully" },
+        "listingUrl": { "type": "string", "description": "The physical Etsy Listing URL, if published" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["id", "userId", "folderName", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Contains user preference details and Etsy shop mapping"
+    },
+    "users/{userId}/listings/{listingId}": {
+      "schema": "EtsyListing",
+      "description": "Pre-generated listings associated with a user account"
+    }
+  }
+}
