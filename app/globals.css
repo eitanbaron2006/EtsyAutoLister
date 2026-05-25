@@ -187,29 +187,285 @@ body::before {
 
 /* Custom premium scrollbar matching open-design.ai minimalism */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--paper-warm);
+  border-left: 1px solid var(--line-faint);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(21, 20, 15, 0.16);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+  background: var(--line);
+  border: 2px solid var(--paper-warm);
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(21, 20, 15, 0.35);
+  background: var(--ink-faint);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--paper);
+  border-left: 1px solid var(--line-soft);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(247, 241, 222, 0.16);
+  background: var(--line);
+  border: 2px solid var(--paper);
+  border-radius: 5px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(247, 241, 222, 0.35);
+  background: var(--ink-faint);
 }
+
+/* Big site name mega-footer styling */
+.foot-mega {
+  margin-top: 60px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  border-top: 1px solid var(--line);
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.foot-mega .word {
+  font-family: var(--sans);
+  font-weight: 950;
+  font-size: clamp(70px, 13vw, 200px);
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  color: var(--ink);
+  white-space: nowrap;
+  margin-top: 30px;
+  padding-bottom: 0.18em;
+  text-align: left;
+}
+
+.foot-mega .word em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--coral);
+}
+
+/* Reveal System matching open-design.ai animations */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 1000ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms),
+              transform 1000ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+[data-reveal='left'] {
+  transform: translateX(-32px);
+}
+
+[data-reveal='right'] {
+  transform: translateX(32px);
+}
+
+[data-reveal='scale'] {
+  transform: scale(0.97);
+}
+
+[data-reveal][data-revealed='true'] {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+/* Marquee Animations */
+@keyframes marquee-x {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.animate-marquee-x {
+  animation: marquee-x 36s linear infinite;
+}
+
+.animate-marquee-x-reverse {
+  animation: marquee-x 42s linear infinite reverse;
+}
+
+/* Section Rule Styles (Canonical Open Design) */
+.sec-rule {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-bottom: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--sans);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  width: 100%;
+}
+.sec-rule .roman {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--coral);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+.sec-rule .meta-grp { 
+  display: inline-flex; 
+  align-items: center;
+  gap: 26px; 
+}
+.sec-rule .dot-mark { 
+  color: var(--coral); 
+}
+
+/* ---------- WIRE / GLOBAL TICKER ---------- */
+.wire {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 26px 0 28px;
+  background-color: var(--paper) !important;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+.wire-inner {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+}
+.wire-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  border-right: 1px solid var(--line);
+  padding-right: 24px;
+  min-height: 56px;
+}
+.wire-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wire-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--coral);
+  display: inline-block;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.wire-title {
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.wire-title b {
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.wire-title span {
+  color: var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.wire-rows {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.wire-row {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+}
+.marquee-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 36px;
+  width: max-content;
+  white-space: nowrap;
+}
+.wire-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-mute);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.wire-item .wire-dot {
+  color: var(--coral);
+  font-size: 16px;
+  line-height: 0;
+  position: relative;
+  top: -1px;
+  margin-right: 2px;
+}
+.wire-item .wire-coord {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0;
+}
+.wire-item .wire-name {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  font-weight: 500;
+}
+.wire-item .wire-handle {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.wire-item .wire-role {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--coral);
+  font-size: 10px;
+}
+.mask-marquee {
+  mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+}
+
+@media (max-width: 880px) {
+  .wire-inner {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .wire-left {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 12px;
+    min-height: 0;
+  }
+}
+
+
+
+
+
 

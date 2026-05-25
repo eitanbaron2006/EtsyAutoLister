@@ -149,7 +149,16 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
   };
 
   return (
-    <section className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.12)]'}`}>
+    <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+      <div className="sec-rule text-left">
+        <span className="roman">I.A</span>
+        <span className="meta-grp">
+          <span>Interactive Sandbox</span>
+          <span className="dot-mark">•</span>
+          <span>Open Utility Workspace</span>
+        </span>
+        <span>001 / 008</span>
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
         <div className="space-y-3 max-w-xl text-left">
           <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
@@ -295,6 +304,42 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
   );
 }
 
+function ScrollToTop({ darkMode }: { darkMode: boolean }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setVisible(true);
+      } else {
+        setVisible(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <button
+      onClick={scrollToTop}
+      className={`fixed bottom-8 right-8 z-50 p-3 rounded-full border shadow-lg transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 ${
+        visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90 pointer-events-none'
+      } ${
+        darkMode 
+          ? 'bg-[#1a1914] border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' 
+          : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'
+      }`}
+      aria-label="Scroll to top"
+    >
+      <ArrowRight className="w-4 h-4 -rotate-90" />
+    </button>
+  );
+}
+
 export default function Home() {
   // Authentication & Configuration States
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -323,6 +368,7 @@ export default function Home() {
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
+  const [activeLabFilter, setActiveLabFilter] = useState<'all' | 'wallart' | 'presets' | 'stickers' | 'planners'>('all');
   
   // Manual raw assets uploading state
   const [uploadTitleInput, setUploadTitleInput] = useState('');
@@ -331,6 +377,31 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rawFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Branded scroll listener for headroom-style hiding top menu bar:
+  const [navHidden, setNavHidden] = useState(false);
+  
+  useEffect(() => {
+    let lastY = window.scrollY || 0;
+    const SHOW_TOP = 100;
+    const DELTA = 6;
+    
+    const handleScroll = () => {
+      const y = window.scrollY || 0;
+      const d = y - lastY;
+      if (y <= SHOW_TOP) {
+        setNavHidden(false);
+      } else if (d > DELTA) {
+        setNavHidden(true);
+      } else if (d < -DELTA) {
+        setNavHidden(false);
+      }
+      lastY = y;
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Synchronize Dark Mode client state preferences
   useEffect(() => {
@@ -341,6 +412,43 @@ export default function Home() {
       document.documentElement.classList.remove('dark');
     }
   }, []);
+
+  // IntersectionObserver driven animations for data-reveal elements matching open-design
+  useEffect(() => {
+    const triggerReveals = () => {
+      const elements = document.querySelectorAll('[data-reveal]:not([data-revealed])');
+      if (elements.length === 0) return null;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              (entry.target as HTMLElement).dataset.revealed = 'true';
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
+      );
+
+      elements.forEach((el) => observer.observe(el));
+      return observer;
+    };
+
+    const obs = triggerReveals();
+
+    // Since tabs or views can change dynamically, use MutationObserver to observe changes
+    const mutationObserver = new MutationObserver(() => {
+      triggerReveals();
+    });
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      if (obs) obs.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [user, currentView, activeLabFilter]);
+
 
   const toggleDarkMode = () => {
     const nextVal = !darkMode;
@@ -1162,7 +1270,7 @@ export default function Home() {
         </div>
 
         {/* Sticky Pinned Navigation Hub */}
-        <div className={`sticky top-0 z-30 w-full backdrop-blur-md ${darkMode ? 'bg-[#12110c]/95 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/95 border-[rgba(21,20,15,0.14)]'} border-b`}>
+        <div className={`sticky top-0 z-30 w-full backdrop-blur-md ${darkMode ? 'bg-[#12110c]/95 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/95 border-[rgba(21,20,15,0.14)]'} border-b transition-transform duration-360 ease-[cubic-bezier(0.22,0.61,0.36,1)] will-change-transform ${navHidden ? '-translate-y-full pointer-events-none shadow-none' : 'translate-y-0'}`}>
           {/* Topbar strip */}
           <div className="topbar w-full border-b-0 bg-transparent">
             <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
@@ -1246,22 +1354,92 @@ export default function Home() {
               Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
             </p>
 
-            {/* Action Buttons */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto">
-              <Button 
-                onClick={handleGoogleSignIn} 
-                className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-sm py-6 px-8 rounded-full shadow-none transition-colors flex items-center justify-center gap-2.5 cursor-pointer w-full sm:w-auto"
-              >
-                <User className="w-4 h-4 text-[#efe7d2]" />
-                Get Started Securely (Google Auth)
-              </Button>
+            {/* Action Buttons & Circles (Visual Gasket Matching Screenshot) */}
+            <div className="pt-2 space-y-8 text-left w-full max-w-2xl" data-reveal="scale">
+              <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto">
+                <Button 
+                  onClick={handleGoogleSignIn} 
+                  className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-none transition-colors inline-flex items-center gap-2 cursor-pointer"
+                >
+                  Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
+                </Button>
+
+                <Button 
+                  onClick={handleGoogleSignIn} 
+                  className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-none transition-all inline-flex items-center gap-2 cursor-pointer`}
+                >
+                  Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
+                </Button>
+
+                <Button 
+                  onClick={handleGoogleSignIn} 
+                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-none transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
+                  Sync Your Shop (Google Auth)
+                </Button>
+              </div>
+
+              {/* Statistics circle dials matching screenshot */}
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pt-2">
+                {/* Dial 1 */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
+                    31
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">SKILLS</div>
+                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
+                  </div>
+                </div>
+
+                {/* Dial 2 */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
+                    72
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">SYSTEMS</div>
+                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
+                  </div>
+                </div>
+
+                {/* Dial 3 */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
+                    12
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">CLIS</div>
+                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coordinates line of text below coordinates */}
+              <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`}>
+                <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
+                <span>·</span>
+                <span>3 COMMANDS TO START</span>
+                <span>·</span>
+                <span>52.5200° N · 13.4050° E</span>
+              </div>
             </div>
           </div>
 
         </main>
 
         {/* Feature Bento Capability Grid Section */}
-        <section className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.12)]'}`}>
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12">
+          <div className="sec-rule text-left">
+            <span className="roman">I.</span>
+            <span className="meta-grp">
+              <span>System Capabilities</span>
+              <span className="dot-mark">•</span>
+              <span>Platform Architecture</span>
+            </span>
+            <span>001 / 008</span>
+          </div>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
             <div className="space-y-3 max-w-xl text-left">
               <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
@@ -1317,7 +1495,16 @@ export default function Home() {
         <SandboxPlayground darkMode={darkMode} />
 
         {/* Comparative Pipeline Matrix Section */}
-        <section className={`relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.12)]'}`}>
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">I.B</span>
+            <span className="meta-grp">
+              <span>Efficiency Metrics</span>
+              <span className="dot-mark">•</span>
+              <span>Comparative Pipeline Matrix</span>
+            </span>
+            <span>001 / 008</span>
+          </div>
           <div className="space-y-3 max-w-xl text-left mb-12">
             <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
               {"▪ EFFICIENCY METRICS"}
@@ -1366,74 +1553,704 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Global Active Ticker / Wire (From The Field / Cities & Contributors) */}
+        <section className="wire select-none" id="wire">
+          <div className="max-w-7xl mx-auto px-6 sm:px-12 wire-inner">
+            <div className="wire-left">
+              <span className="wire-mark" aria-hidden="true">
+                <span className="wire-pulse"></span>
+              </span>
+              <span className="wire-title">
+                <b>From the field</b>
+                <span>Open · 23 cities · 6 contributors</span>
+              </span>
+            </div>
+            <div className="wire-rows">
+              {/* Row 1: Coordinates */}
+              <div className="wire-row">
+                <div className="marquee-track animate-marquee-x">
+                  {[
+                    { coord: "52.52°N", name: "Berlin" },
+                    { coord: "35.68°N", name: "Tokyo" },
+                    { coord: "31.23°N", name: "Shanghai" },
+                    { coord: "39.90°N", name: "Beijing" },
+                    { coord: "25.03°N", name: "Taipei" },
+                    { coord: "1.35°N", name: "Singapore" },
+                    { coord: "12.97°N", name: "Bangalore" },
+                    { coord: "25.20°N", name: "Dubai" },
+                    { coord: "6.52°N", name: "Lagos" },
+                    { coord: "1.29°S", name: "Nairobi" },
+                    { coord: "33.92°S", name: "Cape Town" },
+                    { coord: "38.72°N", name: "Lisbon" },
+                    { coord: "40.42°N", name: "Madrid" },
+                    { coord: "48.86°N", name: "Paris" },
+                    { coord: "51.51°N", name: "London" },
+                    { coord: "52.37°N", name: "Amsterdam" },
+                    { coord: "59.33°N", name: "Stockholm" },
+                    { coord: "43.65°N", name: "Toronto" },
+                    { coord: "40.71°N", name: "New York" },
+                    { coord: "37.77°N", name: "San Francisco" },
+                    { coord: "19.43°N", name: "Mexico City" },
+                    { coord: "23.55°S", name: "São Paulo" },
+                    { coord: "33.87°S", name: "Sydney" }
+                  ].map((loc, idx) => (
+                    <span key={idx} className="wire-item">
+                      <span className="wire-dot">·</span>
+                      <span className="wire-coord">{loc.coord}</span>
+                      <span className="wire-name">{loc.name}</span>
+                    </span>
+                  ))}
+                  {/* Duplicated for loop */}
+                  {[
+                    { coord: "52.52°N", name: "Berlin" },
+                    { coord: "35.68°N", name: "Tokyo" },
+                    { coord: "31.23°N", name: "Shanghai" },
+                    { coord: "39.90°N", name: "Beijing" },
+                    { coord: "25.03°N", name: "Taipei" },
+                    { coord: "1.35°N", name: "Singapore" },
+                    { coord: "12.97°N", name: "Bangalore" },
+                    { coord: "25.20°N", name: "Dubai" },
+                    { coord: "6.52°N", name: "Lagos" },
+                    { coord: "1.29°S", name: "Nairobi" },
+                    { coord: "33.92°S", name: "Cape Town" },
+                    { coord: "38.72°N", name: "Lisbon" },
+                    { coord: "40.42°N", name: "Madrid" },
+                    { coord: "48.86°N", name: "Paris" },
+                    { coord: "51.51°N", name: "London" },
+                    { coord: "52.37°N", name: "Amsterdam" },
+                    { coord: "59.33°N", name: "Stockholm" },
+                    { coord: "43.65°N", name: "Toronto" },
+                    { coord: "40.71°N", name: "New York" },
+                    { coord: "37.77°N", name: "San Francisco" },
+                    { coord: "19.43°N", name: "Mexico City" },
+                    { coord: "23.55°S", name: "São Paulo" },
+                    { coord: "33.87°S", name: "Sydney" }
+                  ].map((loc, idx) => (
+                    <span key={`dup-${idx}`} className="wire-item">
+                      <span className="wire-dot">·</span>
+                      <span className="wire-coord">{loc.coord}</span>
+                      <span className="wire-name">{loc.name}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Row 2: Contributors */}
+              <div className="wire-row">
+                <div className="marquee-track animate-marquee-x-reverse">
+                  {[
+                    { handle: "@tw93", role: "kami" },
+                    { handle: "@guizang", role: "@op7418" },
+                    { handle: "@alchaincyf", role: "@huashu" },
+                    { handle: "@multica-ai", role: "@daemon" },
+                    { handle: "@OpenCoworkAI", role: "@codesign" },
+                    { handle: "@nexu-io", role: "studio" },
+                    { handle: "@you", role: "be next" }
+                  ].map((creator, idx) => (
+                    <span key={idx} className="wire-item">
+                      <span className="wire-dot">·</span>
+                      <span className="wire-handle">{creator.handle}</span>
+                      <span className="wire-role">{creator.role}</span>
+                    </span>
+                  ))}
+                  {/* Duplicated for loop */}
+                  {[
+                    { handle: "@tw93", role: "kami" },
+                    { handle: "@guizang", role: "@op7418" },
+                    { handle: "@alchaincyf", role: "@huashu" },
+                    { handle: "@multica-ai", role: "@daemon" },
+                    { handle: "@OpenCoworkAI", role: "@codesign" },
+                    { handle: "@nexu-io", role: "studio" },
+                    { handle: "@you", role: "be next" }
+                  ].map((creator, idx) => (
+                    <span key={`dup-${idx}`} className="wire-item">
+                      <span className="wire-dot">·</span>
+                      <span className="wire-handle">{creator.handle}</span>
+                      <span className="wire-role">{creator.role}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section II: About / Manifesto Section */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">II.</span>
+            <span className="meta-grp">
+              <span>About / Manifesto</span>
+              <span className="dot-mark">•</span>
+              <span>Open Design / Volume 01</span>
+            </span>
+            <span>002 / 008</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center">
+            <div className="lg:col-span-7 space-y-6 text-left" data-reveal="">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>About the studio · Nº 02</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold tracking-tight text-[#15140f] dark:text-[#f7f1de] leading-none">
+                We treat your digital catalog as a <span className="font-serif italic font-light">curated gallery,</span> not a raw dump.
+              </h2>
+              <p className="text-sm text-[#5a5448] dark:text-[#ece4cf] leading-relaxed max-w-xl font-sans">
+                Every asset published to your storefront should command value. Standard bulk importers flood stores with ugly product images, generic text, and sloppy tagging. AutoCAD templates respect structural margins, device alignment, shadow depth, and semantic tag complementary sets to ensure elite visual standing.
+              </p>
+              <div className="pt-4 flex items-center gap-4 text-xs font-mono text-[#8b8676] dark:text-[#a39e8f]">
+                <span className={`w-8 h-8 rounded-full border ${darkMode ? 'border-[#f7f1de]' : 'border-[#15140f]'} flex items-center justify-center font-serif italic text-[13px] text-[#15140f] dark:text-[#f7f1de]`}>Ø</span>
+                <span>Automated compilation, custom premium results. Est. 2026.</span>
+              </div>
+            </div>
+            <div className="lg:col-span-5 relative">
+              <div className={`aspect-square rounded-2xl overflow-hidden border ${darkMode ? 'border-[rgba(247,241,222,0.14)] bg-[#1a1914]' : 'border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30'} p-6 flex flex-col justify-between`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676]">FIG. 02 / PROXIMITY INDEX</span>
+                  <span className="text-[9px] font-mono uppercase bg-[#ed6f5c]/15 text-[#ed6f5c] px-2 py-0.5 rounded">COGNITIVE COMPOSITE</span>
+                </div>
+                <div className="my-auto space-y-4">
+                  {/* Layer indicators simulating real high-end studio workspace layout mapping */}
+                  <div className={`p-3.5 border rounded-xl flex items-center justify-between text-xs font-mono ${darkMode ? 'bg-[#12110c]/80 border-[rgba(247,241,222,0.10)]' : 'bg-[#f7f1de]/80 border-[rgba(21,20,15,0.12)]'}`}>
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-3.5 h-3.5 text-[#ed6f5c]" />
+                      <span>Studio Natural Light Cast</span>
+                    </div>
+                    <span className="text-[#8b8676]">92%</span>
+                  </div>
+                  <div className={`p-3.5 border rounded-xl flex items-center justify-between text-xs font-mono ${darkMode ? 'bg-[#12110c]/80 border-[rgba(247,241,222,0.10)]' : 'bg-[#f7f1de]/80 border-[rgba(21,20,15,0.12)]'}`}>
+                    <div className="flex items-center gap-2">
+                      <Layers2 className="w-3.5 h-3.5 text-[#6e7448] dark:text-[#9ea671]" />
+                      <span>Shadow Falloff Weight</span>
+                    </div>
+                    <span className="text-[#8b8676]">0.45px</span>
+                  </div>
+                  <div className={`p-3.5 border rounded-xl flex items-center justify-between text-xs font-mono ${darkMode ? 'bg-[#12110c]/80 border-[rgba(247,241,222,0.10)]' : 'bg-[#f7f1de]/80 border-[rgba(21,20,15,0.12)]'}`}>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-[#e9b94a]" />
+                      <span>Gemini Tag Score threshold</span>
+                    </div>
+                    <span className="text-[#8b8676]">0.98 Match</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-left text-[#5a5448] dark:text-[#a39e8f] leading-normal font-sans">
+                  *AutoLister computes visual gravity matrices directly in the browser instance to create stunning mockups.*
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section III: Multi-Category Capabilities Grid */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">III.</span>
+            <span className="meta-grp">
+              <span>System Profiles</span>
+              <span className="dot-mark">•</span>
+              <span>Modular Studio Capabilities</span>
+            </span>
+            <span>003 / 008</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-14" data-reveal="">
+            <div className="lg:col-span-5 space-y-4 text-left">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>Four Target Systems · Nº 03</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                Specialized asset pipelines for <span className="font-serif italic font-light">Etsy creators.</span>
+              </h2>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans mt-2">
+                Create catalogs for printable items, presets, labels, or planners. We custom tailored compile matrices to suit each digital niche format perfectly.
+              </p>
+            </div>
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
+              {/* Profile A: Printable Art */}
+              <div className={`p-6 border rounded-2xl ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de]/60 border-[rgba(21,20,15,0.16)]'} space-y-3`}>
+                <div className="w-9 h-9 border border-[#ed6f5c]/20 text-[#ed6f5c] rounded-xl flex items-center justify-center font-serif text-sm">A</div>
+                <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">01 / Printable Art Prints</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Automates layered mockups utilizing wooden mat textures, gallery wall floating frames, and natural botanical casts. Perfect for PDF, JPEG, PNG set structures.
+                </p>
+              </div>
+              {/* Profile B: Presets */}
+              <div className={`p-6 border rounded-2xl ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de]/60 border-[rgba(21,20,15,0.16)]'} space-y-3`}>
+                <div className="w-9 h-9 border border-[#ed6f5c]/20 text-[#ed6f5c] rounded-xl flex items-center justify-center font-serif text-sm">B</div>
+                <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">02 / Lightroom Presets DNG</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Synthesizes dynamic before-and-after portrait sliders, mobile layout grids, cozy cafe vignettes, and direct metadata inclusions for immediate mobile dng file exports.
+                </p>
+              </div>
+              {/* Profile C: Sticker Sheets */}
+              <div className={`p-6 border rounded-2xl ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de]/60 border-[rgba(21,20,15,0.16)]'} space-y-3`}>
+                <div className="w-9 h-9 border border-[#ed6f5c]/20 text-[#ed6f5c] rounded-xl flex items-center justify-center font-serif text-sm">C</div>
+                <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">03 / Clipart & Digital Stickers</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Produces simulated checkered backings, diecut borders with bleed parameters, glossy surface shine highlights, and multi-sticker previews in one compile.
+                </p>
+              </div>
+              {/* Profile D: Daily Planners */}
+              <div className={`p-6 border rounded-2xl ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de]/60 border-[rgba(21,20,15,0.16)]'} space-y-3`}>
+                <div className="w-9 h-9 border border-[#ed6f5c]/20 text-[#ed6f5c] rounded-xl flex items-center justify-center font-serif text-sm">D</div>
+                <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">04 / Digital Planners PDF</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Presents gorgeous landscape tablet bezels, undated calendar layers, notebook wire binders, and planner pages floats. Highly-stylized minimalist design guidelines.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section IV: Live Labs Showcase with Interactive State Filtering */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">IV.</span>
+            <span className="meta-grp">
+              <span>Studio Labs</span>
+              <span className="dot-mark">•</span>
+              <span>Presets Showcase & Mock Ratios</span>
+            </span>
+            <span>004 / 008</span>
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12" data-reveal="">
+            <div className="space-y-3 max-w-xl text-left">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>Living Asset Archive · Nº 04</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                Explore our catalog template <span className="font-serif italic font-light">preset directory.</span>
+              </h2>
+            </div>
+            
+            {/* Interactive filtering pills */}
+            <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+              {[
+                { label: 'All Presets', id: 'all' },
+                { label: 'Printable Art', id: 'wallart' },
+                { label: 'Lightroom', id: 'presets' },
+                { label: 'Stickers', id: 'stickers' },
+                { label: 'PDF Planners', id: 'planners' }
+              ].map(pill => (
+                <button
+                  key={pill.id}
+                  onClick={() => setActiveLabFilter(pill.id as any)}
+                  className={`px-4.5 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-wide border cursor-pointer transition-all duration-200 ${
+                    activeLabFilter === pill.id
+                      ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold shadow-sm'
+                      : `${darkMode ? 'bg-[#1a1914] text-[#ece4cf] border-[rgba(247,241,222,0.16)] hover:bg-[#22211b]' : 'bg-[#efe7d2] text-[#15140f] border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf]'}`
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtered Labs Display Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            {[
+              {
+                id: 'lab-1',
+                category: 'wallart',
+                badge: 'Printables',
+                num: 'Nº 01',
+                year: '2026',
+                title: 'Vintage Botany Frame',
+                desc: 'Vertical rustic oak wood texture mat mockups with environmental sunray cast masks.',
+                image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80',
+              },
+              {
+                id: 'lab-2',
+                category: 'presets',
+                badge: 'Lightroom',
+                num: 'Nº 02',
+                year: '2026',
+                title: 'Warm Espresso Mobile LUT',
+                desc: 'Soft beige highlights cafe photography filter template showcasing slider templates.',
+                image: 'https://images.unsplash.com/photo-1498804103079-a6351b050096?w=500&q=80',
+              },
+              {
+                id: 'lab-3',
+                category: 'stickers',
+                badge: 'Stickers',
+                num: 'Nº 03',
+                year: '2026',
+                title: 'Vinyl Diecut Contour Set',
+                desc: 'Aesthetic checkered transparent png borders matching high-margin printing sheets.',
+                image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&q=80',
+              },
+              {
+                id: 'lab-4',
+                category: 'planners',
+                badge: 'Planners',
+                num: 'Nº 04',
+                year: '2026',
+                title: 'Kinfolk Planner Journal',
+                desc: 'Undated daily schedule planner inside modern slate tablet frame with metal binder spiral.',
+                image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=500&q=80',
+              },
+              {
+                id: 'lab-5',
+                category: 'wallart',
+                badge: 'Printables',
+                num: 'Nº 05',
+                year: '2026',
+                title: 'Minimal Gallery Multi-Frame',
+                desc: 'Three piece vertical frames layout hanging in clean modern studio wall shadows.',
+                image: 'https://images.unsplash.com/photo-1582201942988-13e60e4556ee?w=500&q=80',
+              }
+            ]
+              .filter(item => activeLabFilter === 'all' || item.category === activeLabFilter)
+              .map(item => (
+                <div key={item.id} className="group flex flex-col justify-between h-full space-y-4">
+                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-sm bg-transparent border border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.12)]">
+                    <span className="absolute top-3 left-3 bg-[#efe7d2]/95 dark:bg-[#12110c]/95 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] text-[#15140f] dark:text-[#f7f1de] font-mono text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-none">
+                      {item.badge}
+                    </span>
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" 
+                    />
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex justify-between items-center text-[10px] font-mono text-[#8b8676] dark:text-[#a39e8f] uppercase">
+                      <span>{item.num}</span>
+                      <span>{item.year}</span>
+                    </div>
+                    <h4 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{item.title}</h4>
+                    <p className={`text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans leading-relaxed line-clamp-2`}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+
+        {/* Section V: Step-By-Step Compilation Loop Method */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">V.</span>
+            <span className="meta-grp">
+              <span>Compilation Method</span>
+              <span className="dot-mark">•</span>
+              <span>Deterministic Layout Loop</span>
+            </span>
+            <span>005 / 008</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-16" data-reveal="">
+            <div className="lg:col-span-7 space-y-4 text-left">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>The Automated High-Fidelity Pipeline · Nº 05</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                Four step execution <span className="font-serif italic font-light">to storefront sync.</span>
+              </h2>
+            </div>
+            <div className="lg:col-span-5 flex items-start gap-3 pt-2 text-left">
+              <span className="text-lg text-[#ed6f5c] font-sans font-bold">+</span>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-mono uppercase tracking-wider">
+                Every stage runs client-side inside secure sandbox memory. Composed assets are transported explicitly on your command.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left relative pt-10">
+            {/* Step 1 */}
+            <div className="space-y-4">
+              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">01</div>
+              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Ingest Raw Assets</h4>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                Drag-and-drop raw photo filters dng, digital templates pdf, transparency decal png, or vectors.
+              </p>
+            </div>
+            {/* Step 2 */}
+            <div className="space-y-4">
+              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">02</div>
+              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Frame Canvas Mat</h4>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                Apply premium drop shadow matrices, frame wood types, floating mats, or tablet bezels cleanly in one click.
+              </p>
+            </div>
+            {/* Step 3 */}
+            <div className="space-y-4">
+              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">03</div>
+              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Compute Gemini Copy</h4>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                AI parses texture metrics to formulate SEO-ranked titles, comprehensive meta descriptions, and 13 targeted tags.
+              </p>
+            </div>
+            {/* Step 4 */}
+            <div className="space-y-4">
+              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">04</div>
+              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Sovereign Direct Sync</h4>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                Sync generated images and complete copywriting as active digital listings draft structure via Google OAuth APIs.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section VI: Selected Curated Designs Portfolio Showcase */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">VI.</span>
+            <span className="meta-grp">
+              <span>Curated Portfolio</span>
+              <span className="dot-mark">•</span>
+              <span>Featured Digital Collections</span>
+            </span>
+            <span>006 / 008</span>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center text-left" data-reveal="">
+            <div className="lg:col-span-4 space-y-6">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>Selected Metadata Work · Nº 06</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
+                High-margin structures built inside <span className="font-serif italic font-light">the studio.</span>
+              </h2>
+              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                A closer inspection of live collections successfully generated with correct formatting, high SEO tags complementary sets, and realistic environmental lighting matrices.
+              </p>
+              <div className="pt-2">
+                <Button 
+                  onClick={handleGoogleSignIn}
+                  className="bg-transparent hover:bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/25 rounded-full font-sans font-semibold text-xs px-6 py-4.5 shadow-none transition-colors cursor-pointer"
+                >
+                  Sync Your Shop Now →
+                </Button>
+              </div>
+            </div>
+            
+            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-8">
+              {/* Card 1 */}
+              <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] border-[rgba(21,20,15,0.16)]'} shadow-sm space-y-4`}>
+                <div className="flex justify-between items-center text-[10px] font-mono text-[#8b8676] dark:text-[#a39e8f] uppercase">
+                  <span>Selected Series</span>
+                  <span>01 / 31</span>
+                </div>
+                <h3 className="text-xl font-bold font-serif text-[#15140f] dark:text-[#f7f1de] leading-none">Autumn Foliage Series</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Set of 4 vintage botany watercolor prints formatted inside warm oak frames with soft neutral cream mats.
+                </p>
+                <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.10)] dark:border-[rgba(247,241,222,0.10)]">
+                  <img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&q=80" alt="Autumn Foliage" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-mono font-bold text-[#ed6f5c] uppercase border-t border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)] pt-3">
+                  <span>2026 Print Art</span>
+                  <span>Ready Draft Synced</span>
+                </div>
+              </div>
+              
+              {/* Card 2 */}
+              <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] border-[rgba(21,20,15,0.16)]'} shadow-sm space-y-4`}>
+                <div className="flex justify-between items-center text-[10px] font-mono text-[#8b8676] dark:text-[#a39e8f] uppercase">
+                  <span>Aesthetic Tool</span>
+                  <span>04 / 31</span>
+                </div>
+                <h3 className="text-xl font-bold font-serif text-[#15140f] dark:text-[#f7f1de] leading-none">Goodnotes Focal Binder</h3>
+                <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+                  Minimal daily landscape undated agenda optimized for GoodNotes with hyperlinked index pages.
+                </p>
+                <div className="aspect-[4/3] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.10)] dark:border-[rgba(247,241,222,0.10)]">
+                  <img src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=500&q=80" alt="Daily Binder" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-mono font-bold text-[#ed6f5c] uppercase border-t border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)] pt-3">
+                  <span>2026 Planners</span>
+                  <span>Active Live Listing</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section VII: Creator Testimonial & Heritage */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">VII.</span>
+            <span className="meta-grp">
+              <span>Creator Voices</span>
+              <span className="dot-mark">•</span>
+              <span>Real Digital Seller Testimony</span>
+            </span>
+            <span>007 / 008</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center text-left" data-reveal="">
+            <div className="lg:col-span-8 space-y-6">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none font-sans">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>Proven Value Ratio · Nº 07</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-snug tracking-tight">
+                “Before AutoLister, formatting mockup sizes and guessing 13 SEO tags consumed <span className="italic font-normal text-[#ed6f5c]">80% of my studio hours.</span> Now I dragging raw art vectors in, compile mat layers, and sync the final active draft in 10 seconds flat.”
+              </h2>
+              <div className="flex items-center gap-3">
+                <span className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.14)] text-[#f7f1de]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.14)] text-[#15140f]'} border flex items-center justify-center font-serif italic text-lg select-none`}>
+                  N
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold font-sans text-[#15140f] dark:text-[#f7f1de] leading-tight">Nina Kovac</h4>
+                  <p className="text-xs text-[#8b8676] dark:text-[#a39e8f] font-sans">Creative Director · North Foliage Studio</p>
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-4 relative aspect-square rounded-2xl overflow-hidden border border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.12)] bg-transparent">
+              <img src="https://images.unsplash.com/photo-1582201942988-13e60e4556ee?w=500&q=80" alt="Nina Kovac Studio" className="w-full h-full object-cover" />
+            </div>
+          </div>
+        </section>
+
+        {/* Section VIII: Studio Call To Action */}
+        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+          <div className="sec-rule text-left">
+            <span className="roman">VIII.</span>
+            <span className="meta-grp">
+              <span>Live Launch</span>
+              <span className="dot-mark">•</span>
+              <span>Initiate Sovereign Synced Workspaces</span>
+            </span>
+            <span>008 / 008</span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center text-left" data-reveal="">
+            <div className="lg:col-span-8 space-y-6">
+              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none font-sans">
+                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
+                <span>Connect & Secure · Nº 08</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
+                Let&apos;s construct something <span className="font-serif italic font-light">expressive & profitable.</span>
+              </h2>
+              <p className="text-sm text-[#5a5448] dark:text-[#ece4cf] max-w-xl leading-relaxed font-sans">
+                Sign in securely using Google authentication to retrieve your sovereign Firebase sandbox folder instances. Link your custom Etsy OAuth credentials to instantly begin compiling.
+              </p>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+                <Button 
+                  onClick={handleGoogleSignIn}
+                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-sans font-medium text-sm py-6 px-8 rounded-full shadow-none transition-colors cursor-pointer flex items-center justify-center gap-2.5"
+                >
+                  <User className="w-4 h-4 text-[#efe7d2]" />
+                  Sign In (Google Authentication)
+                </Button>
+                <div className={`p-4 rounded-full border border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.12)] font-mono text-[11px] font-semibold text-center text-[#15140f] dark:text-[#f7f1de] select-none uppercase tracking-wider`}>
+                  Secure Cloud Sync: Active
+                </div>
+              </div>
+            </div>
+            
+            <div className="lg:col-span-4 relative">
+              <div className={`aspect-square rounded-2xl overflow-hidden border ${darkMode ? 'border-[rgba(247,241,222,0.14)] bg-[#1a1914]' : 'border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30'} p-6 flex flex-col justify-between`}>
+                <div className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676]">WORKSPACE KEY DATA</div>
+                <div className="my-auto space-y-1 text-xs font-mono">
+                  <div className="flex justify-between border-b border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)] pb-1">
+                    <span className="text-[#8b8676]">Sovereign Memory:</span>
+                    <span>100% Secure</span>
+                  </div>
+                  <div className="flex justify-between border-b border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)] pb-1 pt-1">
+                    <span className="text-[#8b8676]">Asset Caching:</span>
+                    <span>Client Isolated</span>
+                  </div>
+                  <div className="flex justify-between border-b border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)] pb-1 pt-1">
+                    <span className="text-[#8b8676]">Sync Frequency:</span>
+                    <span>Direct API Sync</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-mono uppercase text-[#ed6f5c]">
+                  <span>● Live Deploy</span>
+                  <span>MMXXVI Edition</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Impressive, Professional Multi-Column Editorial Footer */}
-        <footer className={`relative z-10 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1a1914]/60' : 'border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/40'} pt-16 pb-12 mt-12 font-sans select-none`}>
-          <div className="max-w-7xl mx-auto px-6 sm:px-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10">
+        <footer className={`relative z-10 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1a1914]/60' : 'border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/40'} pt-20 pb-12 mt-12 font-sans select-none`}>
+          <div className="max-w-7xl mx-auto px-6 sm:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 sm:gap-16">
             {/* Column 1: Brand & Statement */}
-            <div className="col-span-1 sm:col-span-2 lg:col-span-5 space-y-4 text-left">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-base`}>
+            <div className="md:col-span-5 space-y-5 text-left">
+              <div className="flex items-center gap-2.5 hover:opacity-95 transition-opacity duration-150 cursor-pointer">
+                <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg shadow-sm font-semibold`}>
                   Ø
                 </div>
-                <span className={`text-base font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>
-                  Etsy <span className="font-sans font-bold not-italic text-xs uppercase tracking-wider text-[#ed6f5c] ml-1">AutoLister</span>
+                <span className={`text-lg font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>
+                  Etsy <span className="font-sans font-extrabold not-italic text-xs uppercase tracking-widest text-[#ed6f5c] ml-1 bg-[#ed6f5c]/10 px-2 py-0.5 rounded">AutoLister</span>
                 </span>
               </div>
-              <p className={`text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} leading-relaxed max-w-sm font-sans`}>
-                A sovereign browser-based suite integrating automated mockup layout engines with Gemini metadata modeling to enable instant Etsy digital catalog listing publish loops.
+              <p className={`text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} leading-relaxed max-w-sm font-sans mt-4`}>
+                The sovereign alternative for digital catalog automation. Formulates high-fidelity light mockups, embeds drop shadow variables, and computes elite Gemini SEO copywriting to enable seamless Etsy publishing.
               </p>
-              <div className={`pt-2 text-[10px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'} font-mono uppercase tracking-wider`}>
-                Etsy AutoLister Suite · Edition 2026
+              <div className="pt-2">
+                <Button 
+                  onClick={handleGoogleSignIn}
+                  className="inline-flex items-center gap-2 text-[10.5px] font-mono uppercase bg-[#15140f] dark:bg-[#f7f1de] text-[#f7f1de] dark:text-[#15140f] px-5 py-3.5 rounded-full hover:bg-[#ed6f5c] dark:hover:bg-[#ed6f5c] hover:text-white dark:hover:text-white transition-colors duration-200 shadow-none cursor-pointer"
+                >
+                  Retrieve Active Workspace
+                  <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] lowercase ml-1">· cloud sync</span>
+                </Button>
               </div>
             </div>
 
             {/* Column 2: Architecture Integrity */}
-            <div className="col-span-1 lg:col-span-2 space-y-3 text-left font-sans">
-              <h4 className={`text-[10px] font-mono font-bold ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase tracking-wider`}>{"▪ SYSTEM FEATURES"}</h4>
-              <ul className={`space-y-2 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Local-First Storage</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">File Ingestion Parser</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Mockup Framing System</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">SEO Title Generator</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">13 Tag Synthesizer</span></li>
+            <div className="md:col-span-2 space-y-4 text-left font-sans">
+              <h5 className={`text-[10px] font-mono font-bold tracking-widest ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase`}>{"▪ STUDIO SUITE"}</h5>
+              <ul className={`space-y-2.5 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Local-First Engine</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Canvas Mockups</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Gemini Copy Model</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Metadata Matrix</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Sovereign Directory</span></li>
               </ul>
             </div>
 
             {/* Column 3: Category Classes */}
-            <div className="col-span-1 lg:col-span-2 space-y-3 text-left font-sans">
-              <h4 className={`text-[10px] font-mono font-bold ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase tracking-wider`}>{"▪ ASSET PROFILES"}</h4>
-              <ul className={`space-y-2 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Transparent Graphics Pack</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Printable Wall Art Prints</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Lightroom Photos Filters</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Journals & PDF Planners</span></li>
+            <div className="md:col-span-2 space-y-4 text-left font-sans">
+              <h5 className={`text-[10px] font-mono font-bold tracking-widest ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase`}>{"▪ DIGITAL CATEGORIES"}</h5>
+              <ul className={`space-y-2.5 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Wall Art Print sets</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Lightroom DNG presets</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Stickers & Decals pack</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">PDF Daily Planners</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Clipart Assets</span></li>
               </ul>
             </div>
 
             {/* Column 4: Operational Integrity */}
-            <div className="col-span-1 sm:col-span-2 lg:col-span-3 space-y-3 text-left font-sans">
-              <h4 className={`text-[10px] font-mono font-bold ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase tracking-wider`}>{"▪ COMPLIANCE"}</h4>
-              <ul className={`space-y-2 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Apache-2.0 License</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Google OAuth Security</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">Isolated Client Sandbox</span></li>
-                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer">No Cookie Tracking</span></li>
+            <div className="md:col-span-3 space-y-4 text-left font-sans">
+              <h5 className={`text-[10px] font-mono font-bold tracking-widest ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} uppercase`}>{"▪ LEGAL & PERSISTENCE"}</h5>
+              <ul className={`space-y-2.5 text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} font-sans`}>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Apache-2.0 License</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Google Auth Integrity</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Secure Firebase Storage</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Isolated Client Sandbox</span></li>
+                <li><span className="hover:text-[#ed6f5c] transition-colors cursor-pointer block font-medium">Zero Session Leak</span></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom Strip */}
-          <div className={`max-w-7xl mx-auto px-6 sm:px-12 mt-12 pt-8 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.12)]'} flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'} font-mono`}>
-            <div>
-              © 2026 Etsy AutoLister. Crafted for digital creators.
-            </div>
-            <div className="flex gap-4">
-              <span>Secure Layer: Firebase Cloud Sync Active</span>
+          <div className={`max-w-7xl mx-auto px-6 sm:px-12 mt-16 pt-8 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.12)]'} flex flex-col md:flex-row items-center justify-between gap-4 text-[10.5px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'} font-mono`}>
+            <span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ed6f5c] inline-block mr-2 animate-pulse align-middle" />
+              Sovereign <b>AutoLister System</b> · Apache-2.0 · 2026 / Vol. 01 / Issue Nº 26
+            </span>
+            <span className="flex flex-wrap gap-x-6 gap-y-2 items-center justify-start md:justify-end">
+              <span>Cloud PERSISTENCE: Firebase Sync Enabled</span>
               <span>·</span>
-              <span>Env: Cloud Run Sandbox</span>
-            </div>
+              <span>52.5200° N · 13.4050° E</span>
+              <span className="text-[#ed6f5c]">♥ MMXXVI</span>
+            </span>
+          </div>
+
+          {/* Big Name Showcase (Foot-Mega) */}
+          <div className="max-w-7xl mx-auto px-6 sm:px-12 foot-mega">
+            <div className="word">Auto<em>Lister</em>.</div>
           </div>
         </footer>
+        <ScrollToTop darkMode={darkMode} />
       </div>
     );
   }
