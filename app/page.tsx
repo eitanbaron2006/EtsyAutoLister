@@ -211,8 +211,8 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
                 <span className={step === 2 ? 'text-[#15140f] dark:text-[#f7f1de] font-bold' : 'text-[#8b8676] dark:text-[#a39e8f]'}>[03] EVALUATE GEMINI COPYWRITING</span>
               </div>
               <div className="flex items-center gap-2.5 select-none">
-                <span className={`w-2 h-2 rounded-full ${step >= 3 ? 'bg-emerald-600' : 'bg-[#ddd2b6] dark:bg-[#44423a]'} ${isSynthesizing && step === 3 ? 'animate-ping' : ''}`} />
-                <span className={step === 3 ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-[#8b8676] dark:text-[#a39e8f]'}>[04] DRAFT SYNCED SUCCESSFULLY</span>
+                <span className={`w-2 h-2 rounded-full ${step >= 3 ? 'bg-[#6e7448] dark:bg-[#9ea671]' : 'bg-[#ddd2b6] dark:bg-[#44423a]'} ${isSynthesizing && step === 3 ? 'animate-ping' : ''}`} />
+                <span className={step === 3 ? 'text-[#6e7448] dark:text-[#9ea671] font-bold' : 'text-[#8b8676] dark:text-[#a39e8f]'}>[04] DRAFT SYNCED SUCCESSFULLY</span>
               </div>
             </div>
           </div>
@@ -286,7 +286,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
           </div>
           
           <div className={`flex items-center gap-2 border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-4 mt-6 leading-none select-none`}>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#6e7448] dark:bg-[#9ea671] animate-pulse" />
             <span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] font-mono uppercase">Full automated lifecycle generated client-side locally in the browser frame.</span>
           </div>
         </div>
@@ -1554,7 +1554,7 @@ export default function Home() {
 
                 <div className={`p-4 rounded-xl border ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de]/60 border-[rgba(21,20,15,0.16)]'}`}>
                   <div className={`text-[9px] font-mono uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>Live listings</div>
-                  <div className="text-xl font-serif font-bold mt-1 text-emerald-600 dark:text-emerald-400">{listingsCohort.publishedHistory}</div>
+                  <div className="text-xl font-serif font-bold mt-1 text-[#6e7448] dark:text-[#9ea671]">{listingsCohort.publishedHistory}</div>
                 </div>
               </div>
             </div>
@@ -1671,7 +1671,7 @@ export default function Home() {
                                     ${listingItem.status === 'idle' ? (darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#a39e8f]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]') :
                                       isInProgressPipeline ? 'bg-[#efe7d2]/10 border-[#ed6f5c]/40 text-[#ed6f5c]' :
                                       listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                      'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold'
+                                      `bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] ${darkMode ? 'dark:text-[#9ea671]' : ''} font-bold`
                                     }`}>
                                     {listingItem.status === 'idle' && 'Waiting to Compile'}
                                     {listingItem.status === 'scanning' && 'Scanning Blueprints'}
@@ -1715,7 +1715,7 @@ export default function Home() {
                                       onClick={() => handlePreviewProject(listingItem)}
                                       size="sm"
                                       variant="outline"
-                                      className={`font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer flex items-center gap-1.5 bg-transparent hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448]'} transition-all`}
+                                      className={`font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer flex items-center gap-1.5 bg-transparent hover:bg-[#6e7448]/10 hover:text-[#6e7448] dark:hover:text-[#9ea671] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448]'} transition-all`}
                                     >
                                       <Eye className="w-3.5 h-3.5 text-[#ed6f5c]" /> Preview Live
                                     </Button>
@@ -2380,7 +2380,7 @@ export default function Home() {
               <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Successful Listings</p>
               <h3 className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de] mt-1">{listingsCohort.publishedHistory} Live</h3>
             </div>
-            <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-600 font-sans">
+            <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[#6e7448]/20 rounded-lg flex items-center justify-center text-[#6e7448] dark:text-[#9ea671] font-sans">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </Card>
@@ -2491,7 +2491,7 @@ export default function Home() {
                               ${listingItem.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
                                 isInProgressPipeline ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
                                 listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                'bg-emerald-50/10 border-emerald-600/35 text-emerald-800'
+                                'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
                               }`}>
                               {listingItem.status === 'idle' && 'Waiting to Compile'}
                               {listingItem.status === 'scanning' && 'Scanning Blueprints'}
@@ -2601,7 +2601,7 @@ export default function Home() {
                   Generated layout details, compiled download package, and keyword analysis suite.
                 </DialogDescription>
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider bg-emerald-50/10 text-emerald-800 px-2.5 py-0.5 rounded border border-emerald-600/20 shrink-0 font-medium select-none">
+              <span className="text-[10px] font-mono uppercase tracking-wider bg-[#6e7448]/10 text-[#6e7448] px-2.5 py-0.5 rounded border border-[#6e7448]/30 shrink-0 font-medium select-none">
                 {activeProduct?.status === 'published' ? 'Live Draft Generated' : 'Draft Prepared'}
               </span>
             </div>
@@ -2792,8 +2792,8 @@ export default function Home() {
               
               {selectedMode === 'etsy' ? (
                 activeProduct?.status === 'published' ? (
-                  <Button variant="outline" disabled className="text-emerald-800 border-emerald-600/35 bg-[#efe7d2] font-mono text-[10px] uppercase tracking-wider rounded-lg">
-                    <Check className="w-4 h-4 mr-1 text-emerald-700" /> Active Draft Added
+                  <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-[10px] uppercase tracking-wider rounded-lg">
+                    <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
                   </Button>
                 ) : (
                   <Button 
