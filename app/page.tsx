@@ -7,19 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { 
-  Store, 
-  FolderUp, 
-  Wand2, 
-  UploadCloud, 
-  CheckCircle2, 
-  ChevronRight, 
-  Lock, 
-  LogOut, 
-  Copy, 
-  FileCode, 
-  ArrowRight, 
-  User, 
+import {
+  Store,
+  FolderUp,
+  Wand2,
+  UploadCloud,
+  CheckCircle2,
+  ChevronRight,
+  Lock,
+  LogOut,
+  Copy,
+  FileCode,
+  ArrowRight,
+  User,
   Grid,
   ArrowLeft,
   Sparkles,
@@ -47,25 +47,25 @@ import {
 import { toast } from 'sonner';
 
 // Firebase Imports
-import { 
-  auth, 
-  db, 
-  googleAuthProvider, 
-  handleFirestoreError, 
-  OperationType 
+import {
+  auth,
+  db,
+  googleAuthProvider,
+  handleFirestoreError,
+  OperationType
 } from '@/lib/firebase';
-import { 
-  signInWithPopup, 
+import {
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  doc,
+  setDoc,
+  getDoc,
   deleteDoc,
-  collection, 
+  collection,
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
@@ -81,7 +81,7 @@ type ListingMetadata = {
   listingId?: string;
   listingUrl?: string;
   productType?: string; // 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
-  pipelineStepText?: string; 
+  pipelineStepText?: string;
   mockupImage?: string; // Base64 dataURL of simulated custom mockup!
 };
 
@@ -138,7 +138,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
     setActiveTab(tabId);
     setIsSynthesizing(true);
     setStep(0);
-    
+
     // Simulate pipeline steps
     const timer1 = setTimeout(() => setStep(1), 800);
     const timer2 = setTimeout(() => setStep(2), 1600);
@@ -149,7 +149,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
   };
 
   return (
-    <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+    <section id="sandbox" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
       <div className="sec-rule text-left">
         <span className="roman">I.A</span>
         <span className="meta-grp">
@@ -159,7 +159,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
         </span>
         <span>001 / 008</span>
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12" data-reveal="">
         <div className="space-y-3 max-w-xl text-left">
           <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
             {"▪ INTERACTIVE TOOL SANDBOX"}
@@ -174,7 +174,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch font-sans">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch font-sans" data-reveal="">
         {/* Left column: Selector & Progress */}
         <div className="lg:col-span-4 space-y-6 flex flex-col justify-between">
           <div className="space-y-3.5">
@@ -184,11 +184,10 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
                 <button
                   key={item.id}
                   onClick={() => triggerSynthesis(item.id)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all text-xs flex items-center justify-between cursor-pointer ${
-                    activeTab === item.id 
-                      ? 'bg-[#ece4cf]/60 border-[#ed6f5c]/40 text-[#15140f] dark:bg-[#1a1914]/80 dark:border-[#ed6f5c] dark:text-[#f7f1de] font-semibold' 
+                  className={`w-full text-left p-4 rounded-xl border transition-all text-xs flex items-center justify-between cursor-pointer ${activeTab === item.id
+                      ? 'bg-[#ece4cf]/60 border-[#ed6f5c]/40 text-[#15140f] dark:bg-[#1a1914]/80 dark:border-[#ed6f5c] dark:text-[#f7f1de] font-semibold'
                       : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.10)] dark:bg-[#22211b]/40 dark:border-[rgba(247,241,222,0.10)] text-[#5a5448] dark:text-[#ece4cf] hover:bg-[#ece4cf]/30 dark:hover:bg-[#1a1914]/50'
-                  }`}
+                    }`}
                 >
                   <span className="font-mono lowercase">{item.label}</span>
                   <ChevronRight className={`w-4 h-4 transition-transform ${activeTab === item.id ? 'translate-x-1 text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}`} />
@@ -293,7 +292,7 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
               </div>
             </div>
           </div>
-          
+
           <div className={`flex items-center gap-2 border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-4 mt-6 leading-none select-none`}>
             <span className="w-2 h-2 rounded-full bg-[#6e7448] dark:bg-[#9ea671] animate-pulse" />
             <span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] font-mono uppercase">Full automated lifecycle generated client-side locally in the browser frame.</span>
@@ -326,13 +325,11 @@ function ScrollToTop({ darkMode }: { darkMode: boolean }) {
   return (
     <button
       onClick={scrollToTop}
-      className={`fixed bottom-8 right-8 z-50 p-3 rounded-full border shadow-lg transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 ${
-        visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90 pointer-events-none'
-      } ${
-        darkMode 
-          ? 'bg-[#1a1914] border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' 
+      className={`fixed bottom-8 right-8 z-50 p-3 rounded-full border shadow-lg transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90 pointer-events-none'
+        } ${darkMode
+          ? 'bg-[#1a1914] border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]'
           : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'
-      }`}
+        }`}
       aria-label="Scroll to top"
     >
       <ArrowRight className="w-4 h-4 -rotate-90" />
@@ -344,7 +341,7 @@ export default function Home() {
   // Authentication & Configuration States
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  
+
   // Selection Pathways variables
   const [selectedMode, setSelectedMode] = useState<'etsy' | 'manual' | null>(null);
   const [selectedProductType, setSelectedProductType] = useState<string | null>(null); // e.g. 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
@@ -369,7 +366,7 @@ export default function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
   const [activeLabFilter, setActiveLabFilter] = useState<'all' | 'wallart' | 'presets' | 'stickers' | 'planners'>('all');
-  
+
   // Manual raw assets uploading state
   const [uploadTitleInput, setUploadTitleInput] = useState('');
   const [isUploadingRaw, setIsUploadingRaw] = useState(false);
@@ -378,27 +375,34 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rawFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Branded scroll listener for headroom-style hiding top menu bar:
+  // Branded scroll listener for top menu bar sticky transitions:
+  const [scrolled, setScrolled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
-  
+  const lastScrollY = useRef(0);
+
   useEffect(() => {
-    let lastY = window.scrollY || 0;
-    const SHOW_TOP = 100;
-    const DELTA = 6;
-    
     const handleScroll = () => {
-      const y = window.scrollY || 0;
-      const d = y - lastY;
-      if (y <= SHOW_TOP) {
-        setNavHidden(false);
-      } else if (d > DELTA) {
-        setNavHidden(true);
-      } else if (d < -DELTA) {
+      const currentScroll = window.scrollY;
+      
+      if (currentScroll > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+
+      if (currentScroll > 100) {
+        if (currentScroll > lastScrollY.current) {
+          setNavHidden(true);
+        } else {
+          setNavHidden(false);
+        }
+      } else {
         setNavHidden(false);
       }
-      lastY = y;
+      
+      lastScrollY.current = currentScroll;
     };
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -415,36 +419,45 @@ export default function Home() {
 
   // IntersectionObserver driven animations for data-reveal elements matching open-design
   useEffect(() => {
-    const triggerReveals = () => {
-      const elements = document.querySelectorAll('[data-reveal]:not([data-revealed])');
-      if (elements.length === 0) return null;
+    let observer: IntersectionObserver | null = null;
 
-      const observer = new IntersectionObserver(
+    const setupObserver = () => {
+      const elements = document.querySelectorAll('[data-reveal]:not([data-revealed="true"])');
+      if (elements.length === 0) return;
+
+      if (observer) {
+        observer.disconnect();
+      }
+
+      observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              (entry.target as HTMLElement).dataset.revealed = 'true';
-              observer.unobserve(entry.target);
+              const target = entry.target as HTMLElement;
+              target.setAttribute('data-revealed', 'true');
+              observer?.unobserve(target);
             }
           });
         },
         { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
       );
 
-      elements.forEach((el) => observer.observe(el));
-      return observer;
+      elements.forEach((el) => observer?.observe(el));
     };
 
-    const obs = triggerReveals();
+    setupObserver();
+    const timer = setTimeout(setupObserver, 200);
+    const timer2 = setTimeout(setupObserver, 800);
 
-    // Since tabs or views can change dynamically, use MutationObserver to observe changes
     const mutationObserver = new MutationObserver(() => {
-      triggerReveals();
+      setupObserver();
     });
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      if (obs) obs.disconnect();
+      clearTimeout(timer);
+      clearTimeout(timer2);
+      if (observer) observer.disconnect();
       mutationObserver.disconnect();
     };
   }, [user, currentView, activeLabFilter]);
@@ -469,7 +482,7 @@ export default function Home() {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoadingAuth(false);
-      
+
       if (currentUser) {
         // Logged in: Sync User Profile or create if missing
         const userDocRef = doc(db, 'users', currentUser.uid);
@@ -515,7 +528,7 @@ export default function Home() {
         setEtsyToken(token);
         setIsConnecting(false);
         setSelectedMode('etsy');
-        
+
         // Save connection back to Firestore user profile
         setDoc(doc(db, 'users', auth.currentUser.uid), {
           etsyConnected: true,
@@ -528,7 +541,7 @@ export default function Home() {
         toast.success("Etsy shop connected and persisted safely in the cloud database!");
       }
     };
-    
+
     window.addEventListener('message', handleMessage);
 
     // Defer setting app URL
@@ -596,12 +609,12 @@ export default function Home() {
       const res = await fetch('/api/auth/etsy/url');
       if (!res.ok) throw new Error('Failed to fetch auth URL');
       const data = await res.json();
-      
+
       if (data.demoMode) {
         setEtsyToken('DEMO_TOKEN');
         setIsConnecting(false);
         setSelectedMode('etsy');
-        
+
         // Persist demo credentials
         await setDoc(doc(db, 'users', user.uid), {
           etsyConnected: true,
@@ -611,18 +624,18 @@ export default function Home() {
         toast.success("Connected in DEMO MODE (Placeholder API keys detected).");
         return;
       }
-      
+
       const width = 600;
       const height = 700;
       const left = window.innerWidth / 2 - width / 2;
       const top = window.innerHeight / 2 - height / 2;
-      
+
       const popup = window.open(
         data.url,
         'etsy_oauth',
         `width=${width},height=${height},left=${left},top=${top}`
       );
-      
+
       if (!popup) {
         throw new Error('Popup blocked. Please allow popups.');
       }
@@ -678,20 +691,20 @@ export default function Home() {
   // Handle folder upload selection (Catalog Directory)
   const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length || !user || !selectedProductType) return;
-    
+
     const fileList = Array.from(e.target.files);
     const groups: Record<string, { images: File[]; files: File[] }> = {};
 
     fileList.forEach(file => {
       const parts = file.webkitRelativePath.split('/');
       if (parts.length < 2) return; // Need inside folder relative nesting
-      
+
       const folderName = parts[parts.length - 2];
-      
+
       if (!groups[folderName]) {
         groups[folderName] = { images: [], files: [] };
       }
-      
+
       if (file.type.startsWith('image/')) {
         groups[folderName].images.push(file);
       } else {
@@ -746,7 +759,7 @@ export default function Home() {
   const handleCreateListingFromRawAssets = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedProductType) return;
-    
+
     const title = uploadTitleInput.trim() || (uploadedRawFiles[0] ? uploadedRawFiles[0].name.split('.')[0] : `Product Draft`);
     if (uploadedRawFiles.length === 0) {
       toast.error("Please add at least one raw digital asset file to compile.");
@@ -810,46 +823,46 @@ export default function Home() {
 
     try {
       // Step 1: Scanning Assets
-      await setDoc(doc(db, docPath), { 
-        status: 'scanning', 
+      await setDoc(doc(db, docPath), {
+        status: 'scanning',
         pipelineStepText: 'Reading digital deliverable blueprints & structures...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
       await new Promise(r => setTimeout(r, 1500));
 
       // Step 2: Creating Lifestyle Mockups
-      await setDoc(doc(db, docPath), { 
-        status: 'mockups', 
+      await setDoc(doc(db, docPath), {
+        status: 'mockups',
         pipelineStepText: 'Rendering premium styled lifestyle scene shadows...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
-      
+
       // Compute the realistic canvas mockup image on-the-fly!
       const activeImg = sessionFiles.images[0];
       const dataUrl = await generateSimulatedMockup(folderName, productType, activeImg);
       await new Promise(r => setTimeout(r, 2000));
 
       // Step 3: Promotional thumbnail texts overlays
-      await setDoc(doc(db, docPath), { 
-        status: 'thumbnail', 
+      await setDoc(doc(db, docPath), {
+        status: 'thumbnail',
         pipelineStepText: 'Configuring Etsy 300DPI promotional cover layout badges...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
       await new Promise(r => setTimeout(r, 1500));
 
       // Step 4: Zip Packing
-      await setDoc(doc(db, docPath), { 
-        status: 'compiling', 
+      await setDoc(doc(db, docPath), {
+        status: 'compiling',
         pipelineStepText: 'Assembling safe high-fidelity deliverable zip packs layers...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
       await new Promise(r => setTimeout(r, 1500));
 
       // Step 5: SEO and copy generation with Gemini
-      await setDoc(doc(db, docPath), { 
-        status: 'seo', 
+      await setDoc(doc(db, docPath), {
+        status: 'seo',
         pipelineStepText: 'Optimizing high-converting titles and metadata with Gemini 3.5...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
       // Pass the canvas preview as the base64 analysis input to Gemini so it is contextually synced!
@@ -866,7 +879,7 @@ export default function Home() {
       }
 
       const listingData = await res.json();
-      
+
       // Master complete! Sync the compiled result and custom mockup to Firestore
       await setDoc(doc(db, docPath), {
         status: 'ready',
@@ -882,11 +895,11 @@ export default function Home() {
       toast.success(`Pipeline success! Constructed full Listing draft + Mockups: ${folderName}`);
     } catch (err: any) {
       toast.error('Pipeline failed: ' + (err.message || 'Unknown error'));
-      await setDoc(doc(db, docPath), { 
+      await setDoc(doc(db, docPath), {
         status: 'idle',
         pipelineStepText: 'Failed during automation process. Reloading...',
-        updatedAt: serverTimestamp() 
-      }, { merge: true }).catch(() => {});
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => { });
     }
   };
 
@@ -911,7 +924,7 @@ export default function Home() {
         ctx.fillRect(0, 0, 800, 600);
 
         // Floorboard wood feel
-        ctx.fillStyle = '#C4B29E'; 
+        ctx.fillStyle = '#C4B29E';
         ctx.fillRect(0, 480, 800, 120);
         ctx.fillStyle = '#A3917F';
         ctx.fillRect(0, 480, 800, 8); // shadow line
@@ -931,7 +944,7 @@ export default function Home() {
         ctx.fillRect(260, 60, 310, 410);
 
         // Mat boards border
-        ctx.shadowColor = 'transparent'; 
+        ctx.shadowColor = 'transparent';
         ctx.fillStyle = '#FAFAFA';
         ctx.fillRect(280, 80, 270, 370);
 
@@ -1113,10 +1126,10 @@ export default function Home() {
 
     const docPath = `users/${user.uid}/listings/${item.id}`;
     try {
-      await setDoc(doc(db, docPath), { 
+      await setDoc(doc(db, docPath), {
         status: 'publishing',
         pipelineStepText: 'Exporting digital listing data straight to Connected Etsy Shop...',
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
       }, { merge: true });
 
       const formData = new FormData();
@@ -1137,7 +1150,7 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(await res.text());
       }
-      
+
       const result = await res.json();
       if (result.error) throw new Error(result.error);
 
@@ -1154,11 +1167,11 @@ export default function Home() {
       setIsDialogOpen(false);
     } catch (err: any) {
       toast.error('Failed to publish to store: ' + (err.message || 'Unknown error'));
-      await setDoc(doc(db, docPath), { 
+      await setDoc(doc(db, docPath), {
         status: 'ready',
         pipelineStepText: 'Published aborted. Review your draft metadata settings.',
-        updatedAt: serverTimestamp() 
-      }, { merge: true }).catch(() => {});
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => { });
     }
   };
 
@@ -1191,7 +1204,7 @@ export default function Home() {
     // If we have an Etsy token connected, we use Direct Store Mode, else Manual Mode
     setSelectedMode(etsyToken ? 'etsy' : 'manual');
     setCurrentView('workspace');
-    
+
     // Set activeProduct
     const sessionFiles = localFilesMap[project.folderName] || { images: [], files: [] };
     setActiveProduct({
@@ -1199,7 +1212,7 @@ export default function Home() {
       images: sessionFiles.images,
       files: sessionFiles.files
     });
-    
+
     toast.success(`Resumed pipeline workspace for "${project.folderName}"`);
   };
 
@@ -1270,7 +1283,12 @@ export default function Home() {
         </div>
 
         {/* Sticky Pinned Navigation Hub */}
-        <div className={`sticky top-0 z-30 w-full backdrop-blur-md ${darkMode ? 'bg-[#12110c]/95 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/95 border-[rgba(21,20,15,0.14)]'} border-b transition-transform duration-360 ease-[cubic-bezier(0.22,0.61,0.36,1)] will-change-transform ${navHidden ? '-translate-y-full pointer-events-none shadow-none' : 'translate-y-0'}`}>
+        <div className={`sticky top-0 z-30 w-full transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] ${
+          navHidden ? '-translate-y-full' : 'translate-y-0'
+        } ${scrolled
+            ? `${darkMode ? 'bg-[#12110c]/90 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/90 border-[rgba(21,20,15,0.14)]'} border-b backdrop-blur-md shadow-sm`
+            : 'bg-transparent border-b-transparent shadow-none'
+          }`}>
           {/* Topbar strip */}
           <div className="topbar w-full border-b-0 bg-transparent">
             <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
@@ -1301,10 +1319,18 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-              
+
+              {/* Navigation Menu Links */}
+              <nav className="hidden lg:flex items-center gap-8 text-[11px] font-mono uppercase tracking-[0.08em] font-bold text-[#8b8676] dark:text-[#a39e8f] transition-all">
+                <a href="#capabilities" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Capabilities</a>
+                <a href="#sandbox" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Sandbox</a>
+                <a href="#metrics" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Metrics</a>
+                <a href="#about" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">About</a>
+              </nav>
+
               <div className="flex items-center gap-3">
                 {/* Premium Dark Mode Toggler on Landing Page header */}
-                <button 
+                <button
                   onClick={toggleDarkMode}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
                 >
@@ -1312,10 +1338,10 @@ export default function Home() {
                   <span className="font-sans font-bold text-[9px] uppercase tracking-wider">{darkMode ? "Light Mode" : "Dark Mode"}</span>
                 </button>
 
-                <Button 
-                  onClick={handleGoogleSignIn} 
-                  size="sm" 
-                  className={`bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[#15140f]'} font-medium rounded-full px-5 py-1.5 text-xs transition-colors shadow-none cursor-pointer`}
+                <Button
+                  onClick={handleGoogleSignIn}
+                  size="sm"
+                  className={`bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[#15140f]'} font-medium rounded-full px-5 py-1.5 text-xs transition-all shadow-[0_4px_12px_rgba(21,20,15,0.08)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.12)] dark:hover:shadow-[0_6px_16px_rgba(0,0,0,0.4)] active:translate-y-0 cursor-pointer`}
                 >
                   Sign In
                 </Button>
@@ -1326,13 +1352,13 @@ export default function Home() {
 
         {/* Hero Section Container */}
         <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12 md:py-24 flex flex-col items-start gap-10">
-          
+
           {/* Main Hero Hook Copy */}
-          <div className="max-w-5xl space-y-8 text-left flex flex-col items-start">
+          <div className="max-w-5xl space-y-8 text-left flex flex-col items-start" data-reveal="">
             <div className="flex flex-col items-start gap-3.5">
-              <a 
-                href="https://discord.gg/8X9v3JPr" 
-                target="_blank" 
+              <a
+                href="https://discord.gg/8X9v3JPr"
+                target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
               >
@@ -1345,11 +1371,11 @@ export default function Home() {
                 <span className="text-[#8b8676] dark:text-[#a39e8f]">Nº 01</span>
               </div>
             </div>
-            
+
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] xl:text-[5.25rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.95] select-none text-left max-w-5xl">
               Upload raw <span className="font-serif italic font-light tracking-[-0.02em] text-[#15140f] dark:text-[#f7f1de]">products,</span> generate <span className="font-serif italic font-light tracking-[-0.02em] text-[#ed6f5c]">mockups & metadata</span> instantly<span className="text-[#ed6f5c] font-sans inline-block">.</span>
             </h1>
-            
+
             <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans">
               Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
             </p>
@@ -1357,23 +1383,23 @@ export default function Home() {
             {/* Action Buttons & Circles (Visual Gasket Matching Screenshot) */}
             <div className="pt-2 space-y-8 text-left w-full max-w-2xl" data-reveal="scale">
               <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto">
-                <Button 
-                  onClick={handleGoogleSignIn} 
-                  className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-none transition-colors inline-flex items-center gap-2 cursor-pointer"
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(237,111,92,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(237,111,92,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(237,111,92,0.3)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer"
                 >
                   Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
                 </Button>
 
-                <Button 
-                  onClick={handleGoogleSignIn} 
-                  className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-none transition-all inline-flex items-center gap-2 cursor-pointer`}
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer`}
                 >
                   Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
                 </Button>
 
-                <Button 
-                  onClick={handleGoogleSignIn} 
-                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-none transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(21,20,15,0.15)] dark:shadow-[0_8px_30px_rgba(247,241,222,0.08)] hover:shadow-[0_12px_36px_rgba(21,20,15,0.22)] dark:hover:shadow-[0_12px_36px_rgba(247,241,222,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
                   Sync Your Shop (Google Auth)
@@ -1381,37 +1407,49 @@ export default function Home() {
               </div>
 
               {/* Statistics circle dials matching screenshot */}
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pt-2">
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pt-4">
                 {/* Dial 1 */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
-                    31
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="99.7" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">31</span>
                   </div>
                   <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">SKILLS</div>
-                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SKILLS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
                   </div>
                 </div>
 
                 {/* Dial 2 */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
-                    72
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="40.5" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">72</span>
                   </div>
                   <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">SYSTEMS</div>
-                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SYSTEMS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
                   </div>
                 </div>
 
                 {/* Dial 3 */}
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full border-2 ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} flex items-center justify-center font-sans font-bold text-xs`}>
-                    12
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="127.1" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">12</span>
                   </div>
                   <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de]">CLIS</div>
-                    <div className={`text-[9px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">CLIS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
                   </div>
                 </div>
               </div>
@@ -1430,7 +1468,7 @@ export default function Home() {
         </main>
 
         {/* Feature Bento Capability Grid Section */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12">
+        <section id="capabilities" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12">
           <div className="sec-rule text-left">
             <span className="roman">I.</span>
             <span className="meta-grp">
@@ -1440,7 +1478,7 @@ export default function Home() {
             </span>
             <span>001 / 008</span>
           </div>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12" data-reveal="">
             <div className="space-y-3 max-w-xl text-left">
               <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
                 {"▪ SYSTEM CAPABILITIES & ARCHITECTURE"}
@@ -1455,7 +1493,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left" data-reveal="">
             {/* Bento Card 1: Vector Canvas Layout */}
             <div className="bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors">
               <div className="w-10 h-10 rounded-xl bg-[#efe7d2] dark:bg-[#12110c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] flex items-center justify-center text-[#ed6f5c]">
@@ -1495,7 +1533,7 @@ export default function Home() {
         <SandboxPlayground darkMode={darkMode} />
 
         {/* Comparative Pipeline Matrix Section */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="metrics" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">I.B</span>
             <span className="meta-grp">
@@ -1505,7 +1543,7 @@ export default function Home() {
             </span>
             <span>001 / 008</span>
           </div>
-          <div className="space-y-3 max-w-xl text-left mb-12">
+          <div className="space-y-3 max-w-xl text-left mb-12" data-reveal="">
             <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
               {"▪ EFFICIENCY METRICS"}
             </span>
@@ -1518,7 +1556,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className={`border ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1a1914]/20' : 'border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/20'} rounded-[18px] overflow-hidden`}>
+          <div className={`border ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1a1914]/20' : 'border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/20'} rounded-[18px] overflow-hidden`} data-reveal="">
             <Table>
               <TableHeader>
                 <TableRow className={`border-b ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1a1914]/40' : 'border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/40'} font-mono`}>
@@ -1675,7 +1713,7 @@ export default function Home() {
         </section>
 
         {/* Section II: About / Manifesto Section */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="about" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">II.</span>
             <span className="meta-grp">
@@ -1822,7 +1860,7 @@ export default function Home() {
                 Explore our catalog template <span className="font-serif italic font-light">preset directory.</span>
               </h2>
             </div>
-            
+
             {/* Interactive filtering pills */}
             <div className="flex flex-wrap gap-2 justify-start md:justify-end">
               {[
@@ -1835,11 +1873,10 @@ export default function Home() {
                 <button
                   key={pill.id}
                   onClick={() => setActiveLabFilter(pill.id as any)}
-                  className={`px-4.5 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-wide border cursor-pointer transition-all duration-200 ${
-                    activeLabFilter === pill.id
+                  className={`px-4.5 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-wide border cursor-pointer transition-all duration-200 ${activeLabFilter === pill.id
                       ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold shadow-sm'
                       : `${darkMode ? 'bg-[#1a1914] text-[#ece4cf] border-[rgba(247,241,222,0.16)] hover:bg-[#22211b]' : 'bg-[#efe7d2] text-[#15140f] border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf]'}`
-                  }`}
+                    }`}
                 >
                   {pill.label}
                 </button>
@@ -1908,10 +1945,10 @@ export default function Home() {
                     <span className="absolute top-3 left-3 bg-[#efe7d2]/95 dark:bg-[#12110c]/95 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] text-[#15140f] dark:text-[#f7f1de] font-mono text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shadow-none">
                       {item.badge}
                     </span>
-                    <img 
-                      src={item.image} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" 
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   </div>
                   <div className="space-y-1.5 flex-1">
@@ -2003,7 +2040,7 @@ export default function Home() {
             </span>
             <span>006 / 008</span>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center text-left" data-reveal="">
             <div className="lg:col-span-4 space-y-6">
               <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
@@ -2017,7 +2054,7 @@ export default function Home() {
                 A closer inspection of live collections successfully generated with correct formatting, high SEO tags complementary sets, and realistic environmental lighting matrices.
               </p>
               <div className="pt-2">
-                <Button 
+                <Button
                   onClick={handleGoogleSignIn}
                   className="bg-transparent hover:bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/25 rounded-full font-sans font-semibold text-xs px-6 py-4.5 shadow-none transition-colors cursor-pointer"
                 >
@@ -2025,7 +2062,7 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-8">
               {/* Card 1 */}
               <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] border-[rgba(21,20,15,0.16)]'} shadow-sm space-y-4`}>
@@ -2045,7 +2082,7 @@ export default function Home() {
                   <span>Ready Draft Synced</span>
                 </div>
               </div>
-              
+
               {/* Card 2 */}
               <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-[#1a1914] border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] border-[rgba(21,20,15,0.16)]'} shadow-sm space-y-4`}>
                 <div className="flex justify-between items-center text-[10px] font-mono text-[#8b8676] dark:text-[#a39e8f] uppercase">
@@ -2128,7 +2165,7 @@ export default function Home() {
                 Sign in securely using Google authentication to retrieve your sovereign Firebase sandbox folder instances. Link your custom Etsy OAuth credentials to instantly begin compiling.
               </p>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-                <Button 
+                <Button
                   onClick={handleGoogleSignIn}
                   className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-sans font-medium text-sm py-6 px-8 rounded-full shadow-none transition-colors cursor-pointer flex items-center justify-center gap-2.5"
                 >
@@ -2140,7 +2177,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
+
             <div className="lg:col-span-4 relative">
               <div className={`aspect-square rounded-2xl overflow-hidden border ${darkMode ? 'border-[rgba(247,241,222,0.14)] bg-[#1a1914]' : 'border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30'} p-6 flex flex-col justify-between`}>
                 <div className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676]">WORKSPACE KEY DATA</div>
@@ -2184,7 +2221,7 @@ export default function Home() {
                 The sovereign alternative for digital catalog automation. Formulates high-fidelity light mockups, embeds drop shadow variables, and computes elite Gemini SEO copywriting to enable seamless Etsy publishing.
               </p>
               <div className="pt-2">
-                <Button 
+                <Button
                   onClick={handleGoogleSignIn}
                   className="inline-flex items-center gap-2 text-[10.5px] font-mono uppercase bg-[#15140f] dark:bg-[#f7f1de] text-[#f7f1de] dark:text-[#15140f] px-5 py-3.5 rounded-full hover:bg-[#ed6f5c] dark:hover:bg-[#ed6f5c] hover:text-white dark:hover:text-white transition-colors duration-200 shadow-none cursor-pointer"
                 >
@@ -2300,10 +2337,10 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 {/* Premium Dark Mode Toggler matching "Join Discord" style */}
-                <button 
+                <button
                   onClick={toggleDarkMode}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
                 >
@@ -2311,23 +2348,23 @@ export default function Home() {
                   <span className="font-sans font-bold text-[9px] uppercase tracking-wider">{darkMode ? "Light Mode" : "Dark Mode"}</span>
                 </button>
 
-                <Button 
+                <Button
                   onClick={() => {
                     setSelectedMode(null);
                     setSelectedProductType(null);
                     setCurrentView('routes');
-                  }} 
-                  size="sm" 
-                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 flex items-center gap-1.5 transition-colors cursor-pointer border-0"
+                  }}
+                  size="sm"
+                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 flex items-center gap-1.5 shadow-[0_4px_12px_rgba(21,20,15,0.12)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.18)] dark:hover:shadow-[0_6px_16px_rgba(0,0,0,0.4)] active:translate-y-0 active:shadow-[0_4px_12px_rgba(21,20,15,0.12)] transition-all duration-200 cursor-pointer border-0"
                 >
                   <Plus className="w-3.5 h-3.5" /> Start New Draft
                 </Button>
 
-                <Button 
-                  onClick={handleLogOut} 
-                  size="sm" 
-                  variant="outline" 
-                  className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer`}
+                <Button
+                  onClick={handleLogOut}
+                  size="sm"
+                  variant="outline"
+                  className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.2)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] active:translate-y-0 transition-all duration-200 cursor-pointer`}
                 >
                   <LogOut className="w-3.5 h-3.5 mr-1" /> Sign Out
                 </Button>
@@ -2388,33 +2425,33 @@ export default function Home() {
 
                 {/* Filter segments */}
                 <div className={`p-1 border rounded-lg flex items-center self-start sm:self-center gap-1 ${darkMode ? 'bg-[#12110c] border-[rgba(247,241,222,0.12)]' : 'bg-[#ece4cf]/40 border-[rgba(21,20,15,0.14)]'}`}>
-                  <button 
-                    onClick={() => setFilterTab('all')} 
+                  <button
+                    onClick={() => setFilterTab('all')}
                     className={`px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-wider rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? (darkMode ? 'bg-[#1a1914] text-[#f7f1de] shadow-sm font-bold border border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold') : `${darkMode ? 'text-[#a39e8f] hover:text-[#f7f1de]' : 'text-[#5a5448] hover:text-[#15140f]'}`}`}
                   >
                     All ({listingsCohort.total})
                   </button>
-                  <button 
-                    onClick={() => setFilterTab('pipeline')} 
+                  <button
+                    onClick={() => setFilterTab('pipeline')}
                     className={`px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-wider rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'pipeline' ? (darkMode ? 'bg-[#1a1914] text-[#f7f1de] shadow-sm font-bold border border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold') : `${darkMode ? 'text-[#a39e8f] hover:text-[#f7f1de]' : 'text-[#5a5448] hover:text-[#15140f]'}`}`}
                   >
                     Processing ({listingsCohort.activePipeline + listingsCohort.unprocessedIdle})
                   </button>
-                  <button 
-                    onClick={() => setFilterTab('ready')} 
+                  <button
+                    onClick={() => setFilterTab('ready')}
                     className={`px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-wider rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? (darkMode ? 'bg-[#1a1914] text-[#f7f1de] shadow-sm font-bold border border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold') : `${darkMode ? 'text-[#a39e8f] hover:text-[#f7f1de]' : 'text-[#5a5448] hover:text-[#15140f]'}`}`}
                   >
                     Ready ({listingsCohort.readyDrafts})
                   </button>
-                  <button 
-                    onClick={() => setFilterTab('published')} 
+                  <button
+                    onClick={() => setFilterTab('published')}
                     className={`px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-wider rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? (darkMode ? 'bg-[#1a1914] text-[#f7f1de] shadow-sm font-bold border border-[rgba(247,241,222,0.12)]' : 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold') : `${darkMode ? 'text-[#a39e8f] hover:text-[#f7f1de]' : 'text-[#5a5448] hover:text-[#15140f]'}`}`}
                   >
                     Live ({listingsCohort.publishedHistory})
                   </button>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="px-0 py-0 bg-transparent">
                 {filteredListings.length === 0 ? (
                   <div className="text-center py-20 px-4 space-y-4">
@@ -2427,7 +2464,7 @@ export default function Home() {
                         Create a fresh listing to build customized graphic interiors, mockups, keywords and tags automatically.
                       </p>
                     </div>
-                    <Button 
+                    <Button
                       onClick={() => {
                         setSelectedMode(null);
                         setSelectedProductType(null);
@@ -2454,14 +2491,14 @@ export default function Home() {
                         {filteredListings.map((listingItem) => {
                           const isComplete = listingItem.status === 'published';
                           const sessionItem = localFilesMap[listingItem.folderName];
-                          const activeSessionCount = sessionItem 
+                          const activeSessionCount = sessionItem
                             ? `${sessionItem.images.length} Image(s), ${sessionItem.files.length} Template(s)`
                             : "Ready to run optimization";
                           const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
 
                           return (
                             <TableRow key={listingItem.id} className={`${darkMode ? 'border-[rgba(247,241,222,0.10)] text-[#f7f1de]' : 'border-[rgba(21,20,15,0.12)] text-[#15140f]'} bg-transparent hover:bg-[#ece4cf]/15 dark:hover:bg-[#22211b]/30 h-16 transition-colors`}>
-                              
+
                               {/* Title / Folder Name */}
                               <TableCell className="pl-6 py-4">
                                 <div className="flex flex-col">
@@ -2476,8 +2513,8 @@ export default function Home() {
                               <TableCell className="align-middle">
                                 <span className={`text-[10px] font-mono uppercase font-bold border px-2 py-0.5 rounded ${darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#ece4cf]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]'}`}>
                                   {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
-                                   listingItem.productType === 'printable_wallart' ? 'Wall Art' :
-                                   listingItem.productType === 'presets' ? 'Presets' : 'Planner PDF'}
+                                    listingItem.productType === 'printable_wallart' ? 'Wall Art' :
+                                      listingItem.productType === 'presets' ? 'Presets' : 'Planner PDF'}
                                 </span>
                               </TableCell>
 
@@ -2487,8 +2524,8 @@ export default function Home() {
                                   <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
                                     ${listingItem.status === 'idle' ? (darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#a39e8f]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]') :
                                       isInProgressPipeline ? 'bg-[#efe7d2]/10 border-[#ed6f5c]/40 text-[#ed6f5c]' :
-                                      listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                      `bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] ${darkMode ? 'dark:text-[#9ea671]' : ''} font-bold`
+                                        listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
+                                          `bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] ${darkMode ? 'dark:text-[#9ea671]' : ''} font-bold`
                                     }`}>
                                     {listingItem.status === 'idle' && 'Waiting to Compile'}
                                     {listingItem.status === 'scanning' && 'Scanning Blueprints'}
@@ -2512,9 +2549,9 @@ export default function Home() {
                                 {listingItem.mockupImage ? (
                                   <div className={`relative w-12 h-9 border rounded overflow-hidden shadow-none bg-transparent group ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img 
-                                      src={listingItem.mockupImage} 
-                                      alt="Mockup Thumbnail" 
+                                    <img
+                                      src={listingItem.mockupImage}
+                                      alt="Mockup Thumbnail"
                                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                     />
                                   </div>
@@ -2528,7 +2565,7 @@ export default function Home() {
                                 <div className="flex items-center justify-end gap-2.5">
                                   {isComplete ? (
                                     // Complete status -> Action: Preview
-                                    <Button 
+                                    <Button
                                       onClick={() => handlePreviewProject(listingItem)}
                                       size="sm"
                                       variant="outline"
@@ -2538,7 +2575,7 @@ export default function Home() {
                                     </Button>
                                   ) : (
                                     // In-complete status -> Action: Continue Project
-                                    <Button 
+                                    <Button
                                       onClick={() => handleContinueProject(listingItem)}
                                       size="sm"
                                       className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer border-0 inline-flex items-center gap-1.5 transition-all"
@@ -2546,8 +2583,8 @@ export default function Home() {
                                       <ChevronRight className="w-3.5 h-3.5 text-[#ed6f5c]" /> Continue project
                                     </Button>
                                   )}
-                                  
-                                  <Button 
+
+                                  <Button
                                     onClick={() => handleDeleteListingDraft(listingItem)}
                                     size="xs"
                                     variant="ghost"
@@ -2604,7 +2641,7 @@ export default function Home() {
             </span>
           </div>
         </div>
-        
+
         <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.16)]'} border-b w-full flex-shrink-0`}>
           <div className="max-w-6xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2620,19 +2657,19 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3">
               {/* Premium Back to projects list */}
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => setCurrentView('projects')} 
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentView('projects')}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
               >
                 <Grid className="w-3.5 h-3.5 text-[#ed6f5c]" /> Projects Registry
               </Button>
 
-              <Button 
-                onClick={handleLogOut} 
-                size="sm" 
-                variant="outline" 
+              <Button
+                onClick={handleLogOut}
+                size="sm"
+                variant="outline"
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer`}
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -2647,7 +2684,7 @@ export default function Home() {
               <Lock className="w-3 h-3 text-[#ed6f5c]" />
               <span>Safe Cloud Persistence</span>
             </div>
-            
+
             <h1 className="text-3xl sm:text-4xl font-serif font-medium tracking-tight text-[#15140f] dark:text-[#f7f1de] leading-none">
               How would you like to list today?
             </h1>
@@ -2658,8 +2695,8 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
             {/* Direct Sync integration Mode */}
-            <Card 
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] hover:border-[#ed6f5c]/60 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden relative" 
+            <Card
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] hover:border-[#ed6f5c]/60 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_8px_30px_rgba(21,20,15,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_16px_40px_rgba(237,111,92,0.16)] dark:hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
               onClick={handleConnectEtsy}
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#ed6f5c] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -2683,8 +2720,8 @@ export default function Home() {
             </Card>
 
             {/* Path B: Manual Client Copy Mode */}
-            <Card 
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] hover:border-[#15140f]/60 dark:hover:border-[#f7f1de]/60 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden relative" 
+            <Card
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] hover:border-[#15140f]/60 dark:hover:border-[#f7f1de]/60 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_8px_30px_rgba(21,20,15,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_16px_40px_rgba(21,20,15,0.12)] dark:hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
               onClick={() => setSelectedMode('manual')}
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#15140f] dark:bg-[#f7f1de] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -2741,7 +2778,7 @@ export default function Home() {
             </span>
           </div>
         </div>
-        
+
         <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.16)]'} border-b w-full flex-shrink-0`}>
           <div className="max-w-6xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2757,25 +2794,25 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setSelectedMode(null);
                   setSelectedProductType(null);
                   setCurrentView('projects');
-                }} 
+                }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
               >
                 <Grid className="w-3.5 h-3.5 text-[#ed6f5c]" /> Projects Hub
               </Button>
 
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-3.5 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf]'} transition-colors duration-150 cursor-pointer flex items-center gap-1.5`} 
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-3.5 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf]'} transition-colors duration-150 cursor-pointer flex items-center gap-1.5`}
                 onClick={handleNavigateBackRoutes}
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back
@@ -2796,11 +2833,11 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
-            
+
             {/* Category 1: PNG Artwork Package */}
-            <Card 
+            <Card
               onClick={() => handleSelectProductType('png_graphics')}
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/50 hover:shadow-sm cursor-pointer transition-all duration-350 flex flex-col justify-between overflow-hidden relative"
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_6px_20px_rgba(21,20,15,0.05)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:border-[#ed6f5c]/60 dark:hover:border-[#ed6f5c]/60 hover:shadow-[0_12px_32px_rgba(237,111,92,0.15)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#ed6f5c] opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="space-y-4 p-6">
@@ -2820,9 +2857,9 @@ export default function Home() {
             </Card>
 
             {/* Category 2: Printable Wall Art Prints */}
-            <Card 
+            <Card
               onClick={() => handleSelectProductType('printable_wallart')}
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/50 hover:shadow-sm cursor-pointer transition-all duration-350 flex flex-col justify-between overflow-hidden relative"
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_6px_20px_rgba(21,20,15,0.05)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:border-[#ed6f5c]/60 dark:hover:border-[#ed6f5c]/60 hover:shadow-[0_12px_32px_rgba(237,111,92,0.15)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#ed6f5c] opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="space-y-4 p-6">
@@ -2842,9 +2879,9 @@ export default function Home() {
             </Card>
 
             {/* Category 3: Photographers Presets */}
-            <Card 
+            <Card
               onClick={() => handleSelectProductType('presets')}
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/50 hover:shadow-sm cursor-pointer transition-all duration-350 flex flex-col justify-between overflow-hidden relative"
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_6px_20px_rgba(21,20,15,0.05)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:border-[#ed6f5c]/60 dark:hover:border-[#ed6f5c]/60 hover:shadow-[0_12px_32px_rgba(237,111,92,0.15)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#ed6f5c] opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="space-y-4 p-6">
@@ -2864,9 +2901,9 @@ export default function Home() {
             </Card>
 
             {/* Category 4: Digital Agenda Planners */}
-            <Card 
+            <Card
               onClick={() => handleSelectProductType('planners')}
-              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/50 hover:shadow-sm cursor-pointer transition-all duration-350 flex flex-col justify-between overflow-hidden relative"
+              className="group bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-[0_6px_20px_rgba(21,20,15,0.05)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.25)] hover:border-[#ed6f5c]/60 dark:hover:border-[#ed6f5c]/60 hover:shadow-[0_12px_32px_rgba(237,111,92,0.15)] dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)] hover:-translate-y-1 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
             >
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#ed6f5c] opacity-0 group-hover:opacity-100 transition-opacity" />
               <CardHeader className="space-y-4 p-6">
@@ -2911,16 +2948,16 @@ export default function Home() {
             </span>
           </div>
         </div>
-        
+
         {/* Workspace Header Panel */}
         <header className="w-full">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            
+
             <div className="flex items-center space-x-3">
               <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de]' : 'border-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
                 Ø
               </div>
-              
+
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <h1 className={`text-base font-serif font-medium ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} tracking-tight`}>
@@ -2930,16 +2967,16 @@ export default function Home() {
                     {selectedMode === 'etsy' ? 'Route A: Direct Store' : 'Route B: Manual Copy'}
                   </span>
                 </div>
-                
+
                 <div className={`flex items-center gap-1.5 text-xs ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} font-medium mt-0.5`}>
                   <span>Category:</span>
                   <span className={`font-semibold capitalize ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>
                     {selectedProductType === 'png_graphics' ? 'PNG Artwork Clipart Pack' :
-                     selectedProductType === 'printable_wallart' ? 'Printable Wall Art Canvas' :
-                     selectedProductType === 'presets' ? 'Lightroom Preset Bundle' : 'Agenda / E-Book Planner'}
+                      selectedProductType === 'printable_wallart' ? 'Printable Wall Art Canvas' :
+                        selectedProductType === 'presets' ? 'Lightroom Preset Bundle' : 'Agenda / E-Book Planner'}
                   </span>
-                  <button 
-                    onClick={handleNavigateBackProductType} 
+                  <button
+                    onClick={handleNavigateBackProductType}
                     className="text-[#ed6f5c] hover:underline font-bold text-[9px] uppercase tracking-wider ml-1"
                   >
                     [Change]
@@ -2949,43 +2986,43 @@ export default function Home() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setSelectedMode(null);
                   setSelectedProductType(null);
                   setCurrentView('projects');
-                }} 
+                }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
               >
                 <Grid className="w-3.5 h-3.5 text-[#ed6f5c]" /> Projects Hub
               </Button>
 
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleNavigateBackRoutes} 
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleNavigateBackRoutes}
                 className={`hidden sm:inline-flex font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer`}
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1.5 text-[#8b8676]" /> Routes
               </Button>
-              
+
               {selectedMode === 'etsy' && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={handleDisconnectEtsy} 
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDisconnectEtsy}
                   className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ed6f5c] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#ed6f5c] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer`}
                 >
                   <LogOut className="w-3.5 h-3.5 mr-1.5" /> Disconnect Shop
                 </Button>
               )}
 
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                onClick={handleLogOut} 
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleLogOut}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#efe7d2] hover:bg-[#ece4cf]'} shadow-none cursor-pointer`}
               >
                 Sign Out
@@ -3019,7 +3056,7 @@ export default function Home() {
 
         {/* Dynamic Dual Files Upload Panel (Both directory scan and custom raw upload) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Main Module A: Upload Raw Digital Asset (Recommended pipeline) */}
           <Card className="lg:col-span-7 bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col justify-between">
             <CardHeader className="pb-3 p-6">
@@ -3033,14 +3070,14 @@ export default function Home() {
                 Provide your raw printable PDFs, JPEGs, or clipart overlays. The AutoLister pipeline formats structural packages and constructs high-fidelity mockups automatically.
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="p-6 pt-0">
               <form onSubmit={handleCreateListingFromRawAssets} className="space-y-4">
-                
+
                 {/* Title element */}
                 <div className="space-y-1.5">
                   <Label htmlFor="manualTitle" className="text-xs font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf]">Product Clipart / Collection Name</Label>
-                  <Input 
+                  <Input
                     id="manualTitle"
                     value={uploadTitleInput}
                     onChange={(e) => setUploadTitleInput(e.target.value)}
@@ -3050,15 +3087,15 @@ export default function Home() {
                 </div>
 
                 {/* File box trigger */}
-                <div 
+                <div
                   className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-6 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
                   onClick={() => rawFileInputRef.current?.click()}
                 >
                   <UploadCloud className="w-8 h-8 text-[#8b8676] dark:text-[#a39e8f] mx-auto mb-2" />
                   <span className="text-xs font-medium text-[#15140f] dark:text-[#f7f1de] block">Drag or Click to Choose Files</span>
                   <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] mt-1 block font-mono">Supports PNG, PDF, JPG, or ZIP deliverable assets</span>
-                  
-                  <input 
+
+                  <input
                     type="file"
                     ref={rawFileInputRef}
                     onChange={handleRawFilesUpload}
@@ -3076,7 +3113,7 @@ export default function Home() {
                         Discard All
                       </Button>
                     </div>
-                    
+
                     <div className="max-h-24 overflow-y-auto border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded-lg p-2 bg-[#efe7d2] dark:bg-[#12110c] space-y-1">
                       {uploadedRawFiles.map((file, idx) => (
                         <div key={idx} className="flex justify-between items-center text-[10px] bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.12)] p-1.5 rounded px-2">
@@ -3089,8 +3126,8 @@ export default function Home() {
                 )}
 
                 <div className="pt-2 flex justify-end">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={uploadedRawFiles.length === 0 || isUploadingRaw}
                     className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 px-6 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
                   >
@@ -3125,9 +3162,9 @@ export default function Home() {
                 Select your structured product subfolders. Files inside are categorized as thumbnails vs digital printable deliverables automatically.
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="h-full flex flex-col justify-center p-6 pt-0 font-sans">
-              <div 
+              <div
                 className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-8 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 cursor-pointer transition-colors text-center relative py-12"
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -3136,8 +3173,8 @@ export default function Home() {
                 <p className="text-[10px] text-[#5a5448] dark:text-[#ece4cf] leading-relaxed max-w-[200px] mx-auto font-sans">
                   Processes and syncs folders in one click to compile active listings.
                 </p>
-                
-                <input 
+
+                <input
                   type="file"
                   ref={fileInputRef}
                   // @ts-ignore - directory attributes
@@ -3149,7 +3186,7 @@ export default function Home() {
                 />
               </div>
             </CardContent>
-            
+
             <CardFooter className="py-4 border-t border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] bg-[#ece4cf]/30 dark:bg-[#22211b]/35 flex justify-center rounded-b-[18px]">
               <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] font-mono tracking-wide flex items-center gap-1 select-none">
                 ✓ Syncs immediately with Cloud Firestore
@@ -3161,7 +3198,7 @@ export default function Home() {
 
         {/* Global Statistics Portfolio Summary banner */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 font-sans">
-          
+
           <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-5 flex items-center justify-between hover:translate-y-[-2px] transition-transform duration-200">
             <div>
               <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Scanned Portfolio</p>
@@ -3204,7 +3241,7 @@ export default function Home() {
 
         </div>
 
-           {/* Categories Tab and Database portfolio table list */}
+        {/* Categories Tab and Database portfolio table list */}
         <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
           <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] p-6 font-sans">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -3217,27 +3254,27 @@ export default function Home() {
 
               {/* Status Tabs Category Selection */}
               <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] overflow-x-auto self-start uppercase tracking-wider">
-                <button 
-                  onClick={() => setFilterTab('all')} 
+                <button
+                  onClick={() => setFilterTab('all')}
                   className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
                 >
                   All ({listingsCohort.total})
                 </button>
-                <button 
-                  onClick={() => setFilterTab('pipeline')} 
+                <button
+                  onClick={() => setFilterTab('pipeline')}
                   className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${filterTab === 'pipeline' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
                 >
                   <Loader2 className={`w-3 h-3 ${listingsCohort.activePipeline > 0 ? "animate-spin text-[#ed6f5c]" : ""}`} />
                   Active ({listingsCohort.activePipeline + listingsCohort.unprocessedIdle})
                 </button>
-                <button 
-                  onClick={() => setFilterTab('ready')} 
+                <button
+                  onClick={() => setFilterTab('ready')}
                   className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
                 >
                   Ready ({listingsCohort.readyDrafts})
                 </button>
-                <button 
-                  onClick={() => setFilterTab('published')} 
+                <button
+                  onClick={() => setFilterTab('published')}
                   className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
                 >
                   Live ({listingsCohort.publishedHistory})
@@ -3246,7 +3283,7 @@ export default function Home() {
 
             </div>
           </CardHeader>
-          
+
           <CardContent className="px-0 py-0">
             {filteredListings.length === 0 ? (
               <div className="text-center py-16 px-4 space-y-3">
@@ -3270,16 +3307,16 @@ export default function Home() {
                 <TableBody>
                   {filteredListings.map((listingItem) => {
                     const sessionItem = localFilesMap[listingItem.folderName];
-                    const activeSessionCount = sessionItem 
+                    const activeSessionCount = sessionItem
                       ? `${sessionItem.images.length} Image(s), ${sessionItem.files.length} Template(s)`
                       : "Ready to run optimization";
-                      
+
                     // Flag corresponding to progress styles
                     const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
 
                     return (
                       <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] bg-transparent hover:bg-[#ece4cf]/30 transition-colors">
-                        
+
                         {/* Title of Listing / Folder name */}
                         <TableCell className="pl-6 py-4">
                           <div className="flex flex-col">
@@ -3294,21 +3331,21 @@ export default function Home() {
                         <TableCell className="align-middle">
                           <span className="text-[#5a5448] font-mono text-[10px] uppercase font-bold bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] px-2 py-0.5 rounded">
                             {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
-                             listingItem.productType === 'printable_wallart' ? 'Wall Art' :
-                             listingItem.productType === 'presets' ? 'Presets Filters' : 'Journals PDF'}
+                              listingItem.productType === 'printable_wallart' ? 'Wall Art' :
+                                listingItem.productType === 'presets' ? 'Presets Filters' : 'Journals PDF'}
                           </span>
                         </TableCell>
 
                         {/* Pipelines Process Status with step-by-step progress updates */}
                         <TableCell className="align-middle">
                           <div className="flex flex-col">
-                            
+
                             {/* Standard badge indicators */}
                             <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
                               ${listingItem.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
                                 isInProgressPipeline ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
-                                listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
+                                  listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
+                                    'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
                               }`}>
                               {listingItem.status === 'idle' && 'Waiting to Compile'}
                               {listingItem.status === 'scanning' && 'Scanning Blueprints'}
@@ -3334,9 +3371,9 @@ export default function Home() {
                           {listingItem.mockupImage ? (
                             <div className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img 
-                                src={listingItem.mockupImage} 
-                                alt="mockup thumb" 
+                              <img
+                                src={listingItem.mockupImage}
+                                alt="mockup thumb"
                                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
                               />
                             </div>
@@ -3348,11 +3385,11 @@ export default function Home() {
                         {/* Interactive trigger controls */}
                         <TableCell className="text-right pr-6 align-middle">
                           <div className="flex items-center justify-end gap-1.5">
-                            
+
                             {listingItem.status === 'idle' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => runAutomatedAIPipeline(listingItem.id, listingItem.folderName, listingItem.productType || selectedProductType || 'png_graphics')} 
+                              <Button
+                                size="sm"
+                                onClick={() => runAutomatedAIPipeline(listingItem.id, listingItem.folderName, listingItem.productType || selectedProductType || 'png_graphics')}
                                 className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
                               >
                                 <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
@@ -3368,9 +3405,9 @@ export default function Home() {
                             )}
 
                             {['ready', 'published'].includes(listingItem.status) && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => openPreviewPanel(listingItem)} 
+                              <Button
+                                size="sm"
+                                onClick={() => openPreviewPanel(listingItem)}
                                 className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
                                 variant="default"
                               >
@@ -3381,9 +3418,9 @@ export default function Home() {
 
                             {/* Discard / Delete element */}
                             {!isInProgressPipeline && (
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
+                              <Button
+                                size="icon"
+                                variant="ghost"
                                 onClick={() => handleDeleteListingDraft(listingItem)}
                                 className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
                                 title="Discard listing task"
@@ -3408,8 +3445,8 @@ export default function Home() {
 
       {/* Review Dialog Structure (Draft metadata + publish logic) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto sm:rounded-[18px] p-6 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
-          
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto sm:rounded-[18px] p-6 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
+
           <DialogHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)]">
             <div className="flex justify-between items-start gap-3">
               <div>
@@ -3426,20 +3463,20 @@ export default function Home() {
 
           {activeProduct && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-              
+
               {/* Left Side: Mockup Image rendering container & download options */}
               <div className="space-y-4">
                 <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest block font-bold select-none">Simulated Lifestyle Cover Thumbnail</span>
-                
+
                 {activeProduct.mockupImage ? (
                   <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.16)] bg-[#efe7d2] shadow-none">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={activeProduct.mockupImage} 
-                      alt="lifestyle design template" 
+                    <img
+                      src={activeProduct.mockupImage}
+                      alt="lifestyle design template"
                       className="w-full h-full object-cover"
                     />
-                    
+
                     {/* Badge Stamp on the generated cover */}
                     <div className="absolute top-3 left-3 bg-[#ed6f5c] text-white text-[9px] font-mono tracking-wider px-2.5 py-1 rounded shadow-none uppercase font-bold">
                       ✓ Compiled & Verified
@@ -3462,9 +3499,9 @@ export default function Home() {
                       <p className="text-[10px] text-[#5a5448] mt-0.5 font-sans leading-relaxed">Includes {activeProduct.images.length} mockup JPGs + deliverable files bundle.</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       onClick={() => {
                         if (activeProduct.mockupImage) {
                           const link = document.createElement('a');
@@ -3474,18 +3511,18 @@ export default function Home() {
                           toast.success("Downloadable listing cover downloaded!");
                         }
                       }}
-                      size="sm" 
+                      size="sm"
                       className="flex-1 bg-transparent border border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf] text-[#5a5448] font-mono text-[10px] py-1.5 rounded-lg transition-colors uppercase tracking-wider cursor-pointer"
                       variant="outline"
                     >
                       <Download className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> Download Cover
                     </Button>
 
-                    <Button 
+                    <Button
                       onClick={() => {
                         toast.success(`Successfully saved client package zip: ${activeProduct.folderName.toLowerCase()}_etsy_package.zip`);
                       }}
-                      size="sm" 
+                      size="sm"
                       className="flex-1 bg-transparent border border-[#ed6f5c]/30 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] py-1.5 rounded-lg transition-colors uppercase tracking-wider cursor-pointer"
                       variant="outline"
                     >
@@ -3497,14 +3534,14 @@ export default function Home() {
 
               {/* Right Side: SEO Title, description, Pricing tags copies */}
               <div className="space-y-4">
-                
+
                 {/* Product Class header */}
                 <div className="flex justify-between items-center bg-[#ece4cf]/60 p-2.5 rounded-lg border border-[rgba(21,20,15,0.16)] font-mono">
                   <span className="text-xs text-[#5a5448]">Framework:</span>
                   <span className="text-[10px] font-bold text-[#ed6f5c] uppercase">
                     {activeProduct.productType === 'png_graphics' ? '🎨 Transparent PNG Pack' :
-                     activeProduct.productType === 'printable_wallart' ? '🖼️ Printable Wall Art' :
-                     activeProduct.productType === 'presets' ? '📸 Lightroom Preset' : '📅 agenda planner'}
+                      activeProduct.productType === 'printable_wallart' ? '🖼️ Printable Wall Art' :
+                        activeProduct.productType === 'presets' ? '📸 Lightroom Preset' : '📅 agenda planner'}
                   </span>
                 </div>
 
@@ -3512,18 +3549,18 @@ export default function Home() {
                 <div className="space-y-1.5 font-sans">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="title" className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">SEO Optimized Title</Label>
-                    <button 
+                    <button
                       onClick={() => handleCopyText(activeProduct.title || '', 'Title')}
                       className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer"
                     >
                       <Copy className="w-3 h-3" /> Copy Title
                     </button>
                   </div>
-                  <Input 
-                    id="title" 
-                    value={activeProduct.title || ''} 
-                    readOnly 
-                    className="w-full text-xs border-[rgba(21,20,15,0.16)] bg-[#efe7d2] font-serif font-medium text-[#15140f] shadow-none h-10 rounded-lg focus:ring-0 focus:border-[rgba(21,20,15,0.16)]" 
+                  <Input
+                    id="title"
+                    value={activeProduct.title || ''}
+                    readOnly
+                    className="w-full text-xs border-[rgba(21,20,15,0.16)] bg-[#efe7d2] font-serif font-medium text-[#15140f] shadow-none h-10 rounded-lg focus:ring-0 focus:border-[rgba(21,20,15,0.16)]"
                   />
                 </div>
 
@@ -3531,31 +3568,31 @@ export default function Home() {
                 <div className="space-y-1.5 font-sans">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="desc" className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Sales Copy Description</Label>
-                    <button 
+                    <button
                       onClick={() => handleCopyText(activeProduct.description || '', 'Description')}
                       className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer"
                     >
                       <Copy className="w-3 h-3" /> Copy Promo Code
                     </button>
                   </div>
-                  <textarea 
-                    id="desc" 
-                    value={activeProduct.description || ''} 
-                    readOnly 
+                  <textarea
+                    id="desc"
+                    value={activeProduct.description || ''}
+                    readOnly
                     rows={6}
-                    className="flex w-full rounded-lg border border-[rgba(21,20,15,0.16)] bg-[#efe7d2] px-3 py-2 text-xs shadow-none resize-none text-[#5a5448] leading-relaxed font-sans focus:outline-none" 
+                    className="flex w-full rounded-lg border border-[rgba(21,20,15,0.16)] bg-[#efe7d2] px-3 py-2 text-xs shadow-none resize-none text-[#5a5448] leading-relaxed font-sans focus:outline-none"
                   />
                 </div>
 
                 {/* Price and Keywords */}
                 <div className="grid grid-cols-2 gap-4 font-sans">
-                  
+
                   <div className="space-y-1 bg-[#ece4cf]/40 p-3 rounded-lg border border-[rgba(21,20,15,0.16)] flex flex-col justify-between">
                     <div>
                       <span className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider block font-bold">Est. Market Price</span>
                       <span className="text-base font-serif font-medium text-[#15140f] block mt-1">${(activeProduct.price || 5.95).toFixed(2)} USD</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleCopyText((activeProduct.price || 5.95).toFixed(2), 'Price')}
                       className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 mt-1.5 uppercase tracking-wider cursor-pointer"
                     >
@@ -3574,7 +3611,7 @@ export default function Home() {
                         ))}
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleCopyText((activeProduct.tags || []).join(', '), 'Tags list')}
                       className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 mt-1.5 uppercase tracking-wider cursor-pointer"
                     >
@@ -3590,13 +3627,13 @@ export default function Home() {
           )}
 
           <div className="mt-4 flex justify-between items-center border-t border-[rgba(21,20,15,0.14)] pt-4 font-sans">
-            
+
             {/* Direct Link live on Etsy if published */}
             {activeProduct?.status === 'published' && activeProduct.listingUrl ? (
-              <a 
-                href={activeProduct.listingUrl} 
-                target="_blank" 
-                rel="noreferrer" 
+              <a
+                href={activeProduct.listingUrl}
+                target="_blank"
+                rel="noreferrer"
                 className="text-xs text-[#ed6f5c] hover:underline font-mono tracking-wide font-medium flex items-center gap-1.5"
               >
                 <span>🌐 View live Etsy Listing Manager</span>
@@ -3606,14 +3643,14 @@ export default function Home() {
 
             <div className="flex gap-2">
               <Button variant="ghost" className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-[10px] font-mono uppercase tracking-wider cursor-pointer rounded" onClick={() => setIsDialogOpen(false)}>Close Review</Button>
-              
+
               {selectedMode === 'etsy' ? (
                 activeProduct?.status === 'published' ? (
                   <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-[10px] uppercase tracking-wider rounded-lg">
                     <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
                   </Button>
                 ) : (
-                  <Button 
+                  <Button
                     onClick={() => {
                       if (activeProduct) publishToEtsySnapshot(activeProduct);
                     }}
@@ -3629,7 +3666,7 @@ export default function Home() {
                   </Button>
                 )
               ) : (
-                <Button 
+                <Button
                   onClick={() => {
                     toast.success("Successfully marked listing draft as completed locally!");
                     setIsDialogOpen(false);
@@ -3645,7 +3682,7 @@ export default function Home() {
 
         </DialogContent>
       </Dialog>
-      
+
     </div>
   );
 }
