@@ -185,8 +185,8 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
                   key={item.id}
                   onClick={() => triggerSynthesis(item.id)}
                   className={`w-full text-left p-4 rounded-xl border transition-all text-xs flex items-center justify-between cursor-pointer ${activeTab === item.id
-                      ? 'bg-[#ece4cf]/60 border-[#ed6f5c]/40 text-[#15140f] dark:bg-[#1a1914]/80 dark:border-[#ed6f5c] dark:text-[#f7f1de] font-semibold'
-                      : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.10)] dark:bg-[#22211b]/40 dark:border-[rgba(247,241,222,0.10)] text-[#5a5448] dark:text-[#ece4cf] hover:bg-[#ece4cf]/30 dark:hover:bg-[#1a1914]/50'
+                    ? 'bg-[#ece4cf]/60 border-[#ed6f5c]/40 text-[#15140f] dark:bg-[#1a1914]/80 dark:border-[#ed6f5c] dark:text-[#f7f1de] font-semibold'
+                    : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.10)] dark:bg-[#22211b]/40 dark:border-[rgba(247,241,222,0.10)] text-[#5a5448] dark:text-[#ece4cf] hover:bg-[#ece4cf]/30 dark:hover:bg-[#1a1914]/50'
                     }`}
                 >
                   <span className="font-mono lowercase">{item.label}</span>
@@ -375,37 +375,30 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rawFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Branded scroll listener for top menu bar sticky transitions:
-  const [scrolled, setScrolled] = useState(false);
-  const [navHidden, setNavHidden] = useState(false);
-  const lastScrollY = useRef(0);
-
+  // Branded scroll listener for top menu bar sticky transitions (pure DOM manipulation matching open-design target exactly)
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScroll = window.scrollY;
-      
-      if (currentScroll > 20) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
+    const nav = document.querySelector('header.nav');
+    if (!nav) return;
+    const SHOW_TOP = 250;
+    const DELTA = 6;
+    let lastY = window.scrollY || 0;
 
-      if (currentScroll > 100) {
-        if (currentScroll > lastScrollY.current) {
-          setNavHidden(true);
-        } else {
-          setNavHidden(false);
-        }
-      } else {
-        setNavHidden(false);
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+      const d = y - lastY;
+      if (y <= SHOW_TOP) {
+        nav.classList.remove('is-hidden');
+      } else if (d > DELTA) {
+        nav.classList.add('is-hidden');
+      } else if (d < -DELTA) {
+        nav.classList.remove('is-hidden');
       }
-      
-      lastScrollY.current = currentScroll;
+      lastY = y;
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [loadingAuth, user, currentView]);
 
   // Synchronize Dark Mode client state preferences
   useEffect(() => {
@@ -460,7 +453,7 @@ export default function Home() {
       if (observer) observer.disconnect();
       mutationObserver.disconnect();
     };
-  }, [user, currentView, activeLabFilter]);
+  }, [user, currentView, activeLabFilter, loadingAuth]);
 
 
   const toggleDarkMode = () => {
@@ -1273,89 +1266,95 @@ export default function Home() {
   // Option 1: Render Introductory Landing Page if Client is NOT Authenticated
   if (!user) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative overflow-hidden transition-colors duration-300`}>
+      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative transition-colors duration-300`}>
+        {/* Paper texture overlay */}
+        <div
+          className={`fixed inset-0 pointer-events-none mix-blend-multiply opacity-90 ${darkMode ? 'hidden' : 'block'}`}
+          style={{
+            zIndex: 15,
+            backgroundImage: `radial-gradient(circle at 12% 18%, rgba(106, 92, 56, 0.07) 0, transparent 28%), radial-gradient(circle at 88% 72%, rgba(106, 92, 56, 0.06) 0, transparent 32%), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.16  0 0 0 0 0.12  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
+            backgroundSize: 'auto, auto, 240px 240px'
+          }}
+        />
+
         {/* Side Rails */}
-        <div className="side-rail right hidden xl:flex">
+        <div className="side-rail right hidden xl:flex z-40">
           <span className="rail-text">Etsy AutoLister — {darkMode ? "NIGHT ARCHIVE" : "DAY ARCHIVE"} · Vol. 01 · Issue Nº 26</span>
         </div>
-        <div className="side-rail left hidden xl:flex">
+        <div className="side-rail left hidden xl:flex z-40">
           <span className="rail-text">Mockups · Keywords · Tags · SEO · Instant Publishing</span>
         </div>
 
-        {/* Sticky Pinned Navigation Hub */}
-        <div className={`sticky top-0 z-30 w-full transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] ${
-          navHidden ? '-translate-y-full' : 'translate-y-0'
-        } ${scrolled
-            ? `${darkMode ? 'bg-[#12110c]/90 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/90 border-[rgba(21,20,15,0.14)]'} border-b backdrop-blur-md shadow-sm`
-            : 'bg-transparent border-b-transparent shadow-none'
-          }`}>
-          {/* Topbar strip */}
-          <div className="topbar w-full border-b-0 bg-transparent">
-            <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
-              <span><b>{darkMode ? "NIGHT ZONE" : "AUTOLISTER"} / 2026</b> &nbsp;·&nbsp; Vol. 01 / Issue Nº 26</span>
-              <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-wider text-[#8b8676]">
-                <span>Filed under <b className="text-[#ed6f5c]">Etsy · Automation</b></span>
-                <span>Production Mode · Secure Sync</span>
+        {/* Topbar strip (natural document flow, not sticky!) */}
+        <div className="topbar w-full">
+          <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
+            <span><b>{darkMode ? "NIGHT ZONE" : "AUTOLISTER"} / 2026</b> &nbsp;·&nbsp; Vol. 01 / Issue Nº 26</span>
+            <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-wider text-[#8b8676]">
+              <span>Filed under <b className="text-[#ed6f5c]">Etsy · Automation</b></span>
+              <span>Production Mode · Secure Sync</span>
+            </span>
+            <span className="right col-end-auto">
+              <span className="inline-flex items-center text-[10px] font-mono tracking-wider"><span className="pulse"></span>Live · v0.3.0</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Headroom Sticky Header Navigation */}
+        <header className="nav py-5 w-full">
+          <div className="max-w-7xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
+            <a href="#top" className="flex items-center gap-3.5 hover:opacity-90 transition-opacity">
+              <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
+                Ø
+              </div>
+              <span className={`text-lg font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} leading-none`}>
+                Etsy <span className="font-sans font-bold not-italic text-sm uppercase tracking-wider text-[#ed6f5c] ml-1">AutoLister</span>
               </span>
-              <span className="right col-end-auto">
-                <span className="inline-flex items-center text-[10px] font-mono tracking-wider"><span className="pulse"></span>Live · v0.3.0</span>
-              </span>
+            </a>
+
+            {/* Navigation Menu Links */}
+            <ul className="hidden lg:flex items-center gap-10 nav-links list-none m-0 p-0">
+              <li><a href="#capabilities" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Skills<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">31</span>
+              </a></li>
+              <li><a href="#systems" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Systems<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">72</span>
+              </a></li>
+              <li><a href="#agents" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Agents<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">12</span>
+              </a></li>
+              <li><a href="#labs" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Labs<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">05</span>
+              </a></li>
+            </ul>
+
+            <div className="flex items-center gap-3">
+              {/* Premium Dark Mode Toggler on Landing Page header */}
+              <button
+                onClick={toggleDarkMode}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
+              >
+                {darkMode ? <Sun className="w-3.5 h-3.5 text-[#ed6f5c]" /> : <Moon className="w-3.5 h-3.5 text-[#ed6f5c]" />}
+                <span className="font-sans font-bold text-[9px] uppercase tracking-wider">{darkMode ? "Light Mode" : "Dark Mode"}</span>
+              </button>
+
+
+              <Button
+                onClick={handleGoogleSignIn}
+                size="sm"
+                className={`bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[#15140f]'} font-medium rounded-full px-5 py-1.5 text-xs transition-all shadow-[0_4px_12px_rgba(21,20,15,0.08)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.12)] dark:hover:shadow-[0_6px_16px_rgba(0,0,0,0.4)] active:translate-y-0 cursor-pointer`}
+              >
+                Sign In
+              </Button>
             </div>
           </div>
-
-          {/* Header Navigation with dark mode button */}
-          <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40' : 'bg-[#efe7d2]/40'} w-full flex-shrink-0`}>
-            <div className="max-w-7xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
-                  Ø
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-lg font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} leading-none`}>
-                    Etsy <span className="font-sans font-bold not-italic text-sm uppercase tracking-wider text-[#ed6f5c] ml-1">AutoLister</span>
-                  </span>
-                  <span className={`hidden md:inline-block text-[10px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'} uppercase tracking-widest border-l ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'} pl-4`}>
-                    <b>Catalog Automation Suite</b> &nbsp; Optimized For Etsy Digital Shops
-                  </span>
-                </div>
-              </div>
-
-              {/* Navigation Menu Links */}
-              <nav className="hidden lg:flex items-center gap-8 text-[11px] font-mono uppercase tracking-[0.08em] font-bold text-[#8b8676] dark:text-[#a39e8f] transition-all">
-                <a href="#capabilities" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Capabilities</a>
-                <a href="#sandbox" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Sandbox</a>
-                <a href="#metrics" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">Metrics</a>
-                <a href="#about" className="hover:text-[#ed6f5c] transition-colors duration-200 cursor-pointer">About</a>
-              </nav>
-
-              <div className="flex items-center gap-3">
-                {/* Premium Dark Mode Toggler on Landing Page header */}
-                <button
-                  onClick={toggleDarkMode}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
-                >
-                  {darkMode ? <Sun className="w-3.5 h-3.5 text-[#ed6f5c]" /> : <Moon className="w-3.5 h-3.5 text-[#ed6f5c]" />}
-                  <span className="font-sans font-bold text-[9px] uppercase tracking-wider">{darkMode ? "Light Mode" : "Dark Mode"}</span>
-                </button>
-
-                <Button
-                  onClick={handleGoogleSignIn}
-                  size="sm"
-                  className={`bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[#15140f]'} font-medium rounded-full px-5 py-1.5 text-xs transition-all shadow-[0_4px_12px_rgba(21,20,15,0.08)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.12)] dark:hover:shadow-[0_6px_16px_rgba(0,0,0,0.4)] active:translate-y-0 cursor-pointer`}
-                >
-                  Sign In
-                </Button>
-              </div>
-            </div>
-          </header>
-        </div>
+        </header>
 
         {/* Hero Section Container */}
         <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12 md:py-24 flex flex-col items-start gap-10">
 
           {/* Main Hero Hook Copy */}
-          <div className="max-w-5xl space-y-8 text-left flex flex-col items-start" data-reveal="">
-            <div className="flex flex-col items-start gap-3.5">
+          <div className="hero-copy max-w-5xl space-y-8 text-left flex flex-col items-start">
+            <div className="flex flex-col items-start gap-3.5" data-reveal="">
               <a
                 href="https://discord.gg/8X9v3JPr"
                 target="_blank"
@@ -1372,96 +1371,94 @@ export default function Home() {
               </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] xl:text-[5.25rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.95] select-none text-left max-w-5xl">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] xl:text-[5.25rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.95] select-none text-left max-w-5xl" data-reveal="">
               Upload raw <span className="font-serif italic font-light tracking-[-0.02em] text-[#15140f] dark:text-[#f7f1de]">products,</span> generate <span className="font-serif italic font-light tracking-[-0.02em] text-[#ed6f5c]">mockups & metadata</span> instantly<span className="text-[#ed6f5c] font-sans inline-block">.</span>
             </h1>
 
-            <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans">
+            <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans" data-reveal="">
               Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
             </p>
 
             {/* Action Buttons & Circles (Visual Gasket Matching Screenshot) */}
-            <div className="pt-2 space-y-8 text-left w-full max-w-2xl" data-reveal="scale">
-              <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto">
-                <Button
-                  onClick={handleGoogleSignIn}
-                  className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(237,111,92,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(237,111,92,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(237,111,92,0.3)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer"
-                >
-                  Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
-                </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto pt-2" data-reveal="">
+              <Button
+                onClick={handleGoogleSignIn}
+                className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(237,111,92,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(237,111,92,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(237,111,92,0.3)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer"
+              >
+                Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
+              </Button>
 
-                <Button
-                  onClick={handleGoogleSignIn}
-                  className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer`}
-                >
-                  Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
-                </Button>
+              <Button
+                onClick={handleGoogleSignIn}
+                className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer`}
+              >
+                Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
+              </Button>
 
-                <Button
-                  onClick={handleGoogleSignIn}
-                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(21,20,15,0.15)] dark:shadow-[0_8px_30px_rgba(247,241,222,0.08)] hover:shadow-[0_12px_36px_rgba(21,20,15,0.22)] dark:hover:shadow-[0_12px_36px_rgba(247,241,222,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
-                  Sync Your Shop (Google Auth)
-                </Button>
-              </div>
+              <Button
+                onClick={handleGoogleSignIn}
+                className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(21,20,15,0.15)] dark:shadow-[0_8px_30px_rgba(247,241,222,0.08)] hover:shadow-[0_12px_36px_rgba(21,20,15,0.22)] dark:hover:shadow-[0_12px_36px_rgba(247,241,222,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
+                Sync Your Shop (Google Auth)
+              </Button>
+            </div>
 
-              {/* Statistics circle dials matching screenshot */}
-              <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pt-4">
-                {/* Dial 1 */}
-                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="99.7" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                    </svg>
-                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">31</span>
-                  </div>
-                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SKILLS</div>
-                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
-                  </div>
+            {/* Statistics circle dials matching screenshot */}
+            <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pt-4" data-reveal="">
+              {/* Dial 1 */}
+              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="99.7" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                  </svg>
+                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">31</span>
                 </div>
-
-                {/* Dial 2 */}
-                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="40.5" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                    </svg>
-                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">72</span>
-                  </div>
-                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SYSTEMS</div>
-                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
-                  </div>
-                </div>
-
-                {/* Dial 3 */}
-                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="127.1" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                    </svg>
-                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">12</span>
-                  </div>
-                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">CLIS</div>
-                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
-                  </div>
+                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SKILLS</div>
+                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
                 </div>
               </div>
 
-              {/* Coordinates line of text below coordinates */}
-              <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`}>
-                <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
-                <span>·</span>
-                <span>3 COMMANDS TO START</span>
-                <span>·</span>
-                <span>52.5200° N · 13.4050° E</span>
+              {/* Dial 2 */}
+              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="40.5" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                  </svg>
+                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">72</span>
+                </div>
+                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SYSTEMS</div>
+                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
+                </div>
               </div>
+
+              {/* Dial 3 */}
+              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="127.1" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                  </svg>
+                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">12</span>
+                </div>
+                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">CLIS</div>
+                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Coordinates line of text below coordinates */}
+            <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`} data-reveal="">
+              <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
+              <span>·</span>
+              <span>3 COMMANDS TO START</span>
+              <span>·</span>
+              <span>52.5200° N · 13.4050° E</span>
             </div>
           </div>
 
@@ -1493,9 +1490,9 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left" data-reveal="">
+          <div className="cards grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {/* Bento Card 1: Vector Canvas Layout */}
-            <div className="bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors">
+            <div className="card bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors" data-reveal="">
               <div className="w-10 h-10 rounded-xl bg-[#efe7d2] dark:bg-[#12110c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] flex items-center justify-center text-[#ed6f5c]">
                 <Layers className="w-5 h-5" />
               </div>
@@ -1506,7 +1503,7 @@ export default function Home() {
             </div>
 
             {/* Bento Card 2: Gemini 3.5 SEO Copilot */}
-            <div className="bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors">
+            <div className="card bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors" data-reveal="">
               <div className="w-10 h-10 rounded-xl bg-[#efe7d2] dark:bg-[#12110c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] flex items-center justify-center text-[#ed6f5c]">
                 <Sparkles className="w-5 h-5" />
               </div>
@@ -1517,7 +1514,7 @@ export default function Home() {
             </div>
 
             {/* Bento Card 3: Secure Edge Synchronization */}
-            <div className="bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors">
+            <div className="card bg-[#ece4cf]/30 dark:bg-[#1a1914]/40 border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] p-6 space-y-4 hover:bg-[#ece4cf]/50 dark:hover:bg-[#1a1914]/60 transition-colors" data-reveal="">
               <div className="w-10 h-10 rounded-xl bg-[#efe7d2] dark:bg-[#12110c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] flex items-center justify-center text-[#ed6f5c]">
                 <Store className="w-5 h-5" />
               </div>
@@ -1779,7 +1776,7 @@ export default function Home() {
         </section>
 
         {/* Section III: Multi-Category Capabilities Grid */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="systems" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">III.</span>
             <span className="meta-grp">
@@ -1840,7 +1837,7 @@ export default function Home() {
         </section>
 
         {/* Section IV: Live Labs Showcase with Interactive State Filtering */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="labs" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">IV.</span>
             <span className="meta-grp">
@@ -1874,8 +1871,8 @@ export default function Home() {
                   key={pill.id}
                   onClick={() => setActiveLabFilter(pill.id as any)}
                   className={`px-4.5 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-wide border cursor-pointer transition-all duration-200 ${activeLabFilter === pill.id
-                      ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold shadow-sm'
-                      : `${darkMode ? 'bg-[#1a1914] text-[#ece4cf] border-[rgba(247,241,222,0.16)] hover:bg-[#22211b]' : 'bg-[#efe7d2] text-[#15140f] border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf]'}`
+                    ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold shadow-sm'
+                    : `${darkMode ? 'bg-[#1a1914] text-[#ece4cf] border-[rgba(247,241,222,0.16)] hover:bg-[#22211b]' : 'bg-[#efe7d2] text-[#15140f] border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf]'}`
                     }`}
                 >
                   {pill.label}
@@ -1965,7 +1962,7 @@ export default function Home() {
         </section>
 
         {/* Section V: Step-By-Step Compilation Loop Method */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="agents" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">V.</span>
             <span className="meta-grp">
@@ -2142,7 +2139,7 @@ export default function Home() {
         </section>
 
         {/* Section VIII: Studio Call To Action */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="contact" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">VIII.</span>
             <span className="meta-grp">
@@ -2295,7 +2292,7 @@ export default function Home() {
   // New Dashboard view for user's projects after login
   if (currentView === 'projects') {
     return (
-      <div className={`min-h-screen font-sans ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} flex flex-col justify-between relative overflow-hidden transition-colors duration-300`}>
+      <div className={`min-h-screen font-sans ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} flex flex-col justify-between relative transition-colors duration-300`}>
         {/* Side Rails */}
         <div className="side-rail right hidden xl:flex">
           <span className="rail-text">Etsy AutoLister — {darkMode ? "NIGHT ARCHIVE" : "DAY ARCHIVE"} · Vol. 01 · Issue Nº 26</span>
@@ -2619,7 +2616,7 @@ export default function Home() {
   // Option 2: Choose Path Mode selection screen if client logged in, but has not validated path mode (Either Etsy Shop api or Manual copy panels)
   if (!selectedMode && !etsyToken) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative overflow-hidden transition-colors duration-300`}>
+      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative transition-colors duration-300`}>
         {/* Side Rails */}
         <div className="side-rail right hidden xl:flex">
           <span className="rail-text">Etsy AutoLister — {darkMode ? "NIGHT ARCHIVE" : "DAY ARCHIVE"} · Vol. 01 · Issue Nº 26</span>
@@ -2756,7 +2753,7 @@ export default function Home() {
   // Option 3: Select Digital Product Type (PNG pack, printable art, photographers presets etc)
   if (selectedMode && !selectedProductType) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative overflow-hidden transition-colors duration-300`}>
+      <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} font-sans flex flex-col justify-between relative transition-colors duration-300`}>
         {/* Side Rails */}
         <div className="side-rail right hidden xl:flex">
           <span className="rail-text">Etsy AutoLister — {darkMode ? "NIGHT ARCHIVE" : "DAY ARCHIVE"} · Vol. 01 · Issue Nº 26</span>
