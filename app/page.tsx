@@ -1350,118 +1350,302 @@ export default function Home() {
         </header>
 
         {/* Hero Section Container */}
-        <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12 md:py-24 flex flex-col items-start gap-10">
+        <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-6 sm:px-12 py-12 md:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
+            {/* Left Column: Main Hero Hook Copy */}
+            <div className="lg:col-span-7 space-y-8 text-left flex flex-col items-start hero-copy">
+              <div className="flex flex-col items-start gap-3.5" data-reveal="">
+                <a
+                  href="https://discord.gg/8X9v3JPr"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ed6f5c]" />
+                  <span>Join Discord</span>
+                </a>
+                <div className="flex items-center gap-2 text-[10.5px] sm:text-[11px] font-sans uppercase tracking-[0.08em] font-semibold">
+                  <span className="text-[#ed6f5c]">— OPEN-SOURCE DESIGN STUDIO</span>
+                  <span className="text-[#8b8676] dark:text-[#a39e8f]">·</span>
+                  <span className="text-[#8b8676] dark:text-[#a39e8f]">Nº 01</span>
+                </div>
+              </div>
 
-          {/* Main Hero Hook Copy */}
-          <div className="hero-copy max-w-5xl space-y-8 text-left flex flex-col items-start">
-            <div className="flex flex-col items-start gap-3.5" data-reveal="">
-              <a
-                href="https://discord.gg/8X9v3JPr"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ed6f5c]/10 text-[#ed6f5c] border border-[#ed6f5c]/20 text-[10.5px] font-sans font-medium tracking-wide transition-all cursor-pointer hover:bg-[#ed6f5c]/15"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ed6f5c]" />
-                <span>Join Discord</span>
-              </a>
-              <div className="flex items-center gap-2 text-[10.5px] sm:text-[11px] font-sans uppercase tracking-[0.08em] font-semibold">
-                <span className="text-[#ed6f5c]">— OPEN-SOURCE DESIGN STUDIO</span>
-                <span className="text-[#8b8676] dark:text-[#a39e8f]">·</span>
-                <span className="text-[#8b8676] dark:text-[#a39e8f]">Nº 01</span>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.75rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.98] select-none text-left max-w-5xl" data-reveal="">
+                Upload raw <span className="font-serif italic font-light tracking-[-0.02em] text-[#15140f] dark:text-[#f7f1de]">products,</span> generate <span className="font-serif italic font-light tracking-[-0.02em] text-[#ed6f5c]">mockups & metadata</span> instantly<span className="text-[#ed6f5c] font-sans inline-block">.</span>
+              </h1>
+
+              <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans" data-reveal="">
+                Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
+              </p>
+
+              {/* Action Buttons & Circles */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto pt-2" data-reveal="">
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(237,111,92,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(237,111,92,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(237,111,92,0.3)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer"
+                >
+                  Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
+                </Button>
+
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer`}
+                >
+                  Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
+                </Button>
+
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(21,20,15,0.15)] dark:shadow-[0_8px_30px_rgba(247,241,222,0.08)] hover:shadow-[0_12px_36px_rgba(21,20,15,0.22)] dark:hover:shadow-[0_12px_36px_rgba(247,241,222,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
+                  Sync Your Shop (Google Auth)
+                </Button>
+              </div>
+
+              {/* Statistics circle dials */}
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pt-4" data-reveal="">
+                {/* Dial 1 */}
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="99.7" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">31</span>
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SKILLS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
+                  </div>
+                </div>
+
+                {/* Dial 2 */}
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="40.5" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">72</span>
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SYSTEMS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
+                  </div>
+                </div>
+
+                {/* Dial 3 */}
+                <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
+                  <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <svg className="absolute w-full h-full -rotate-90 dial-svg">
+                      <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
+                      <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="127.1" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
+                    </svg>
+                    <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">12</span>
+                  </div>
+                  <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
+                    <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">CLIS</div>
+                    <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coordinates line of text below coordinates */}
+              <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`} data-reveal="">
+                <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
+                <span>·</span>
+                <span>3 COMMANDS TO START</span>
+                <span>·</span>
+                <span>52.5200° N · 13.4050° E</span>
               </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] xl:text-[5.25rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.95] select-none text-left max-w-5xl" data-reveal="">
-              Upload raw <span className="font-serif italic font-light tracking-[-0.02em] text-[#15140f] dark:text-[#f7f1de]">products,</span> generate <span className="font-serif italic font-light tracking-[-0.02em] text-[#ed6f5c]">mockups & metadata</span> instantly<span className="text-[#ed6f5c] font-sans inline-block">.</span>
-            </h1>
+            {/* Right Column: Premium Animated SVG Illustration representing EtsyAutoLister */}
+            <div className="lg:col-span-5 w-full flex items-center justify-center relative aspect-square mt-8 lg:mt-0" data-reveal="scale">
+              {/* Corner Brackets */}
+              <span className={`absolute top-0 left-0 w-5 h-5 border-t border-l ${darkMode ? 'border-[rgba(247,241,222,0.3)]' : 'border-[rgba(21,20,15,0.3)]'}`} />
+              <span className={`absolute top-0 right-0 w-5 h-5 border-t border-r ${darkMode ? 'border-[rgba(247,241,222,0.3)]' : 'border-[rgba(21,20,15,0.3)]'}`} />
+              <span className={`absolute bottom-0 left-0 w-5 h-5 border-b border-l ${darkMode ? 'border-[rgba(247,241,222,0.3)]' : 'border-[rgba(21,20,15,0.3)]'}`} />
+              <span className={`absolute bottom-0 right-0 w-5 h-5 border-b border-r ${darkMode ? 'border-[rgba(247,241,222,0.3)]' : 'border-[rgba(21,20,15,0.3)]'}`} />
 
-            <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans" data-reveal="">
-              Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
-            </p>
-
-            {/* Action Buttons & Circles (Visual Gasket Matching Screenshot) */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-start w-full sm:w-auto pt-2" data-reveal="">
-              <Button
-                onClick={handleGoogleSignIn}
-                className="bg-[#ed6f5c] hover:bg-[#ef8171] text-white border-0 font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(237,111,92,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(237,111,92,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(237,111,92,0.3)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer"
+              <svg 
+                viewBox="0 0 500 500" 
+                className="w-full h-full p-6 animate-float-art select-none" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
               >
-                Star us on GitHub <ArrowRight className="w-3.5 h-3.5 -rotate-45" />
-              </Button>
+                <defs>
+                  {/* Glowing Laser Gradient */}
+                  <linearGradient id="laserGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#ed6f5c" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#ed6f5c" stopOpacity="0" />
+                  </linearGradient>
+                  
+                  {/* Mat board dropshadow */}
+                  <filter id="shadowMat" x="-10%" y="-10%" width="130%" height="130%">
+                    <feDropShadow dx="8" dy="12" stdDeviation="15" floodColor="#15140f" floodOpacity={darkMode ? "0.35" : "0.12"} />
+                  </filter>
 
-              <Button
-                onClick={handleGoogleSignIn}
-                className={`bg-[#efe7d2] dark:bg-[#1a1914] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#efe7d2] hover:bg-[#25241d]' : 'border-[rgba(21,20,15,0.16)] text-[#15140f] hover:bg-[#ece4cf]'} font-sans font-bold text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.45)] hover:-translate-y-1 active:translate-y-0 active:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 inline-flex items-center gap-2 cursor-pointer`}
-              >
-                Download desktop <Plus className="w-3.5 h-3.5 border border-current rounded-full p-0.5" />
-              </Button>
+                  {/* Clip Path for Framed Artwork */}
+                  <clipPath id="frameClip">
+                    <rect x="175" y="115" width="150" height="240" rx="2" />
+                  </clipPath>
 
-              <Button
-                onClick={handleGoogleSignIn}
-                className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] border border-[#15140f] dark:border-transparent font-sans font-medium text-xs py-5 px-7 rounded-full shadow-[0_8px_30px_rgba(21,20,15,0.15)] dark:shadow-[0_8px_30px_rgba(247,241,222,0.08)] hover:shadow-[0_12px_36px_rgba(21,20,15,0.22)] dark:hover:shadow-[0_12px_36px_rgba(247,241,222,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <User className="w-3.5 h-3.5 text-[#efe7d2] dark:text-[#15140f]" />
-                Sync Your Shop (Google Auth)
-              </Button>
-            </div>
+                  {/* Mahogany Premium Wood Frame Gradient */}
+                  <linearGradient id="woodFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#3d2115" />
+                    <stop offset="50%" stopColor="#2c160e" />
+                    <stop offset="100%" stopColor="#1a0d07" />
+                  </linearGradient>
 
-            {/* Statistics circle dials matching screenshot */}
-            <div className="flex flex-wrap items-center gap-x-10 gap-y-6 pt-4" data-reveal="">
-              {/* Dial 1 */}
-              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="99.7" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                  </svg>
-                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">31</span>
-                </div>
-                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SKILLS</div>
-                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>SHIPPABLE</div>
-                </div>
-              </div>
+                  {/* Sunset Sun Gradient */}
+                  <linearGradient id="sunGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#ef4444" />
+                  </linearGradient>
 
-              {/* Dial 2 */}
-              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="40.5" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                  </svg>
-                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">72</span>
-                </div>
-                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">SYSTEMS</div>
-                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>PORTABLE</div>
-                </div>
-              </div>
+                  {/* Soft Poster Texture Gradient */}
+                  <linearGradient id="artworkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#fdfcf7" />
+                    <stop offset="100%" stopColor="#efe7d2" />
+                  </linearGradient>
+                </defs>
 
-              {/* Dial 3 */}
-              <div className="flex items-center gap-3.5 group cursor-pointer dial-container">
-                <div className="relative w-14 h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                  <svg className="absolute w-full h-full -rotate-90 dial-svg">
-                    <circle cx="28" cy="28" r="23" stroke={darkMode ? 'rgba(247,241,222,0.1)' : 'rgba(21,20,15,0.1)'} strokeWidth="3" fill="transparent" />
-                    <circle cx="28" cy="28" r="23" stroke="#ed6f5c" strokeWidth="3" fill="transparent" strokeDasharray="144.5" strokeDashoffset="127.1" strokeLinecap="round" className="transition-all duration-500 ease-out group-hover:stroke-dashoffset-0" />
-                  </svg>
-                  <span className="font-mono font-extrabold text-sm relative z-10 text-[#15140f] dark:text-[#f7f1de]">12</span>
-                </div>
-                <div className="text-left leading-tight font-sans text-[10px] uppercase tracking-wider">
-                  <div className="font-bold text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-colors">CLIS</div>
-                  <div className={`text-[9px] font-medium ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`}>BYO AGENT</div>
-                </div>
-              </div>
-            </div>
+                {/* Floating Background Glow Node connections */}
+                <path d="M 60 120 L 150 180 M 440 200 L 350 250 M 60 340 L 150 320 M 440 380 L 350 340" stroke={darkMode ? "rgba(247,241,222,0.12)" : "rgba(21,20,15,0.12)"} strokeWidth="1.5" strokeDasharray="5,5" />
+                
+                {/* Active dash flow to represent flowing digital listings */}
+                <path d="M 60 120 L 150 180 M 440 200 L 350 250 M 60 340 L 150 320 M 440 380 L 350 340" stroke="#ed6f5c" strokeWidth="1.5" strokeOpacity="0.4" className="animate-dash-flow" />
+                
+                {/* 1. THE MAIN CORE FRAME (Printable Wall Art mockup representation) */}
+                <g filter="url(#shadowMat)">
+                  {/* Wooden outer frame */}
+                  <rect x="140" y="80" width="220" height="310" rx="8" fill="url(#woodFrame)" stroke="#1a0d07" strokeWidth="2.5" />
+                  {/* Matboard border */}
+                  <rect x="152" y="92" width="196" height="286" rx="4" fill={darkMode ? "#181712" : "#fcfbf9"} stroke="rgba(0,0,0,0.06)" strokeWidth="1" />
+                  {/* Inner bevel border highlight */}
+                  <rect x="153" y="93" width="194" height="284" rx="3" fill="none" stroke={darkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.8)"} strokeWidth="1" />
+                  
+                  {/* Abstract illustration inside the frame (Watercolor Fern landscape) */}
+                  <g clipPath="url(#frameClip)">
+                    <rect x="175" y="115" width="150" height="240" fill={darkMode ? "#12110c" : "url(#artworkGrad)"} rx="2" />
+                    {/* Abstract watercolor sun with gradient */}
+                    <circle cx="250" cy="180" r="32" fill="url(#sunGrad)" opacity="0.9" />
+                    
+                    {/* Elegant abstract hills */}
+                    <path d="M 175 320 C 200 290, 230 275, 260 300 C 290 325, 310 280, 325 310 L 325 355 L 175 355 Z" fill="#6e7448" opacity="0.8" />
+                    <path d="M 200 355 C 235 305, 270 315, 295 285 C 315 260, 325 295, 325 355 Z" fill="#ed6f5c" opacity="0.6" />
+                    
+                    {/* Botanical Fern leaves paths - highly stylized and beautiful */}
+                    <path d="M 230 310 Q 240 260 250 210" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.75" />
+                    {/* Side leaves left */}
+                    <path d="M 235 290 Q 220 280 215 282" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 239 270 Q 222 258 218 260" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 243 250 Q 225 238 221 240" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 247 230 Q 230 218 226 220" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    {/* Side leaves right */}
+                    <path d="M 237 285 Q 252 275 258 277" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 241 265 Q 256 253 262 255" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 245 245 Q 260 233 266 235" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
+                    <path d="M 249 225 Q 264 213 270 215" stroke={darkMode ? "#efe7d2" : "#f7f1de"} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.75" />
 
-            {/* Coordinates line of text below coordinates */}
-            <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`} data-reveal="">
-              <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
-              <span>·</span>
-              <span>3 COMMANDS TO START</span>
-              <span>·</span>
-              <span>52.5200° N · 13.4050° E</span>
+                    {/* Small grid lines showing canvas measurements */}
+                    <line x1="175" y1="235" x2="325" y2="235" stroke={darkMode ? "rgba(247,241,222,0.07)" : "rgba(21, 20, 15, 0.05)"} strokeWidth="1" />
+                    <line x1="250" y1="115" x2="250" y2="355" stroke={darkMode ? "rgba(247,241,222,0.07)" : "rgba(21, 20, 15, 0.05)"} strokeWidth="1" />
+                    
+                    {/* Premium Typography inside the poster */}
+                    <text x="250" y="328" fontFamily="var(--serif)" fontSize="10" fontStyle="italic" fill={darkMode ? "#f7f1de" : "#15140f"} textAnchor="middle" fontWeight="bold">Vintage Botanical</text>
+                    <text x="250" y="340" fontFamily="var(--mono)" fontSize="6" letterSpacing="2.5" fill={darkMode ? "#a39e8f" : "#5a5448"} textAnchor="middle">NO. 26 / AUTOLISTER STUDIO</text>
+                  </g>
+                </g>
+
+                {/* 2. THE GLOWING LASER SCANNER LINE (SEO & Ratio evaluation pipeline) */}
+                <g className="animate-scanning-path">
+                  {/* Laser line gradient beam */}
+                  <rect x="130" y="-12" width="240" height="24" fill="url(#laserGrad)" rx="3" />
+                  {/* Ultra sharp laser core */}
+                  <line x1="125" y1="12" x2="375" y2="12" stroke="#ed6f5c" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Laser side glow dots */}
+                  <circle cx="125" cy="12" r="3.5" fill="#ed6f5c" />
+                  <circle cx="375" cy="12" r="3.5" fill="#ed6f5c" />
+                </g>
+
+                {/* 3. DETERMINISTIC PIPELINE FLOWS & PULSING NODES (with native animations for perfect centering) */}
+                {/* Node 1: Ingest (Top Left) */}
+                <g transform="translate(60, 120)">
+                  <circle cx="0" cy="0" r="18" fill="transparent" stroke={darkMode ? "rgba(247,241,222,0.4)" : "rgba(21,20,15,0.3)"} strokeWidth="1" opacity="0.8">
+                    <animate attributeName="r" values="18;26;18" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.8;0;0.8" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="0" cy="0" r="18" fill={darkMode ? "#1a1914" : "#efe7d2"} stroke={darkMode ? "rgba(247,241,222,0.18)" : "rgba(21,20,15,0.16)"} strokeWidth="1.5" />
+                  <path d="M-5 -3 L0 2 L5 -3 M0 -6 L0 2" stroke={darkMode ? "#efe7d2" : "#15140f"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <text x="26" y="4" fontFamily="monospace" fontSize="8.5" fontWeight="bold" fill={darkMode ? "#a39e8f" : "#8b8676"} textAnchor="start">INGEST</text>
+                </g>
+
+                {/* Node 2: Mockups Matting (Right Middle) */}
+                <g transform="translate(440, 200)">
+                  <circle cx="0" cy="0" r="18" fill="transparent" stroke="#ed6f5c" strokeWidth="1" opacity="0.8">
+                    <animate attributeName="r" values="18;26;18" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.8;0;0.8" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="0" cy="0" r="18" fill={darkMode ? "#1a1914" : "#efe7d2"} stroke="#ed6f5c" strokeWidth="1.5" />
+                  <rect x="-6" y="-6" width="9" height="9" stroke={darkMode ? "#f7f1de" : "#ed6f5c"} strokeWidth="1.2" fill="none" />
+                  <rect x="-2" y="-2" width="9" height="9" stroke={darkMode ? "#f7f1de" : "#ed6f5c"} strokeWidth="1.2" fill="none" opacity="0.7" />
+                  <text x="-26" y="4" fontFamily="monospace" fontSize="8.5" fontWeight="bold" fill="#ed6f5c" textAnchor="end">MATTING</text>
+                </g>
+
+                {/* Node 3: Gemini SEO (Left Bottom) */}
+                <g transform="translate(60, 340)">
+                  <circle cx="0" cy="0" r="18" fill="transparent" stroke="#e9b94a" strokeWidth="1" opacity="0.8">
+                    <animate attributeName="r" values="18;26;18" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.8;0;0.8" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="0" cy="0" r="18" fill={darkMode ? "#1a1914" : "#efe7d2"} stroke="#e9b94a" strokeWidth="1.5" />
+                  <path d="M0 -6 L1.5 -1.5 L6 0 L1.5 1.5 L0 6 L-1.5 1.5 L-6 0 L-1.5 -1.5 Z" fill="#e9b94a" />
+                  <text x="26" y="4" fontFamily="monospace" fontSize="8.5" fontWeight="bold" fill="#e9b94a" textAnchor="start">GEMINI SEO</text>
+                </g>
+
+                {/* Node 4: Etsy Publish Sync (Right Bottom) */}
+                <g transform="translate(440, 380)">
+                  <circle cx="0" cy="0" r="18" fill="transparent" stroke="#6e7448" strokeWidth="1" opacity="0.8">
+                    <animate attributeName="r" values="18;26;18" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.8;0;0.8" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="0" cy="0" r="18" fill={darkMode ? "#1a1914" : "#efe7d2"} stroke="#6e7448" strokeWidth="1.5" />
+                  <path d="M-6 1 L0 -5 L6 1" stroke={darkMode ? "#efe7d2" : "#6e7448"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <line x1="0" y1="-5" x2="0" y2="5" stroke={darkMode ? "#efe7d2" : "#6e7448"} strokeWidth="1.5" strokeLinecap="round" />
+                  <text x="-26" y="4" fontFamily="monospace" fontSize="8.5" fontWeight="bold" fill={darkMode ? "#9ea671" : "#6e7448"} textAnchor="end">ETSY SYNC</text>
+                </g>
+
+                {/* 4. ANIME FLOWING TAG CAPSULES (with nested groups to preserve base transform layout) */}
+                {/* Floating capsule 1: 300DPI */}
+                <g transform="translate(320, 50)">
+                  <g className="animate-float-capsule-1">
+                    <rect x="0" y="0" width="56" height="18" rx="9" fill={darkMode ? "#ed6f5c" : "#15140f"} />
+                    <text x="28" y="11" fontFamily="sans-serif" fontSize="7.5" fontWeight="bold" fill="#efe7d2" textAnchor="middle">300 DPI</text>
+                  </g>
+                </g>
+
+                {/* Floating capsule 2: PNG DECAL */}
+                <g transform="translate(80, 220)">
+                  <g className="animate-float-capsule-2">
+                    <rect x="0" y="0" width="62" height="18" rx="9" fill={darkMode ? "#1a1914" : "#efe7d2"} stroke={darkMode ? "rgba(247,241,222,0.16)" : "rgba(21,20,15,0.16)"} strokeWidth="1" />
+                    <text x="31" y="11" fontFamily="sans-serif" fontSize="7.5" fontWeight="bold" fill="#ed6f5c" textAnchor="middle">PNG BUNDLE</text>
+                  </g>
+                </g>
+
+                {/* Floating capsule 3: READY DRAFT */}
+                <g transform="translate(210, 420)">
+                  <g className="animate-float-capsule-3">
+                    <rect x="0" y="0" width="80" height="20" rx="10" fill="#6e7448" />
+                    <text x="40" y="12" fontFamily="sans-serif" fontSize="7.5" fontWeight="bold" fill="#efe7d2" textAnchor="middle">✓ READY DRAFT</text>
+                  </g>
+                </g>
+              </svg>
             </div>
           </div>
-
         </main>
 
         {/* Feature Bento Capability Grid Section */}
