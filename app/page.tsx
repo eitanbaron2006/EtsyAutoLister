@@ -349,10 +349,53 @@ function ScrollToTop({ darkMode }: { darkMode: boolean }) {
         }`}
       aria-label="Scroll to top"
     >
-      <ArrowRight className="w-4 h-4 -rotate-90" />
     </button>
   );
 }
+
+const parseBoldText = (text: string) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold text-[#15140f] dark:text-[#f7f1de]">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
+const renderFormattedDescription = (text: string) => {
+  if (!text) return <p className="text-xs text-[#8b8676] italic">No description provided.</p>;
+  
+  return text.split('\n').map((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={index} className="h-2" />;
+    
+    // Bullet points check
+    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+      const content = trimmed.substring(1).trim();
+      return (
+        <li key={index} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed list-disc list-inside ml-2 mb-1">
+          {parseBoldText(content)}
+        </li>
+      );
+    }
+    
+    // Headers or bold sections
+    if (trimmed.startsWith('###')) {
+      return (
+        <h4 key={index} className="text-xs font-serif font-bold text-[#15140f] dark:text-[#f7f1de] mt-3 mb-1.5 uppercase tracking-wider">
+          {trimmed.replace(/^###\s*/, '')}
+        </h4>
+      );
+    }
+
+    return (
+      <p key={index} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed mb-1.5">
+        {parseBoldText(line)}
+      </p>
+    );
+  });
+};
 
 export default function Home() {
   // Authentication & Configuration States
@@ -381,6 +424,7 @@ export default function Home() {
   const [localFilesMap, setLocalFilesMap] = useState<Record<string, { images: File[]; files: File[] }>>({});
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [descTab, setDescTab] = useState<'edit' | 'preview'>('edit');
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -3501,31 +3545,55 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Description Area */}
-                  <div className="space-y-1.5 flex-1 flex flex-col min-h-0">
+                  {/* Description Area - flexible height */}
+                  <div className="flex-1 min-h-0 flex flex-col space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <Label className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Sales Copy Description</Label>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Sales Copy Description</Label>
+                        <div className="inline-flex rounded-md border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]/20 p-0.5 select-none shrink-0 font-mono text-[8px]">
+                          <button
+                            type="button"
+                            onClick={() => setDescTab('edit')}
+                            className={`px-1.5 py-0.5 rounded cursor-pointer uppercase ${descTab === 'edit' ? 'bg-[#ed6f5c] text-white font-bold' : 'text-[#8b8676] hover:text-[#15140f]'}`}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDescTab('preview')}
+                            className={`px-1.5 py-0.5 rounded cursor-pointer uppercase ${descTab === 'preview' ? 'bg-[#ed6f5c] text-white font-bold' : 'text-[#8b8676] hover:text-[#15140f]'}`}
+                          >
+                            Preview
+                          </button>
+                        </div>
+                      </div>
                       <button onClick={() => handleCopyText(activeProduct.description || '', 'Description')} className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
                         <Copy className="w-2.5 h-2.5" /> Copy Desc
                       </button>
                     </div>
-                    <textarea
-                      value={activeProduct.description || ''}
-                      onChange={(e) => handleUpdateActiveProduct('description', e.target.value)}
-                      className="w-full flex-1 rounded-xl border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]/35 p-3 text-xs text-[#5a5448] leading-relaxed focus:outline-none focus:border-[#ed6f5c] resize-none overflow-y-auto"
-                      placeholder="Enter optimized product description..."
-                    />
+                    {descTab === 'preview' ? (
+                      <div className="w-full flex-1 rounded-xl border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]/35 p-3.5 text-xs text-[#5a5448] overflow-y-auto leading-relaxed select-text text-left">
+                        {renderFormattedDescription(activeProduct.description || '')}
+                      </div>
+                    ) : (
+                      <textarea
+                        value={activeProduct.description || ''}
+                        onChange={(e) => handleUpdateActiveProduct('description', e.target.value)}
+                        className="w-full flex-1 rounded-xl border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]/35 p-3 text-xs text-[#5a5448] leading-relaxed focus:outline-none focus:border-[#ed6f5c] resize-none overflow-y-auto"
+                        placeholder="Enter optimized product description..."
+                      />
+                    )}
                   </div>
 
-                  {/* Tags Area */}
-                  <div className="space-y-1.5 shrink-0">
+                  {/* Tags Area - fixed height: h-[130px] flex-none */}
+                  <div className="h-[130px] flex-none flex flex-col space-y-1.5">
                     <div className="flex justify-between items-center">
                       <Label className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Tag Keywords ({(activeProduct.tags || []).length} / 13)</Label>
                       <button onClick={() => handleCopyText((activeProduct.tags || []).join(', '), 'Tags list')} className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
                         <Copy className="w-2.5 h-2.5" /> Copy Tags
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto border border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/20 p-1.5 rounded-xl">
+                    <div className="flex-1 min-h-0 overflow-y-auto border border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/20 p-2 rounded-xl flex flex-wrap gap-1 content-start">
                       {(activeProduct.tags || []).map((tag, i) => (
                         <span key={i} className="text-[9px] bg-[#efe7d2] text-[#5a5448] border border-[rgba(21,20,15,0.12)] px-2 py-0.5 rounded-full font-mono uppercase font-bold flex items-center gap-1">
                           {tag}

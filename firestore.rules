@@ -61,7 +61,24 @@ service cloud.firestore {
              (!('price' in data) || (data.price is number && data.price >= 0)) &&
              (!('tags' in data) || (data.tags is list && data.tags.size() <= 13 && (data.tags.size() == 0 || data.tags[0] is string))) &&
              (!('listingId' in data) || (data.listingId is string && data.listingId.size() <= 128)) &&
-             (!('listingUrl' in data) || (data.listingUrl is string && data.listingUrl.size() <= 1024));
+             (!('listingUrl' in data) || (data.listingUrl is string && data.listingUrl.size() <= 1024)) &&
+             (!('quantity' in data) || (data.quantity is number && data.quantity >= 0)) &&
+             (!('listingType' in data) || (data.listingType is string && data.listingType.size() <= 64)) &&
+             (!('renewalOption' in data) || (data.renewalOption is string && data.renewalOption.size() <= 64)) &&
+             (!('whoMade' in data) || (data.whoMade is string && data.whoMade.size() <= 64)) &&
+             (!('whenMade' in data) || (data.whenMade is string && data.whenMade.size() <= 64)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 64)) &&
+             (!('shippingProfile' in data) || (data.shippingProfile is string && data.shippingProfile.size() <= 128)) &&
+             (!('isSupply' in data) || data.isSupply is bool) &&
+             (!('sku' in data) || (data.sku is string && data.sku.size() <= 128)) &&
+             (!('primaryColor' in data) || (data.primaryColor is string && data.primaryColor.size() <= 64)) &&
+             (!('secondaryColor' in data) || (data.secondaryColor is string && data.secondaryColor.size() <= 64)) &&
+             (!('occasion' in data) || (data.occasion is string && data.occasion.size() <= 64)) &&
+             (!('holiday' in data) || (data.holiday is string && data.holiday.size() <= 64)) &&
+             (!('personalizationEnabled' in data) || data.personalizationEnabled is bool) &&
+             (!('personalizationInstructions' in data) || (data.personalizationInstructions is string && data.personalizationInstructions.size() <= 1000)) &&
+             (!('materials' in data) || (data.materials is string && data.materials.size() <= 1000)) &&
+             (!('productionPartners' in data) || (data.productionPartners is string && data.productionPartners.size() <= 256));
     }
 
     // User Profile matching
@@ -98,7 +115,11 @@ service cloud.firestore {
                         incoming().diff(existing()).affectedKeys().hasOnly([
                           'status', 'title', 'description', 'price', 'tags', 
                           'listingId', 'listingUrl', 'productType', 'pipelineStepText', 
-                          'mockupImage', 'updatedAt'
+                          'mockupImage', 'updatedAt',
+                          'quantity', 'listingType', 'renewalOption', 'whoMade', 'whenMade', 
+                          'category', 'shippingProfile', 'isSupply', 'sku', 'primaryColor', 
+                          'secondaryColor', 'occasion', 'holiday', 'personalizationEnabled', 
+                          'personalizationInstructions', 'materials', 'productionPartners'
                         ]);
 
         allow delete: if isOwner(userId);
