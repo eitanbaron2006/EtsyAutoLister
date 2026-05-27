@@ -1988,56 +1988,83 @@ export default function Home() {
             </span>
             <span>005 / 008</span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start mb-16" data-reveal="">
-            <div className="lg:col-span-7 space-y-4 text-left">
-              <div className="flex items-center gap-3 text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase mb-4 leading-none">
-                <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
-                <span>The Automated High-Fidelity Pipeline · Nº 05</span>
-              </div>
-              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+          {/* Method head — exact reference layout: 1.4fr heading / 1fr note */}
+          <div className="grid gap-[60px] items-start mb-20" style={{gridTemplateColumns: '1.4fr 1fr'}} data-reveal="">
+            <div>
+              <span className="flex items-center gap-3 text-[11px] font-sans font-semibold tracking-[0.22em] text-[#ed6f5c] uppercase mb-8 leading-none">
+                <span className="w-[18px] h-[1px] bg-[#ed6f5c] inline-block"></span>
+                The Automated High-Fidelity Pipeline · Nº 05
+              </span>
+              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-tight mt-8">
                 <strong>Four step </strong><em>execution</em><strong> to </strong><em>storefront sync</em><span className="h-dot">.</span>
               </h2>
             </div>
-            <div className="lg:col-span-5 flex items-start gap-3 pt-2 text-left">
-              <span className="text-lg text-[#ed6f5c] font-sans font-bold">+</span>
-              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-mono uppercase tracking-wider">
+            <div className="flex items-start gap-[14px] pt-[14px]" data-reveal="">
+              <span className="text-2xl leading-none font-sans text-[#ed6f5c]">+</span>
+              <p className="text-[13px] text-[#2a2620] dark:text-[#ece4cf] leading-[1.55] max-w-[22ch] font-sans">
                 Every stage runs client-side inside secure sandbox memory. Composed assets are transported explicitly on your command.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left relative pt-10">
+          {/* 4-column method grid — exact reference structure */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-[50px] relative text-left" data-reveal="">
+
+
             {/* Step 1 */}
-            <div className="space-y-4">
-              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">01</div>
-              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Ingest Raw Assets</h4>
-              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+            <div className="relative flex flex-col">
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>01</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+                Ingest Raw Assets <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
+              </h4>
+              <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 Drag-and-drop raw photo filters dng, digital templates pdf, transparency decal png, or vectors.
               </p>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+                <img src="/step1-ingest.png" alt="Ingest Raw Assets" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+              </div>
             </div>
+
             {/* Step 2 */}
-            <div className="space-y-4">
-              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">02</div>
-              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Frame Canvas Mat</h4>
-              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+            <div className="relative flex flex-col">
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>02</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+                Frame Canvas Mat <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
+              </h4>
+              <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 Apply premium drop shadow matrices, frame wood types, floating mats, or tablet bezels cleanly in one click.
               </p>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+                <img src="/step2-frame.png" alt="Frame Canvas Mat" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+              </div>
             </div>
+
             {/* Step 3 */}
-            <div className="space-y-4">
-              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">03</div>
-              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Compute Gemini Copy</h4>
-              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
+            <div className="relative flex flex-col">
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>03</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+                Compute Gemini Copy <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
+              </h4>
+              <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 AI parses texture metrics to formulate SEO-ranked titles, comprehensive meta descriptions, and 13 targeted tags.
               </p>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+                <img src="/step3-copy.png" alt="Compute Gemini Copy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+              </div>
             </div>
-            {/* Step 4 */}
-            <div className="space-y-4">
-              <div className="font-serif italic text-4xl sm:text-5xl lg:text-6xl text-[#ed6f5c] leading-none mb-2 select-none">04</div>
-              <h4 className="text-lg font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight">Sovereign Direct Sync</h4>
-              <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
-                Sync generated images and complete copywriting as active digital listings draft structure via Google OAuth APIs.
+
+            {/* Step 4 — no arrow on last */}
+            <div className="relative flex flex-col">
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>04</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+                Sovereign Direct Sync
+              </h4>
+              <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
+                Sync generated images and complete copywriting as active digital listings draft via Google OAuth APIs.
               </p>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+                <img src="/step4-sync.png" alt="Sovereign Direct Sync" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+              </div>
             </div>
           </div>
         </section>
