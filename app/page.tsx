@@ -69,6 +69,12 @@ import {
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
+import {
+  MOCKUP_VARIANTS,
+  createMockupGallery,
+  type MockupGalleryItem,
+  type MockupVariantId,
+} from '@/lib/mockup-gallery';
 
 type ListingMetadata = {
   id: string;
@@ -83,6 +89,7 @@ type ListingMetadata = {
   productType?: string; // 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
   pipelineStepText?: string;
   mockupImage?: string; // Base64 dataURL of simulated custom mockup!
+  mockupImages?: MockupGalleryItem[];
 };
 
 // Extends ListingMetadata with in-memory selected Files during active sessions
@@ -831,7 +838,11 @@ export default function Home() {
 
       // Compute the realistic canvas mockup image on-the-fly!
       const activeImg = sessionFiles.images[0];
-      const dataUrl = await generateSimulatedMockup(folderName, productType, activeImg);
+      const mockupUrls = await Promise.all(
+        MOCKUP_VARIANTS.map(({ id }) => generateSimulatedMockup(folderName, productType, activeImg, id))
+      );
+      const mockupImages = createMockupGallery(mockupUrls);
+      const dataUrl = mockupImages[0]?.image || '';
       await new Promise(r => setTimeout(r, 2000));
 
       // Step 3: Promotional thumbnail texts overlays
@@ -881,6 +892,7 @@ export default function Home() {
         tags: listingData.tags,
         price: listingData.price,
         mockupImage: dataUrl, // Save generated illustration
+        mockupImages,
         updatedAt: serverTimestamp()
       }, { merge: true });
 
@@ -896,7 +908,12 @@ export default function Home() {
   };
 
   // Simulate mockup creation canvas engine
-  const generateSimulatedMockup = (title: string, productType: string, uploadedImageFile?: File): Promise<string> => {
+  const generateSimulatedMockup = (
+    title: string,
+    productType: string,
+    uploadedImageFile?: File,
+    variant: MockupVariantId = 'hero'
+  ): Promise<string> => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       canvas.width = 800;
@@ -906,6 +923,10 @@ export default function Home() {
         resolve('');
         return;
       }
+      const finish = () => {
+        applyMockupVariant(ctx, canvas, title, variant);
+        resolve(canvas.toDataURL('image/jpeg'));
+      };
 
       // 1. Draw elegant background based on chosen product type
       if (productType === 'printable_wallart') {
@@ -945,11 +966,11 @@ export default function Home() {
           const img = new Image();
           img.onload = () => {
             ctx.drawImage(img, 295, 95, 240, 340);
-            resolve(canvas.toDataURL('image/jpeg'));
+            finish();
           };
           img.onerror = () => {
             drawPlaceholderArt(ctx, title);
-            resolve(canvas.toDataURL('image/jpeg'));
+            finish();
           };
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -958,7 +979,7 @@ export default function Home() {
           reader.readAsDataURL(uploadedImageFile);
         } else {
           drawPlaceholderArt(ctx, title);
-          resolve(canvas.toDataURL('image/jpeg'));
+          finish();
         }
       } else if (productType === 'png_graphics') {
         // Aesthetic checkered transparent background representation
@@ -1009,12 +1030,12 @@ export default function Home() {
           const img = new Image();
           img.onload = () => {
             ctx.drawImage(img, 450, 280, 180, 180);
-            resolve(canvas.toDataURL('image/jpeg'));
+            finish();
           };
           img.src = URL.createObjectURL(uploadedImageFile);
         } else {
           drawPlaceholderArt(ctx, title);
-          resolve(canvas.toDataURL('image/jpeg'));
+          finish();
         }
       } else if (productType === 'presets') {
         // Photographer portfolio Lightroom before-after card
@@ -1049,7 +1070,7 @@ export default function Home() {
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 20px system-ui';
         ctx.fillText('⚡ ' + title.toUpperCase(), 80, 565);
-        resolve(canvas.toDataURL('image/jpeg'));
+        finish();
       } else {
         // Planner screen tablet mockup layout
         ctx.fillStyle = '#F8FAFC';
@@ -1078,9 +1099,49 @@ export default function Home() {
         ctx.fillStyle = '#1E293B';
         ctx.font = 'bold 20px sans-serif';
         ctx.fillText('📅 ' + title, 150, 570);
-        resolve(canvas.toDataURL('image/jpeg'));
+        finish();
       }
     });
+  };
+
+  const applyMockupVariant = (
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    title: string,
+    variant: MockupVariantId
+  ) => {
+    if (variant === 'hero') {
+      return;
+    }
+
+    if (variant === 'detail') {
+      const snapshot = document.createElement('canvas');
+      snapshot.width = canvas.width;
+      snapshot.height = canvas.height;
+      snapshot.getContext('2d')?.drawImage(canvas, 0, 0);
+
+      ctx.fillStyle = '#ece4cf';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(snapshot, 145, 40, 510, 500, 45, 44, 710, 500);
+      ctx.fillStyle = 'rgba(247, 241, 222, 0.96)';
+      ctx.fillRect(36, 24, 154, 36);
+      ctx.fillStyle = '#15140f';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText('DETAIL VIEW', 54, 47);
+      return;
+    }
+
+    ctx.fillStyle = 'rgba(21, 20, 15, 0.78)';
+    ctx.fillRect(0, 492, canvas.width, 108);
+    ctx.fillStyle = '#f7f1de';
+    ctx.font = 'bold 22px system-ui';
+    ctx.fillText(title.toUpperCase().slice(0, 42), 34, 535);
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('DIGITAL DOWNLOAD  /  INSTANT ACCESS', 34, 566);
+    ctx.fillStyle = '#ed6f5c';
+    ctx.fillRect(34, 28, 154, 33);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('ETSY COVER', 56, 50);
   };
 
   const drawPlaceholderArt = (ctx: CanvasRenderingContext2D, title: string) => {
