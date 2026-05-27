@@ -2297,7 +2297,7 @@ export default function Home() {
 
           {/* Big Name Showcase (Foot-Mega) */}
           <div className="max-w-7xl mx-auto px-6 sm:px-12 foot-mega">
-            <div className="word">Auto<em>Lister</em>.</div>
+            <div className="word">Auto<em>Lister</em><span className="dot">.</span></div>
           </div>
         </footer>
         <ScrollToTop darkMode={darkMode} />

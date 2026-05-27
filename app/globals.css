@@ -276,18 +276,110 @@ body {
   font-size: clamp(70px, 13vw, 200px);
   letter-spacing: -0.05em;
   line-height: 1.05;
-  color: var(--ink);
   white-space: nowrap;
   margin-top: 30px;
   padding-bottom: 0.18em;
   text-align: left;
+  position: relative;
+  cursor: default;
+  transition: letter-spacing 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              text-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Continuous, premium gradient metallic sheen */
+  background: linear-gradient(
+    120deg,
+    var(--ink) 0%,
+    var(--ink) 40%,
+    var(--coral) 50%,
+    var(--ink) 60%,
+    var(--ink) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: metallic-shine 10s linear infinite;
+  will-change: letter-spacing, transform;
+}
+
+/* Subtle elegant hover effect for the entire word */
+.foot-mega .word:hover {
+  letter-spacing: -0.02em; /* Smooth elegant expansion */
+  transform: translateY(-4px); /* Gentle lift */
+  text-shadow: 0 10px 30px rgba(237, 111, 92, 0.12);
 }
 
 .foot-mega .word em {
   font-family: var(--serif);
   font-style: italic;
   font-weight: 500;
-  color: var(--coral);
+  display: inline-block;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.8s ease;
+  will-change: transform;
+  
+  /* Staggered coral/light coral metallic sheen */
+  background: linear-gradient(
+    120deg,
+    var(--coral) 0%,
+    var(--coral) 40%,
+    var(--coral-soft) 50%,
+    var(--coral) 60%,
+    var(--coral) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: metallic-shine 10s linear infinite;
+  animation-delay: 1.5s;
+}
+
+/* Make "Lister" float gently on hover */
+.foot-mega .word:hover em {
+  transform: scale(1.02) rotate(1deg);
+}
+
+/* The dot at the end is animated and styled elegantly */
+.foot-mega .word .dot {
+  display: inline-block;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.8s ease;
+  animation: dot-glow-pulse 3s infinite ease-in-out;
+  will-change: transform;
+  
+  /* Make the dot stand out with its own coral gradient */
+  background: linear-gradient(135deg, var(--coral) 0%, var(--coral-soft) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.foot-mega .word:hover .dot {
+  transform: scale(1.35) translateX(8px);
+}
+
+/* Keyframes for the dot's organic breathing/glow pulse */
+@keyframes dot-glow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+/* Sheen sweep animation */
+@keyframes metallic-shine {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
 }
 
 /* Reveal System matching open-design.ai animations */
