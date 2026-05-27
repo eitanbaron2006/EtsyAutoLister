@@ -69,12 +69,7 @@ import {
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
-import {
-  MOCKUP_VARIANTS,
-  createMockupGallery,
-  type MockupGalleryItem,
-  type MockupVariantId,
-} from '@/lib/mockup-gallery';
+import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
 
 type ListingMetadata = {
   id: string;
@@ -88,8 +83,7 @@ type ListingMetadata = {
   listingUrl?: string;
   productType?: string; // 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
   pipelineStepText?: string;
-  mockupImage?: string; // Base64 dataURL of simulated custom mockup!
-  mockupImages?: MockupGalleryItem[];
+  mockupImage?: string; // Legacy saved preview from older drafts.
 };
 
 // Extends ListingMetadata with in-memory selected Files during active sessions
@@ -370,6 +364,8 @@ export default function Home() {
   const [localFilesMap, setLocalFilesMap] = useState<Record<string, { images: File[]; files: File[] }>>({});
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
+  const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
   const [activeLabFilter, setActiveLabFilter] = useState<'all' | 'wallart' | 'presets' | 'stickers' | 'planners'>('all');
 
@@ -380,6 +376,12 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rawFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      sourcePreviewImages.forEach(preview => URL.revokeObjectURL(preview.image));
+    };
+  }, [sourcePreviewImages]);
 
   // Branded scroll listener for top menu bar sticky transitions (pure DOM manipulation matching open-design target exactly)
   useEffect(() => {
@@ -814,6 +816,12 @@ export default function Home() {
     });
   };
 
+  const createSourcePreviewImages = (images: File[]) => {
+    const imageFiles = images.filter(file => file.type.startsWith('image/'));
+    const imageUrls = imageFiles.map(file => URL.createObjectURL(file));
+    return createUploadedPreviews(imageFiles, imageUrls);
+  };
+
   // Trigger Mockups Generation Canvas and pipeline step indicators
   const runAutomatedAIPipeline = async (listingId: string, folderName: string, productType: string) => {
     if (!user) return;
@@ -829,20 +837,18 @@ export default function Home() {
       }, { merge: true });
       await new Promise(r => setTimeout(r, 1500));
 
-      // Step 2: Creating Lifestyle Mockups
+      // Step 2: Preparing uploaded product images
       await setDoc(doc(db, docPath), {
         status: 'mockups',
-        pipelineStepText: 'Rendering premium styled lifestyle scene shadows...',
+        pipelineStepText: 'Preparing uploaded product images for listing review...',
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // Compute the realistic canvas mockup image on-the-fly!
-      const activeImg = sessionFiles.images[0];
-      const mockupUrls = await Promise.all(
-        MOCKUP_VARIANTS.map(({ id }) => generateSimulatedMockup(folderName, productType, activeImg, id))
+      const uploadedImageDataUrls = await Promise.all(
+        sessionFiles.images
+          .filter(file => file.type.startsWith('image/'))
+          .map(convertFileToBase64)
       );
-      const mockupImages = createMockupGallery(mockupUrls);
-      const dataUrl = mockupImages[0]?.image || '';
       await new Promise(r => setTimeout(r, 2000));
 
       // Step 3: Promotional thumbnail texts overlays
@@ -868,8 +874,8 @@ export default function Home() {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // Pass the canvas preview as the base64 analysis input to Gemini so it is contextually synced!
-      const base64ImagesPayload = [dataUrl];
+      // Pass the user's actual uploaded images to Gemini for contextual listing copy.
+      const base64ImagesPayload = uploadedImageDataUrls;
 
       const res = await fetch('/api/gemini/generate-listing', {
         method: 'POST',
@@ -883,7 +889,7 @@ export default function Home() {
 
       const listingData = await res.json();
 
-      // Master complete! Sync the compiled result and custom mockup to Firestore
+      // Master complete! Sync the compiled listing result to Firestore.
       await setDoc(doc(db, docPath), {
         status: 'ready',
         pipelineStepText: 'Optimization complete. Ready to publish!',
@@ -891,12 +897,10 @@ export default function Home() {
         description: listingData.description,
         tags: listingData.tags,
         price: listingData.price,
-        mockupImage: dataUrl, // Save generated illustration
-        mockupImages,
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      toast.success(`Pipeline success! Constructed full Listing draft + Mockups: ${folderName}`);
+      toast.success(`Pipeline success! Constructed full Listing draft: ${folderName}`);
     } catch (err: any) {
       toast.error('Pipeline failed: ' + (err.message || 'Unknown error'));
       await setDoc(doc(db, docPath), {
@@ -905,262 +909,6 @@ export default function Home() {
         updatedAt: serverTimestamp()
       }, { merge: true }).catch(() => { });
     }
-  };
-
-  // Simulate mockup creation canvas engine
-  const generateSimulatedMockup = (
-    title: string,
-    productType: string,
-    uploadedImageFile?: File,
-    variant: MockupVariantId = 'hero'
-  ): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 600;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve('');
-        return;
-      }
-      const finish = () => {
-        applyMockupVariant(ctx, canvas, title, variant);
-        resolve(canvas.toDataURL('image/jpeg'));
-      };
-
-      // 1. Draw elegant background based on chosen product type
-      if (productType === 'printable_wallart') {
-        const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#EAE9E6'); // Wall color beige
-        grad.addColorStop(1, '#D8D6D1');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 800, 600);
-
-        // Floorboard wood feel
-        ctx.fillStyle = '#C4B29E';
-        ctx.fillRect(0, 480, 800, 120);
-        ctx.fillStyle = '#A3917F';
-        ctx.fillRect(0, 480, 800, 8); // shadow line
-
-        // Floor white board trim
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 460, 800, 20);
-
-        // Frame shadow and outline
-        ctx.shadowColor = 'rgba(0,0,0,0.18)';
-        ctx.shadowBlur = 30;
-        ctx.shadowOffsetX = 12;
-        ctx.shadowOffsetY = 15;
-
-        // Wooden frame borders
-        ctx.fillStyle = '#422a1b';
-        ctx.fillRect(260, 60, 310, 410);
-
-        // Mat boards border
-        ctx.shadowColor = 'transparent';
-        ctx.fillStyle = '#FAFAFA';
-        ctx.fillRect(280, 80, 270, 370);
-
-        // Insert artwork
-        if (uploadedImageFile) {
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, 295, 95, 240, 340);
-            finish();
-          };
-          img.onerror = () => {
-            drawPlaceholderArt(ctx, title);
-            finish();
-          };
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            img.src = e.target?.result as string;
-          };
-          reader.readAsDataURL(uploadedImageFile);
-        } else {
-          drawPlaceholderArt(ctx, title);
-          finish();
-        }
-      } else if (productType === 'png_graphics') {
-        // Aesthetic checkered transparent background representation
-        ctx.fillStyle = '#E2E8F0';
-        ctx.fillRect(0, 0, 800, 600);
-        ctx.fillStyle = '#EDF2F7';
-        for (let x = 0; x < 800; x += 30) {
-          for (let y = 0; y < 600; y += 30) {
-            if ((x + y) % 60 === 0) {
-              ctx.fillRect(x, y, 30, 30);
-            }
-          }
-        }
-
-        ctx.shadowColor = 'rgba(0,0,0,0.12)';
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 6;
-
-        // Stickers drawing
-        ctx.fillStyle = '#FFF5EE';
-        ctx.fillRect(100, 100, 600, 400);
-        ctx.strokeStyle = '#BC5E3B';
-        ctx.lineWidth = 5;
-        ctx.strokeRect(100, 100, 600, 400);
-
-        // Graphics text banner overlay
-        ctx.fillStyle = '#1A202C';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.fillText(title.substring(0, 25).toUpperCase(), 150, 180);
-
-        ctx.fillStyle = '#718096';
-        ctx.font = '14px monospace';
-        ctx.fillText('• 300 DPI TRANSPARENT GRAPHICS • DIGITAL CLIPART BUNDLE', 150, 220);
-
-        // Draw illustrative stamp badges
-        ctx.fillStyle = '#E6FFFA';
-        ctx.fillRect(150, 320, 220, 100);
-        ctx.strokeStyle = '#319795';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(150, 320, 220, 100);
-        ctx.fillStyle = '#234E52';
-        ctx.font = 'bold 13px system-ui';
-        ctx.fillText('COMMERCIAL USE ALLOWED', 165, 360);
-        ctx.fillText('INSTANT DIGITAL DOWNLOAD', 165, 385);
-
-        // Insert artwork sample floating
-        if (uploadedImageFile) {
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, 450, 280, 180, 180);
-            finish();
-          };
-          img.src = URL.createObjectURL(uploadedImageFile);
-        } else {
-          drawPlaceholderArt(ctx, title);
-          finish();
-        }
-      } else if (productType === 'presets') {
-        // Photographer portfolio Lightroom before-after card
-        ctx.fillStyle = '#111827';
-        ctx.fillRect(0, 0, 800, 600);
-
-        // Left split (Classic plain tone)
-        ctx.fillStyle = '#4B5563';
-        ctx.fillRect(50, 80, 350, 440);
-        ctx.fillStyle = '#D1D5DB';
-        ctx.font = 'bold 15px system-ui';
-        ctx.fillText('ORIGINAL RAW PHOTO', 140, 300);
-
-        // Right split (Vibrant Lightroom warmth)
-        ctx.fillStyle = '#6366F1';
-        ctx.fillRect(400, 80, 350, 440);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 15px system-ui';
-        ctx.fillText('VIBRANT PRESET KEY', 500, 300);
-
-        // Divider
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(400, 80); ctx.lineTo(400, 520); ctx.stroke();
-
-        ctx.fillStyle = '#BC5E3B';
-        ctx.fillRect(350, 260, 100, 40);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillText('SPLIT KEY', 368, 285);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 20px system-ui';
-        ctx.fillText('⚡ ' + title.toUpperCase(), 80, 565);
-        finish();
-      } else {
-        // Planner screen tablet mockup layout
-        ctx.fillStyle = '#F8FAFC';
-        ctx.fillRect(0, 0, 800, 600);
-
-        // Drawn tablet body
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(180, 60, 440, 480);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(200, 80, 400, 440);
-
-        // Weekly header representation
-        ctx.fillStyle = '#FEF3C7';
-        ctx.fillRect(220, 100, 360, 50);
-        ctx.fillStyle = '#D97706';
-        ctx.font = 'bold 15px sans-serif';
-        ctx.fillText('MY INTERACTIVE PLANNER / E-BOOK', 270, 130);
-
-        // Text mock guidelines
-        ctx.fillStyle = '#94A3B8';
-        for (let y = 180; y < 460; y += 38) {
-          ctx.fillRect(240, y, 70, 12);
-          ctx.fillRect(320, y, 220, 2);
-        }
-
-        ctx.fillStyle = '#1E293B';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('📅 ' + title, 150, 570);
-        finish();
-      }
-    });
-  };
-
-  const applyMockupVariant = (
-    ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
-    title: string,
-    variant: MockupVariantId
-  ) => {
-    if (variant === 'hero') {
-      return;
-    }
-
-    if (variant === 'detail') {
-      const snapshot = document.createElement('canvas');
-      snapshot.width = canvas.width;
-      snapshot.height = canvas.height;
-      snapshot.getContext('2d')?.drawImage(canvas, 0, 0);
-
-      ctx.fillStyle = '#ece4cf';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(snapshot, 145, 40, 510, 500, 45, 44, 710, 500);
-      ctx.fillStyle = 'rgba(247, 241, 222, 0.96)';
-      ctx.fillRect(36, 24, 154, 36);
-      ctx.fillStyle = '#15140f';
-      ctx.font = 'bold 13px monospace';
-      ctx.fillText('DETAIL VIEW', 54, 47);
-      return;
-    }
-
-    ctx.fillStyle = 'rgba(21, 20, 15, 0.78)';
-    ctx.fillRect(0, 492, canvas.width, 108);
-    ctx.fillStyle = '#f7f1de';
-    ctx.font = 'bold 22px system-ui';
-    ctx.fillText(title.toUpperCase().slice(0, 42), 34, 535);
-    ctx.font = 'bold 13px monospace';
-    ctx.fillText('DIGITAL DOWNLOAD  /  INSTANT ACCESS', 34, 566);
-    ctx.fillStyle = '#ed6f5c';
-    ctx.fillRect(34, 28, 154, 33);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('ETSY COVER', 56, 50);
-  };
-
-  const drawPlaceholderArt = (ctx: CanvasRenderingContext2D, title: string) => {
-    ctx.fillStyle = '#FCA5A5';
-    ctx.beginPath();
-    ctx.arc(380, 240, 60, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FDE047';
-    ctx.beginPath();
-    ctx.moveTo(300, 420);
-    ctx.lineTo(390, 280);
-    ctx.lineTo(480, 420);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#475569';
-    ctx.font = 'bold italic 13px serif';
-    ctx.fillText(title || 'Artwork Preview', 320, 390);
   };
 
   // Direct connected API Etsy publishing process
@@ -1248,6 +996,8 @@ export default function Home() {
       images: sessionFiles.images,
       files: sessionFiles.files
     });
+    setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
+    setSelectedPreviewIndex(0);
     setIsDialogOpen(true);
   };
 
@@ -1277,6 +1027,8 @@ export default function Home() {
       images: sessionFiles.images,
       files: sessionFiles.files
     });
+    setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
+    setSelectedPreviewIndex(0);
     setIsDialogOpen(true);
   };
 
@@ -1302,6 +1054,7 @@ export default function Home() {
     if (filterTab === 'published') return item.status === 'published';
     return true;
   });
+  const selectedPreview = sourcePreviewImages[selectedPreviewIndex] || sourcePreviewImages[0];
 
   // --- RENDERS ---
 
@@ -3541,189 +3294,200 @@ export default function Home() {
       </main>
 
       {/* Review Dialog Structure (Draft metadata + publish logic) */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto sm:rounded-[18px] p-6 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
-
-          <DialogHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)]">
-            <div className="flex justify-between items-start gap-3">
-              <div>
-                <DialogTitle className="text-lg font-serif font-medium text-[#15140f]">Etsy Catalog Listing Review</DialogTitle>
-                <DialogDescription className="text-[#5a5448] text-xs mt-1 font-sans">
-                  Generated layout details, compiled download package, and keyword analysis suite.
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setSourcePreviewImages([]);
+            setSelectedPreviewIndex(0);
+          }
+        }}
+      >
+        <DialogContent className="!flex !flex-col !gap-0 w-[calc(100vw-2rem)] sm:!max-w-[1040px] max-h-[92vh] overflow-hidden sm:rounded-[24px] p-0 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
+          <DialogHeader className="shrink-0 px-6 sm:px-8 pt-6 pb-5 border-b border-[rgba(21,20,15,0.12)]">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 pr-9">
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Listing Review</span>
+                <DialogTitle className="text-2xl sm:text-3xl font-serif font-medium leading-tight text-[#15140f]">Draft ready for your shop</DialogTitle>
+                <DialogDescription className="text-[#5a5448] text-sm max-w-xl leading-relaxed font-sans">
+                  Review the uploaded product images and listing copy before you publish or download your package.
                 </DialogDescription>
               </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider bg-[#6e7448]/10 text-[#6e7448] px-2.5 py-0.5 rounded border border-[#6e7448]/30 shrink-0 font-medium select-none">
-                {activeProduct?.status === 'published' ? 'Live Draft Generated' : 'Draft Prepared'}
+              <span className="text-[10px] font-mono uppercase tracking-wider bg-[#6e7448]/10 text-[#6e7448] px-3 py-1.5 rounded-full border border-[#6e7448]/30 shrink-0 font-bold select-none">
+                {activeProduct?.status === 'published' ? 'Live On Etsy' : 'Draft Prepared'}
               </span>
             </div>
           </DialogHeader>
 
           {activeProduct && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-
-              {/* Left Side: Mockup Image rendering container & download options */}
-              <div className="space-y-4">
-                <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest block font-bold select-none">Simulated Lifestyle Cover Thumbnail</span>
-
-                {activeProduct.mockupImage ? (
-                  <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.16)] bg-[#efe7d2] shadow-none">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={activeProduct.mockupImage}
-                      alt="lifestyle design template"
-                      className="w-full h-full object-cover"
-                    />
-
-                    {/* Badge Stamp on the generated cover */}
-                    <div className="absolute top-3 left-3 bg-[#ed6f5c] text-white text-[9px] font-mono tracking-wider px-2.5 py-1 rounded shadow-none uppercase font-bold">
-                      ✓ Compiled & Verified
-                    </div>
-                  </div>
-                ) : (
-                  <div className="aspect-[4/3] rounded-xl flex items-center justify-center bg-[#ece4cf]/60 border border-[rgba(21,20,15,0.16)] text-[#5a5448] font-sans">
-                    <span className="text-xs font-mono">Thumbnail layout syncing...</span>
-                  </div>
-                )}
-
-                {/* Simulated downloadable compilation items */}
-                <Card className="bg-[#efe7d2]/60 p-4 border border-[rgba(21,20,15,0.16)] border-dashed space-y-3 rounded-xl shadow-none">
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#ed6f5c] flex items-center justify-center shrink-0">
-                      <Archive className="w-4 h-4" />
-                    </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 py-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8">
+                <section className="space-y-4">
+                  <div className="flex items-end justify-between gap-3">
                     <div>
-                      <h4 className="text-xs font-serif font-medium text-[#15140f] uppercase tracking-wider">Compiled Etsy Shop Package</h4>
-                      <p className="text-[10px] text-[#5a5448] mt-0.5 font-sans leading-relaxed">Includes {activeProduct.images.length} mockup JPGs + deliverable files bundle.</p>
+                      <span className="text-[10px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Uploaded Images</span>
+                      <h3 className="text-xl font-serif font-medium mt-1 text-[#15140f]">Product image set</h3>
                     </div>
+                    <span className="text-xs text-[#8b8676] font-mono">{sourcePreviewImages.length} IMAGE{sourcePreviewImages.length === 1 ? '' : 'S'}</span>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        if (activeProduct.mockupImage) {
-                          const link = document.createElement('a');
-                          link.href = activeProduct.mockupImage;
-                          link.download = `${activeProduct.folderName.toLowerCase()}_thumbnail.jpg`;
-                          link.click();
-                          toast.success("Downloadable listing cover downloaded!");
-                        }
-                      }}
-                      size="sm"
-                      className="flex-1 bg-transparent border border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf] text-[#5a5448] font-mono text-[10px] py-1.5 rounded-lg transition-colors uppercase tracking-wider cursor-pointer"
-                      variant="outline"
-                    >
-                      <Download className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> Download Cover
-                    </Button>
-
-                    <Button
-                      onClick={() => {
-                        toast.success(`Successfully saved client package zip: ${activeProduct.folderName.toLowerCase()}_etsy_package.zip`);
-                      }}
-                      size="sm"
-                      className="flex-1 bg-transparent border border-[#ed6f5c]/30 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] py-1.5 rounded-lg transition-colors uppercase tracking-wider cursor-pointer"
-                      variant="outline"
-                    >
-                      <FileCode className="w-3.5 h-3.5 mr-1" /> Get ZIP Package
-                    </Button>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Right Side: SEO Title, description, Pricing tags copies */}
-              <div className="space-y-4">
-
-                {/* Product Class header */}
-                <div className="flex justify-between items-center bg-[#ece4cf]/60 p-2.5 rounded-lg border border-[rgba(21,20,15,0.16)] font-mono">
-                  <span className="text-xs text-[#5a5448]">Framework:</span>
-                  <span className="text-[10px] font-bold text-[#ed6f5c] uppercase">
-                    {activeProduct.productType === 'png_graphics' ? '🎨 Transparent PNG Pack' :
-                      activeProduct.productType === 'printable_wallart' ? '🖼️ Printable Wall Art' :
-                        activeProduct.productType === 'presets' ? '📸 Lightroom Preset' : '📅 agenda planner'}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <div className="space-y-1.5 font-sans">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="title" className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">SEO Optimized Title</Label>
-                    <button
-                      onClick={() => handleCopyText(activeProduct.title || '', 'Title')}
-                      className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer"
-                    >
-                      <Copy className="w-3 h-3" /> Copy Title
-                    </button>
-                  </div>
-                  <Input
-                    id="title"
-                    value={activeProduct.title || ''}
-                    readOnly
-                    className="w-full text-xs border-[rgba(21,20,15,0.16)] bg-[#efe7d2] font-serif font-medium text-[#15140f] shadow-none h-10 rounded-lg focus:ring-0 focus:border-[rgba(21,20,15,0.16)]"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5 font-sans">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="desc" className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Sales Copy Description</Label>
-                    <button
-                      onClick={() => handleCopyText(activeProduct.description || '', 'Description')}
-                      className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer"
-                    >
-                      <Copy className="w-3 h-3" /> Copy Promo Code
-                    </button>
-                  </div>
-                  <textarea
-                    id="desc"
-                    value={activeProduct.description || ''}
-                    readOnly
-                    rows={6}
-                    className="flex w-full rounded-lg border border-[rgba(21,20,15,0.16)] bg-[#efe7d2] px-3 py-2 text-xs shadow-none resize-none text-[#5a5448] leading-relaxed font-sans focus:outline-none"
-                  />
-                </div>
-
-                {/* Price and Keywords */}
-                <div className="grid grid-cols-2 gap-4 font-sans">
-
-                  <div className="space-y-1 bg-[#ece4cf]/40 p-3 rounded-lg border border-[rgba(21,20,15,0.16)] flex flex-col justify-between">
-                    <div>
-                      <span className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider block font-bold">Est. Market Price</span>
-                      <span className="text-base font-serif font-medium text-[#15140f] block mt-1">${(activeProduct.price || 5.95).toFixed(2)} USD</span>
-                    </div>
-                    <button
-                      onClick={() => handleCopyText((activeProduct.price || 5.95).toFixed(2), 'Price')}
-                      className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 mt-1.5 uppercase tracking-wider cursor-pointer"
-                    >
-                      <Copy className="w-3 h-3" /> Copy Price
-                    </button>
-                  </div>
-
-                  <div className="space-y-1 bg-[#ece4cf]/40 p-3 rounded-lg border border-[rgba(21,20,15,0.16)] flex flex-col justify-between">
-                    <div>
-                      <span className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider block font-bold">Tag Keywords (13)</span>
-                      <div className="max-h-20 overflow-y-auto flex flex-wrap gap-1 mt-1.5">
-                        {(activeProduct.tags || []).map((tag, i) => (
-                          <span key={i} className="text-[8px] bg-[#efe7d2] text-[#5a5448] border border-[rgba(21,20,15,0.16)] px-1.5 py-0.5 rounded font-mono uppercase font-bold">
-                            {tag}
-                          </span>
-                        ))}
+                  {selectedPreview ? (
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-[0_20px_46px_-28px_rgba(21,20,15,0.48)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={selectedPreview.image} alt={`${selectedPreview.label} uploaded product image`} className="w-full h-full object-contain bg-[#efe7d2]" />
+                      <div className="absolute left-4 top-4 flex items-center gap-2">
+                        <span className="bg-[#ed6f5c] text-white text-[10px] font-mono tracking-wider px-3 py-1.5 rounded-full uppercase font-bold">
+                          Uploaded
+                        </span>
+                        <span className="bg-[#f7f1de]/95 text-[#15140f] text-[10px] font-mono tracking-wider px-3 py-1.5 rounded-full font-bold max-w-[320px] truncate">
+                          {selectedPreview.label}
+                        </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleCopyText((activeProduct.tags || []).join(', '), 'Tags list')}
-                      className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 mt-1.5 uppercase tracking-wider cursor-pointer"
-                    >
-                      <Copy className="w-3 h-3" /> Copy Tags
-                    </button>
+                  ) : (
+                    <div className="aspect-[4/3] rounded-2xl flex items-center justify-center bg-[#ece4cf]/60 border border-[rgba(21,20,15,0.16)] text-[#5a5448]">
+                      <span className="text-xs font-mono uppercase text-center px-6">No uploaded image is available in this browser session</span>
+                    </div>
+                  )}
+
+                  {sourcePreviewImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {sourcePreviewImages.map((preview, index) => (
+                        <button
+                          type="button"
+                          key={preview.id}
+                          onClick={() => setSelectedPreviewIndex(index)}
+                          className={`overflow-hidden rounded-xl border p-1.5 text-left transition-colors cursor-pointer ${selectedPreview?.id === preview.id
+                            ? 'border-[#ed6f5c] bg-[#ed6f5c]/8'
+                            : 'border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/40 hover:border-[#ed6f5c]/45'
+                            }`}
+                          aria-label={`Preview ${preview.label}`}
+                        >
+                          <div className="aspect-[4/3] rounded-lg overflow-hidden bg-[#ece4cf]">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={preview.image} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <span className="block px-1 pt-2 pb-1 text-[10px] font-mono tracking-wider text-[#5a5448] font-bold truncate">{preview.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <Card className="bg-[#efe7d2]/55 p-4 sm:p-5 border border-[rgba(21,20,15,0.12)] rounded-2xl shadow-none space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#f7f1de] border border-[rgba(21,20,15,0.12)] text-[#ed6f5c] flex items-center justify-center shrink-0">
+                        <Archive className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-serif font-medium text-[#15140f]">Compiled Etsy shop package</h4>
+                        <p className="text-xs text-[#5a5448] mt-1 leading-relaxed">
+                          Includes {sourcePreviewImages.length} uploaded image{sourcePreviewImages.length === 1 ? '' : 's'} plus {activeProduct.files.length} deliverable file{activeProduct.files.length === 1 ? '' : 's'}.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        onClick={() => {
+                          if (selectedPreview) {
+                            const link = document.createElement('a');
+                            link.href = selectedPreview.image;
+                            link.download = selectedPreview.label;
+                            link.click();
+                            toast.success(`${selectedPreview.label} downloaded!`);
+                          }
+                        }}
+                        disabled={!selectedPreview}
+                        size="sm"
+                        className="flex-1 bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] hover:bg-[#ece4cf] text-[#15140f] font-mono text-[10px] py-2 rounded-lg uppercase tracking-wider cursor-pointer"
+                        variant="outline"
+                      >
+                        <Download className="w-3.5 h-3.5 mr-1.5 text-[#ed6f5c]" /> Download Selected
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          toast.success(`Successfully saved client package zip: ${activeProduct.folderName.toLowerCase()}_etsy_package.zip`);
+                        }}
+                        size="sm"
+                        className="flex-1 bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] py-2 rounded-lg uppercase tracking-wider cursor-pointer"
+                        variant="outline"
+                      >
+                        <FileCode className="w-3.5 h-3.5 mr-1.5" /> Get ZIP Package
+                      </Button>
+                    </div>
+                  </Card>
+                </section>
+
+                <section className="space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/55 p-4">
+                    <div>
+                      <span className="text-[10px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Product Type</span>
+                      <p className="text-sm font-medium text-[#15140f] mt-1">
+                        {activeProduct.productType === 'png_graphics' ? 'Transparent PNG Pack' :
+                          activeProduct.productType === 'printable_wallart' ? 'Printable Wall Art' :
+                            activeProduct.productType === 'presets' ? 'Lightroom Preset' : 'Agenda Planner'}
+                      </p>
+                    </div>
+                    <div className="sm:text-right">
+                      <span className="text-[10px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Estimated Price</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-2xl font-serif font-medium text-[#15140f]">${(activeProduct.price || 5.95).toFixed(2)}</p>
+                        <button
+                          onClick={() => handleCopyText((activeProduct.price || 5.95).toFixed(2), 'Price')}
+                          className="text-[#ed6f5c] hover:bg-[#ed6f5c]/10 rounded-md p-1.5 cursor-pointer"
+                          aria-label="Copy price"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center gap-3">
+                      <Label className="text-[10px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">SEO Optimized Title</Label>
+                      <button onClick={() => handleCopyText(activeProduct.title || '', 'Title')} className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                    </div>
+                    <div className="rounded-xl border border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/55 p-4 text-xl sm:text-2xl leading-snug font-serif text-[#15140f]">
+                      {activeProduct.title || 'Generated listing title unavailable.'}
+                    </div>
+                  </div>
 
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center gap-3">
+                      <Label className="text-[10px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Sales Copy Description</Label>
+                      <button onClick={() => handleCopyText(activeProduct.description || '', 'Description')} className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
+                        <Copy className="w-3 h-3" /> Copy
+                      </button>
+                    </div>
+                    <div className="min-h-44 rounded-xl border border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/55 p-4 text-sm text-[#5a5448] leading-relaxed whitespace-pre-wrap">
+                      {activeProduct.description || 'Generated product description unavailable.'}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center gap-3">
+                      <Label className="text-[10px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Tag Keywords ({(activeProduct.tags || []).length})</Label>
+                      <button onClick={() => handleCopyText((activeProduct.tags || []).join(', '), 'Tags list')} className="text-[10px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
+                        <Copy className="w-3 h-3" /> Copy Tags
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(activeProduct.tags || []).map((tag, i) => (
+                        <span key={i} className="text-[11px] bg-[#efe7d2] text-[#5a5448] border border-[rgba(21,20,15,0.12)] px-3 py-1.5 rounded-full font-mono uppercase font-bold">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </section>
               </div>
-
             </div>
           )}
 
-          <div className="mt-4 flex justify-between items-center border-t border-[rgba(21,20,15,0.14)] pt-4 font-sans">
+          <div className="shrink-0 px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 border-t border-[rgba(21,20,15,0.12)] bg-[#f5efdc] font-sans">
 
             {/* Direct Link live on Etsy if published */}
             {activeProduct?.status === 'published' && activeProduct.listingUrl ? (
@@ -3738,12 +3502,12 @@ export default function Home() {
               </a>
             ) : <div />}
 
-            <div className="flex gap-2">
-              <Button variant="ghost" className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-[10px] font-mono uppercase tracking-wider cursor-pointer rounded" onClick={() => setIsDialogOpen(false)}>Close Review</Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
+              <Button variant="ghost" className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-xs font-mono uppercase tracking-wider cursor-pointer rounded-lg px-5" onClick={() => setIsDialogOpen(false)}>Close Review</Button>
 
               {selectedMode === 'etsy' ? (
                 activeProduct?.status === 'published' ? (
-                  <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-[10px] uppercase tracking-wider rounded-lg">
+                  <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-xs uppercase tracking-wider rounded-lg px-6">
                     <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
                   </Button>
                 ) : (
@@ -3752,7 +3516,7 @@ export default function Home() {
                       if (activeProduct) publishToEtsySnapshot(activeProduct);
                     }}
                     disabled={activeProduct?.status === 'publishing'}
-                    className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-[10px] rounded-full px-5 transition-colors uppercase tracking-wider cursor-pointer border-0"
+                    className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-6 transition-colors uppercase tracking-wider cursor-pointer border-0"
                   >
                     {activeProduct?.status === 'publishing' ? (
                       <>
@@ -3768,7 +3532,7 @@ export default function Home() {
                     toast.success("Successfully marked listing draft as completed locally!");
                     setIsDialogOpen(false);
                   }}
-                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-[10px] rounded-full px-5 transition-colors uppercase tracking-wider cursor-pointer border-0"
+                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-6 transition-colors uppercase tracking-wider cursor-pointer border-0"
                 >
                   Mark Completed Task
                 </Button>
