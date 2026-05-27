@@ -85,6 +85,43 @@ h1 em {
   font-weight: 500;
 }
 
+/* ─────────────────────────────────────────────────────────
+   Editorial Mixed-Typography Section Headings
+   Pattern: bold Inter Tight (strong) + italic Playfair (em)
+   All text stays the same dark ink color — accent only on dot
+   ───────────────────────────────────────────────────────── */
+.section-h2 {
+  font-family: var(--sans);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.section-h2 strong {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 800;
+  color: inherit;
+}
+
+.section-h2 em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  color: inherit;
+  letter-spacing: 0.01em;
+}
+
+/* Coral dot at the end of each section heading */
+.h-dot {
+  color: var(--coral);
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 800;
+  display: inline-block;
+  margin-left: 0.04em;
+}
+
 
 /* Fixed side rails — rotated brand text on the edges */
 .side-rail {

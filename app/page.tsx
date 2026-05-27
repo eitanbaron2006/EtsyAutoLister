@@ -164,9 +164,8 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
           <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
             {"▪ INTERACTIVE TOOL SANDBOX"}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
-            See the layout parser <br />
-            and <span className="italic font-normal">SEO engine in action.</span>
+          <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
+            <strong>See the layout parser </strong><br /><strong>and </strong><em>SEO engine in action</em><span className="h-dot">.</span>
           </h2>
         </div>
         <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] max-w-sm leading-relaxed text-left font-sans">
@@ -1380,8 +1379,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.75rem] text-[#15140f] dark:text-[#f7f1de] leading-[1] select-none text-left max-w-5xl" data-reveal="">
-                <strong>Upload raw </strong><em className="text-[#15140f] dark:text-[#f7f1de]">products,</em><strong> generate </strong><em className="text-[#ed6f5c]">mockups & metadata</em><strong> instantly</strong><span className="text-[#ed6f5c] font-sans inline-block">.</span>
+              <h1 className="section-h2 text-4xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.75rem] text-[#15140f] dark:text-[#f7f1de] leading-[1.08] select-none text-left max-w-5xl" data-reveal="">
+                <strong>Upload raw </strong><em>products,</em><strong> generate </strong><em>mockups &amp; metadata</em><strong> instantly</strong><span className="h-dot">.</span>
               </h1>
 
               <p className="text-[16px] sm:text-[17px] md:text-[18px] text-[#2a2620] dark:text-[#ece4cf] max-w-2xl text-left leading-[1.65] font-sans" data-reveal="">
@@ -1497,9 +1496,8 @@ export default function Home() {
               <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
                 {"▪ SYSTEM CAPABILITIES & ARCHITECTURE"}
               </span>
-              <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
-                Architectural integrity <br />
-                for <span className="italic font-normal">high-volume cataloging.</span>
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
+                <strong>Architectural </strong><em>integrity</em><strong> for<br />high-volume </strong><em>cataloging</em><span className="h-dot">.</span>
               </h2>
             </div>
             <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] max-w-sm leading-relaxed text-left font-sans">
@@ -1563,9 +1561,8 @@ export default function Home() {
             <span className="text-[10px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block font-sans">
               {"▪ EFFICIENCY METRICS"}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
-              A smarter route <br />
-              to the <span className="italic font-normal">marketplace storefront.</span>
+            <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-tight">
+              <strong>A smarter route</strong><br /><strong>to the </strong><em>marketplace storefront</em><span className="h-dot">.</span>
             </h2>
             <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
               We compared standard manual creator listings with the native Etsy AutoLister workflow pipeline.
@@ -1745,8 +1742,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>About the studio · Nº 02</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold tracking-tight text-[#15140f] dark:text-[#f7f1de] leading-none">
-                We treat your digital catalog as a <span className="font-serif italic font-light">curated gallery,</span> not a raw dump.
+              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-none">
+                <strong>We treat your </strong><em>digital catalog</em><strong> as a </strong><em>curated gallery,</em><strong> not a raw dump</strong><span className="h-dot">.</span>
               </h2>
               <p className="text-sm text-[#5a5448] dark:text-[#ece4cf] leading-relaxed max-w-xl font-sans">
                 Every asset published to your storefront should command value. Standard bulk importers flood stores with ugly product images, generic text, and sloppy tagging. AutoCAD templates respect structural margins, device alignment, shadow depth, and semantic tag complementary sets to ensure elite visual standing.
@@ -1811,8 +1808,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>Four Target Systems · Nº 03</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
-                Specialized asset pipelines for <span className="font-serif italic font-light">Etsy creators.</span>
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                <strong>Specialized </strong><em>asset pipelines</em><strong> for </strong><em>Etsy creators</em><span className="h-dot">.</span>
               </h2>
               <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans mt-2">
                 Create catalogs for printable items, presets, labels, or planners. We custom tailored compile matrices to suit each digital niche format perfectly.
@@ -1872,8 +1869,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>Living Asset Archive · Nº 04</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
-                Explore our catalog template <span className="font-serif italic font-light">preset directory.</span>
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                <strong>Explore our </strong><em>catalog template</em><strong> preset </strong><em>directory</em><span className="h-dot">.</span>
               </h2>
             </div>
 
@@ -1997,8 +1994,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>The Automated High-Fidelity Pipeline · Nº 05</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
-                Four step execution <span className="font-serif italic font-light">to storefront sync.</span>
+              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] tracking-tight leading-none">
+                <strong>Four step </strong><em>execution</em><strong> to </strong><em>storefront sync</em><span className="h-dot">.</span>
               </h2>
             </div>
             <div className="lg:col-span-5 flex items-start gap-3 pt-2 text-left">
@@ -2063,8 +2060,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>Selected Metadata Work · Nº 06</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
-                High-margin structures built inside <span className="font-serif italic font-light">the studio.</span>
+              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
+                <strong>High-margin </strong><em>structures</em><strong> built inside </strong><em>the studio</em><span className="h-dot">.</span>
               </h2>
               <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
                 A closer inspection of live collections successfully generated with correct formatting, high SEO tags complementary sets, and realistic environmental lighting matrices.
@@ -2174,8 +2171,8 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>Connect & Secure · Nº 08</span>
               </div>
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-sans font-bold text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
-                Let&apos;s construct something <span className="font-serif italic font-light">expressive & profitable.</span>
+              <h2 className="section-h2 text-4xl sm:text-5xl md:text-6xl text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
+                <strong>Let&apos;s construct </strong><em>something</em><strong> expressive</strong><br /><em>&amp; profitable</em><span className="h-dot">.</span>
               </h2>
               <p className="text-sm text-[#5a5448] dark:text-[#ece4cf] max-w-xl leading-relaxed font-sans">
                 Sign in securely using Google authentication to retrieve your sovereign Firebase sandbox folder instances. Link your custom Etsy OAuth credentials to instantly begin compiling.
@@ -2225,14 +2222,12 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 sm:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 sm:gap-16">
             {/* Column 1: Brand & Statement */}
             <div className="md:col-span-5 space-y-5 text-left">
-              <div className="flex items-center gap-2.5 hover:opacity-95 transition-opacity duration-150 cursor-pointer">
-                <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg shadow-sm font-semibold`}>
-                  Ø
-                </div>
-                <span className={`text-lg font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>
-                  Etsy <span className="font-sans font-extrabold not-italic text-xs uppercase tracking-widest text-[#ed6f5c] ml-1 bg-[#ed6f5c]/10 px-2 py-0.5 rounded">AutoLister</span>
+              <a href="#top" className="group flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+                <Store className={`w-[1.4rem] h-[1.4rem] ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} group-hover:text-[#ed6f5c] transition-all duration-500 ease-out group-hover:scale-110 group-hover:rotate-3`} />
+                <span className="header-brand">
+                  Auto<em>Lister</em><span className="dot">.</span>
                 </span>
-              </div>
+              </a>
               <p className={`text-xs ${darkMode ? 'text-[#ece4cf]' : 'text-[#5a5448]'} leading-relaxed max-w-sm font-sans mt-4`}>
                 The sovereign alternative for digital catalog automation. Formulates high-fidelity light mockups, embeds drop shadow variables, and computes elite Gemini SEO copywriting to enable seamless Etsy publishing.
               </p>
