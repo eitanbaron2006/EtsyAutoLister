@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
+import { createListingAiClient } from './ai-config';
 
 export async function POST(req: NextRequest) {
   try {
     const { folderName, images } = await req.json();
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing GEMINI_API_KEY");
-    }
-
-    const ai = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+    const { ai, model } = createListingAiClient();
 
     const parts: any[] = [];
     
@@ -45,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
+      model,
       contents: { parts },
       config: {
         responseMimeType: "application/json",
