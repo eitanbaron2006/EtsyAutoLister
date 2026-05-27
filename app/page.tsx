@@ -1471,8 +1471,8 @@ export default function Home() {
               <span className={`absolute bottom-0 right-0 w-5 h-5 border-b border-r ${darkMode ? 'border-[rgba(247,241,222,0.3)]' : 'border-[rgba(21,20,15,0.3)]'}`} />
 
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src="/hero-artwork.jpg" 
+              <img
+                src="/hero-artwork.jpg"
                 alt="EtsyAutoLister Premium Workflow"
                 className="w-full h-full object-contain p-2 sm:p-4 rounded-[20px] select-none transition-all duration-500 hover:scale-[1.02] drop-shadow-[0_15px_30px_rgba(21,20,15,0.08)] dark:drop-shadow-[0_20px_40px_rgba(0,0,0,0.45)]"
               />
@@ -1742,7 +1742,7 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>About the studio · Nº 02</span>
               </div>
-              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-none">
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] leading-none">
                 <strong>We treat your </strong><em>digital catalog</em><strong> as a </strong><em>curated gallery,</em><strong> not a raw dump</strong><span className="h-dot">.</span>
               </h2>
               <p className="text-sm text-[#5a5448] dark:text-[#ece4cf] leading-relaxed max-w-xl font-sans">
@@ -1989,13 +1989,13 @@ export default function Home() {
             <span>005 / 008</span>
           </div>
           {/* Method head — exact reference layout: 1.4fr heading / 1fr note */}
-          <div className="grid gap-[60px] items-start mb-20" style={{gridTemplateColumns: '1.4fr 1fr'}} data-reveal="">
+          <div className="grid gap-[60px] items-start mb-20" style={{ gridTemplateColumns: '1.4fr 1fr' }} data-reveal="">
             <div>
               <span className="flex items-center gap-3 text-[11px] font-sans font-semibold tracking-[0.22em] text-[#ed6f5c] uppercase mb-8 leading-none">
                 <span className="w-[18px] h-[1px] bg-[#ed6f5c] inline-block"></span>
                 The Automated High-Fidelity Pipeline · Nº 05
               </span>
-              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-tight mt-8">
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] leading-tight mt-8">
                 <strong>Four step </strong><em>execution</em><strong> to </strong><em>storefront sync</em><span className="h-dot">.</span>
               </h2>
             </div>
@@ -2013,56 +2013,56 @@ export default function Home() {
 
             {/* Step 1 */}
             <div className="relative flex flex-col">
-              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>01</div>
-              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{ fontSize: '78px', letterSpacing: '-0.02em' }}>01</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{ fontSize: '30px', letterSpacing: '-0.022em' }}>
                 Ingest Raw Assets <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
               </h4>
               <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 Drag-and-drop raw photo filters dng, digital templates pdf, transparency decal png, or vectors.
               </p>
-              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{ boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)' }}>
                 <img src="/step1-ingest.png" alt="Ingest Raw Assets" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
 
             {/* Step 2 */}
             <div className="relative flex flex-col">
-              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>02</div>
-              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{ fontSize: '78px', letterSpacing: '-0.02em' }}>02</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{ fontSize: '30px', letterSpacing: '-0.022em' }}>
                 Frame Canvas Mat <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
               </h4>
               <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 Apply premium drop shadow matrices, frame wood types, floating mats, or tablet bezels cleanly in one click.
               </p>
-              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{ boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)' }}>
                 <img src="/step2-frame.png" alt="Frame Canvas Mat" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
 
             {/* Step 3 */}
             <div className="relative flex flex-col">
-              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>03</div>
-              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{ fontSize: '78px', letterSpacing: '-0.02em' }}>03</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px] flex items-center justify-between pr-[18px]" style={{ fontSize: '30px', letterSpacing: '-0.022em' }}>
                 Compute Gemini Copy <span className="text-[#8b8676] dark:text-[#a39e8f] text-[22px] font-light">→</span>
               </h4>
               <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 AI parses texture metrics to formulate SEO-ranked titles, comprehensive meta descriptions, and 13 targeted tags.
               </p>
-              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{ boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)' }}>
                 <img src="/step3-copy.png" alt="Compute Gemini Copy" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
 
             {/* Step 4 — no arrow on last */}
             <div className="relative flex flex-col">
-              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{fontSize: '78px', letterSpacing: '-0.02em'}}>04</div>
-              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px]" style={{fontSize: '30px', letterSpacing: '-0.022em'}}>
+              <div className="font-serif italic text-[#ed6f5c] leading-[0.85] mb-6 select-none relative z-10 inline-block pr-3 " style={{ fontSize: '78px', letterSpacing: '-0.02em' }}>04</div>
+              <h4 className="font-sans font-extrabold text-[#15140f] dark:text-[#f7f1de] mb-[18px]" style={{ fontSize: '30px', letterSpacing: '-0.022em' }}>
                 Sovereign Direct Sync
               </h4>
               <p className="text-[13.5px] text-[#5a5448] dark:text-[#ece4cf] leading-[1.55] font-sans mb-6 max-w-[24ch]">
                 Sync generated images and complete copywriting as active digital listings draft via Google OAuth APIs.
               </p>
-              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)'}}>
+              <div className="aspect-square rounded-xl overflow-hidden mt-auto" style={{ boxShadow: '0 30px 60px -30px rgba(21,20,15,0.18)' }}>
                 <img src="/step4-sync.png" alt="Sovereign Direct Sync" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
@@ -2087,7 +2087,7 @@ export default function Home() {
                 <span className="w-5 h-[1px] bg-[#ed6f5c]"></span>
                 <span>Selected Metadata Work · Nº 06</span>
               </div>
-              <h2 className="section-h2 text-3xl sm:text-4xl md:text-5xl text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
+              <h2 className="section-h2 text-3xl sm:text-4xl text-[#15140f] dark:text-[#f7f1de] leading-none tracking-tight">
                 <strong>High-margin </strong><em>structures</em><strong> built inside </strong><em>the studio</em><span className="h-dot">.</span>
               </h2>
               <p className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed font-sans">
