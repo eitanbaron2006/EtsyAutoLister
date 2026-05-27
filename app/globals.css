@@ -6,6 +6,15 @@
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-serif), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --radius-radius: var(--radius);
 }
 
 :root {
@@ -30,6 +39,16 @@
   --body: var(--font-body), 'Inter', -apple-system, system-ui, sans-serif;
   --mono: var(--font-mono), 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   --lora: var(--font-lora), 'Lora', Georgia, serif;
+
+  /* Standard shadcn CSS variables mapped to design system tokens */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--bone);
+  --card-foreground: var(--ink);
+  --popover: var(--bone);
+  --popover-foreground: var(--ink);
+  --border: var(--line);
+  --radius: 12px;
 }
 
 :root.dark,
@@ -46,6 +65,15 @@ html.dark {
   --line-soft: rgba(239, 231, 210, 0.08);
   --line-faint: rgba(239, 231, 210, 0.05);
   --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.5);
+
+  /* Standard shadcn CSS variables mapped to design system tokens (Dark Mode) */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--bone);
+  --card-foreground: var(--ink);
+  --popover: var(--bone);
+  --popover-foreground: var(--ink);
+  --border: var(--line);
 }
 
 /* Base resets mapped to the premium studio aesthetics */
@@ -1002,4 +1030,47 @@ h1 em {
   padding-right: clamp(32px, 4.8vw, 64px) !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/* Premium Toast Notifications (Sonner) Glassmorphism styling */
+.cn-toast {
+  font-family: var(--sans) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  background-color: rgba(247, 241, 222, 0.88) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 36px -12px rgba(21, 20, 15, 0.22) !important;
+  color: var(--ink) !important;
+  padding: 14px 18px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.dark .cn-toast {
+  background-color: rgba(24, 23, 18, 0.88) !important;
+  box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Premium micro-interactions & styled icons for toasts */
+.cn-toast svg {
+  stroke-width: 2.25 !important;
+  flex-shrink: 0 !important;
+}
+
+.cn-toast [data-icon="success"] svg {
+  color: var(--olive) !important;
+}
+
+.cn-toast [data-icon="error"] svg {
+  color: var(--coral) !important;
+}
+
+.cn-toast [data-icon="warning"] svg {
+  color: var(--mustard) !important;
+}
+
+.cn-toast [data-icon="info"] svg {
+  color: var(--ink-mute) !important;
 }
