@@ -25,7 +25,7 @@ The API route selects its Google Gen AI client from server configuration:
   the current configured model behavior.
 - Without `GEMINI_API_KEY`, construct a Vertex AI client using ADC, project
   `vertextai-project-497513`, location `global`, and model
-  `gemini-3-pro-preview`.
+  `gemini-3.1-pro-preview`.
 
 This is preferred over switching all calls to Vertex because it avoids
 breaking existing deployments that deliberately provide an API key. It is
@@ -40,22 +40,24 @@ server-side overrides:
 ```env
 VERTEX_PROJECT_ID=vertextai-project-497513
 VERTEX_LOCATION=global
-VERTEX_MODEL=gemini-3-pro-preview
+VERTEX_MODEL=gemini-3.1-pro-preview
 ```
 
 Authentication uses Google Application Default Credentials available to the
 server process, as in `MockupGen`. No credential or token is sent to the
 browser.
 
-`gemini-3-pro-preview` is selected because Google's Vertex AI documentation
-describes Gemini 3 Pro as its most advanced reasoning Gemini model, and it
-supports image input and structured output required by this route.
+`gemini-3.1-pro-preview` is selected because the live Vertex Model Garden
+catalog for the configured Google Cloud project lists it as the current Gemini
+Pro preview model, alongside the lower-latency `gemini-3.5-flash` model. The
+Pro variant is the quality-first choice for image-informed copy generation.
 
 ## Data Flow
 
 1. The existing frontend sends `folderName` and preview images to
    `/api/gemini/generate-listing`.
-2. The route builds the existing prompt, image parts, and JSON response schema.
+2. The route builds the existing prompt, image parts, and JSON response schema,
+   marking the multimodal content with the `user` role required by Vertex AI.
 3. The route selects either Gemini API-key mode or Vertex fallback mode based
    solely on whether `GEMINI_API_KEY` exists.
 4. The selected model generates the same JSON result fields: `title`,
@@ -69,7 +71,7 @@ supports image input and structured output required by this route.
   do not mask it with Vertex fallback.
 - If the key is absent and ADC, Vertex access, project authorization, or model
   access fails, return a clear server error from the Vertex call.
-- Do not silently use a weaker Vertex model if `gemini-3-pro-preview` is
+- Do not silently use a weaker Vertex model if `gemini-3.1-pro-preview` is
   unavailable to the project.
 
 ## Verification
@@ -77,7 +79,9 @@ supports image input and structured output required by this route.
 - Add server-level tests for provider selection:
   - API key configured: API-key-backed mode remains selected.
   - API key absent: Vertex AI mode is selected with the expected project,
-    location, and `gemini-3-pro-preview` model.
+    location, and `gemini-3.1-pro-preview` model.
+- Add a request-content test ensuring multimodal listing content includes the
+  Vertex-compatible `user` role.
 - Run the repository lint/build verification applicable to the Next.js route.
 - Where local ADC can be used safely, perform a credentialed request smoke
   test without changing any user interface code.
@@ -88,3 +92,6 @@ supports image input and structured output required by this route.
   <https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-pro>
 - Google Cloud, Structured output:
   <https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output>
+- Vertex AI Model Garden publisher-model catalog, checked for
+  `vertextai-project-497513` on 2026-05-27:
+  <https://aiplatform.googleapis.com/v1beta1/publishers/google/models>
