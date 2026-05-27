@@ -1452,14 +1452,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Coordinates line of text below coordinates */}
-              <div className={`border-t ${darkMode ? 'border-[rgba(247,241,222,0.10)]' : 'border-[rgba(21,20,15,0.10)]'} pt-5 flex flex-wrap justify-between items-center text-[9px] font-mono tracking-wider uppercase text-[#8b8676] dark:text-[#a39e8f] w-full gap-2`} data-reveal="">
-                <span className="flex items-center gap-1.5">↳ PNPM TOOLS-DEV START</span>
-                <span>·</span>
-                <span>3 COMMANDS TO START</span>
-                <span>·</span>
-                <span>52.5200° N · 13.4050° E</span>
-              </div>
             </div>
 
             {/* Right Column: Premium Animated SVG Illustration representing EtsyAutoLister */}
