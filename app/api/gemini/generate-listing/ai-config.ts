@@ -5,12 +5,13 @@ export const DEFAULT_VERTEX_PROJECT_ID = 'vertextai-project-497513';
 export const DEFAULT_VERTEX_LOCATION = 'global';
 export const DEFAULT_VERTEX_MODEL = 'gemini-3.1-pro-preview';
 
-type ListingAiEnvironment = Partial<
-  Pick<
-    NodeJS.ProcessEnv,
-    'GEMINI_API_KEY' | 'VERTEX_PROJECT_ID' | 'VERTEX_LOCATION' | 'VERTEX_MODEL'
-  >
->;
+interface ListingAiEnvironment {
+  GEMINI_API_KEY?: string;
+  VERTEX_PROJECT_ID?: string;
+  VERTEX_LOCATION?: string;
+  VERTEX_MODEL?: string;
+  [key: string]: string | undefined;
+}
 
 export interface ListingAiConfig {
   clientOptions: GoogleGenAIOptions;
