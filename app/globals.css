@@ -260,6 +260,42 @@ body {
   box-shadow: none !important;
 }
 
+/* Header logo brand matching footer style without animations */
+.header-brand {
+  font-family: var(--sans);
+  font-weight: 950;
+  font-size: 1.15rem;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.header-brand .etsy {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  margin-right: 0.28em;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.header-brand em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--coral);
+  display: inline-block;
+}
+
+.header-brand .dot {
+  color: var(--coral);
+  font-weight: 950;
+  display: inline-block;
+  margin-left: 0.02em;
+}
+
 /* Big site name mega-footer styling */
 .foot-mega {
   margin-top: 60px;
@@ -467,7 +503,7 @@ body {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   padding: 26px 0 28px;
-  background-color: var(--paper) !important;
+  background-color: var(--bone) !important;
   position: relative;
   overflow: hidden;
   width: 100%;

@@ -1306,24 +1306,36 @@ export default function Home() {
               <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
                 Ø
               </div>
-              <span className={`text-lg font-serif italic font-medium tracking-tight ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'} leading-none`}>
-                Etsy <span className="font-sans font-bold not-italic text-sm uppercase tracking-wider text-[#ed6f5c] ml-1">AutoLister</span>
+              <span className="header-brand">
+                Auto<em>Lister</em><span className="dot">.</span>
               </span>
             </a>
 
             {/* Navigation Menu Links */}
-            <ul className="hidden lg:flex items-center gap-10 nav-links list-none m-0 p-0">
-              <li><a href="#capabilities" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
-                Skills<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">31</span>
+            <ul className="hidden lg:flex items-center gap-6 xl:gap-8 nav-links list-none m-0 p-0">
+              <li><a href="#capabilities" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Features<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">01</span>
               </a></li>
-              <li><a href="#systems" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
-                Systems<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">72</span>
+              <li><a href="#playground" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Demo<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">02</span>
               </a></li>
-              <li><a href="#agents" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
-                Agents<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">12</span>
+              <li><a href="#metrics" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Metrics<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">03</span>
               </a></li>
-              <li><a href="#labs" className="relative text-sm font-sans font-medium text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
-                Labs<span className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1.5 -right-4.5 tracking-wider font-mono font-medium">05</span>
+              <li><a href="#about" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                About<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">04</span>
+              </a></li>
+              <li><a href="#systems" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Niches<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">05</span>
+              </a></li>
+              <li><a href="#labs" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Presets<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">06</span>
+              </a></li>
+              <li><a href="#workflow" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Workflow<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">07</span>
+              </a></li>
+              <li><a href="#portfolio" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
+                Portfolio<span className="text-[8px] text-[#8b8676] dark:text-[#a39e8f] absolute -top-1 -right-3 tracking-normal font-mono font-normal">08</span>
               </a></li>
             </ul>
 
@@ -1535,7 +1547,9 @@ export default function Home() {
         </section>
 
         {/* Live Interactive Sandbox Playground Section */}
-        <SandboxPlayground darkMode={darkMode} />
+        <section id="playground" className="relative z-10">
+          <SandboxPlayground darkMode={darkMode} />
+        </section>
 
         {/* Comparative Pipeline Matrix Section */}
         <section id="metrics" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
@@ -1970,7 +1984,7 @@ export default function Home() {
         </section>
 
         {/* Section V: Step-By-Step Compilation Loop Method */}
-        <section id="agents" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="workflow" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">V.</span>
             <span className="meta-grp">
@@ -2035,7 +2049,7 @@ export default function Home() {
         </section>
 
         {/* Section VI: Selected Curated Designs Portfolio Showcase */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="portfolio" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">VI.</span>
             <span className="meta-grp">
@@ -2111,7 +2125,7 @@ export default function Home() {
         </section>
 
         {/* Section VII: Creator Testimonial & Heritage */}
-        <section className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
+        <section id="testimonials" className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-12 py-16">
           <div className="sec-rule text-left">
             <span className="roman">VII.</span>
             <span className="meta-grp">
