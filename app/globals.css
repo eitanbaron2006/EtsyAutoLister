@@ -548,53 +548,106 @@ body {
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Premium Animated SVG Illustration Keyframes */
+/* Premium Product Lifecycle Loop Keyframes (12s timeline loop) */
+@keyframes step-upload {
+  0% { transform: translate(60px, 250px) scale(0.2); opacity: 0; }
+  5% { opacity: 1; }
+  18% { transform: translate(250px, 210px) scale(1); opacity: 1; }
+  75% { transform: translate(250px, 210px) scale(1); opacity: 1; }
+  80% { transform: translate(250px, 210px) scale(0.6); opacity: 0; }
+  100% { transform: translate(250px, 210px) scale(0.6); opacity: 0; }
+}
+
+@keyframes step-frame {
+  0%, 18% { opacity: 0; transform: scale(0.9); }
+  22% { opacity: 1; transform: scale(1.03); }
+  25%, 75% { opacity: 1; transform: scale(1); }
+  80%, 100% { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes step-scan {
+  0%, 25% { transform: translateY(85px); opacity: 0; }
+  28% { opacity: 0.95; }
+  35% { transform: translateY(325px); opacity: 0.95; }
+  42% { transform: translateY(85px); opacity: 0.95; }
+  45%, 100% { transform: translateY(85px); opacity: 0; }
+}
+
+@keyframes step-tags {
+  0%, 48% { opacity: 0; transform: translateY(15px); }
+  52%, 75% { opacity: 1; transform: translateY(0); }
+  80%, 100% { opacity: 0; transform: translateY(-10px); }
+}
+
+@keyframes step-sync {
+  0%, 75% { transform: translate(250px, 210px) scale(0.8); opacity: 0; }
+  78% { opacity: 1; }
+  88% { transform: translate(440px, 250px) scale(0.3); opacity: 0.95; }
+  92%, 100% { transform: translate(440px, 250px) scale(0.3); opacity: 0; }
+}
+
+@keyframes step-etsy-check {
+  0%, 86% { transform: scale(0); opacity: 0; }
+  90%, 97% { transform: scale(1.15); opacity: 1; }
+  98%, 100% { transform: scale(0); opacity: 0; }
+}
+
+@keyframes step-pulse-green {
+  0%, 86% { stroke: #6e7448; filter: none; }
+  90%, 97% { stroke: #22c55e; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6)); }
+  98%, 100% { stroke: #6e7448; filter: none; }
+}
+
 @keyframes float-art {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(1deg); }
+  50% { transform: translateY(-8px) rotate(0.5deg); }
 }
-@keyframes laser-glow {
-  0%, 100% { opacity: 0.8; transform: scaleY(1); }
-  50% { opacity: 0.3; transform: scaleY(1.3); }
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-@keyframes scanning-path {
-  0% { transform: translateY(30px); }
-  50% { transform: translateY(350px); }
-  100% { transform: translateY(30px); }
-}
+
 @keyframes dash-flow {
   to { stroke-dashoffset: -40; }
 }
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 0.3; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-}
-@keyframes float-capsule {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
-}
 
-.animate-float-art {
-  animation: float-art 6s ease-in-out infinite;
+.animate-step-upload {
+  transform-origin: center;
+  animation: step-upload 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
-.animate-scanning-path {
-  animation: scanning-path 5s ease-in-out infinite;
+.animate-step-frame {
+  transform-origin: center;
+  animation: step-frame 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+.animate-step-scan {
+  animation: step-scan 12s ease-in-out infinite;
+}
+.animate-step-tags {
+  transform-origin: center;
+  animation: step-tags 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+.animate-step-sync {
+  transform-origin: center;
+  animation: step-sync 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+.animate-step-etsy-check {
+  transform-origin: center;
+  animation: step-etsy-check 12s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+.animate-step-etsy-pulse {
+  animation: step-pulse-green 12s ease infinite;
+}
+.animate-float-art {
+  animation: float-art 8s ease-in-out infinite;
+}
+.animate-rotate-slow {
+  transform-origin: center;
+  animation: rotate-slow 35s linear infinite;
 }
 .animate-dash-flow {
   stroke-dasharray: 8, 4;
   animation: dash-flow 2s linear infinite;
 }
-.animate-pulse-ring {
-  transform-origin: center;
-  animation: pulse-ring 3s ease-in-out infinite;
-}
-.animate-float-capsule-1 {
-  animation: float-capsule 4s ease-in-out infinite;
-}
-.animate-float-capsule-2 {
-  animation: float-capsule 4s ease-in-out infinite 1.5s;
-}
-.animate-float-capsule-3 {
-  animation: float-capsule 4s ease-in-out infinite 3s;
-}
+
+
