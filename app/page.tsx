@@ -1302,15 +1302,12 @@ export default function Home() {
         {/* Headroom Sticky Header Navigation */}
         <header className="nav py-5 w-full">
           <div className="max-w-7xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
-            <a href="#top" className="flex items-center gap-3.5 hover:opacity-90 transition-opacity">
-              <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de] text-[#f7f1de]' : 'border-[#15140f] text-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
-                Ø
-              </div>
+            <a href="#top" className="group flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+              <Store className="w-[1.4rem] h-[1.4rem] text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-all duration-500 ease-out group-hover:scale-110 group-hover:rotate-3" />
               <span className="header-brand">
                 Auto<em>Lister</em><span className="dot">.</span>
               </span>
             </a>
-
             {/* Navigation Menu Links */}
             <ul className="hidden lg:flex items-center gap-6 xl:gap-8 nav-links list-none m-0 p-0">
               <li><a href="#capabilities" className="relative text-xs font-sans font-bold uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] hover:text-[#ed6f5c] transition-colors duration-180 cursor-pointer">
@@ -2343,10 +2340,8 @@ export default function Home() {
           {/* Header Navigation with Dark Mode Toggler and Actions */}
           <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40' : 'bg-[#efe7d2]/40'} w-full flex-shrink-0 border-b ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.14)]'}`}>
             <div className="max-w-7xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de]' : 'border-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
-                  Ø
-                </div>
+              <div className="group flex items-center gap-2.5">
+                <Store className="w-[1.4rem] h-[1.4rem] text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-all duration-500 ease-out group-hover:scale-110 group-hover:rotate-3" />
                 <div className="flex flex-col">
                   <span className="text-sm font-serif italic font-medium tracking-tight">
                     Etsy <span className="font-sans font-bold not-italic text-xs uppercase tracking-wider text-[#ed6f5c]">Dashboard</span>
