@@ -931,7 +931,7 @@ export default function Home() {
   // Real-time synchronization of active draft edits with React state and Firestore
   const handleUpdateActiveProduct = async (key: string, value: any) => {
     if (!activeProduct) return;
-    
+
     // Update local React state instantly
     setActiveProduct(prev => {
       if (!prev) return null;
@@ -992,7 +992,7 @@ export default function Home() {
       if (item.whenMade) formData.append('whenMade', item.whenMade);
       if (item.category) formData.append('category', item.category);
       if (item.shippingProfile) formData.append('shippingProfile', item.shippingProfile);
-      
+
       if (item.isSupply !== undefined) formData.append('isSupply', item.isSupply.toString());
       if (item.sku) formData.append('sku', item.sku);
       if (item.primaryColor) formData.append('primaryColor', item.primaryColor);
@@ -3387,7 +3387,7 @@ export default function Home() {
           {activeProduct && (
             <div className="min-h-0 flex-1 px-6 sm:px-8 py-5 flex flex-col overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_460px] gap-6 flex-1 min-h-0 overflow-hidden">
-                
+
                 {/* COLUMN 1: Visual Mockup & ZIP Package (Width: 240px) */}
                 <section className="space-y-3 flex flex-col justify-between h-full overflow-y-auto pr-1">
                   <div className="space-y-2.5">
@@ -3899,6 +3899,7 @@ export default function Home() {
             </div>
 
           </div>
+
 
         </DialogContent>
       </Dialog>
