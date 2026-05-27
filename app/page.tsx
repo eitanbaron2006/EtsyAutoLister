@@ -365,36 +365,187 @@ const parseBoldText = (text: string) => {
 
 const renderFormattedDescription = (text: string) => {
   if (!text) return <p className="text-xs text-[#8b8676] italic">No description provided.</p>;
-  
-  return text.split('\n').map((line, index) => {
+
+  let normalized = text;
+
+  // Normalize by finding any uppercase header (3-40 chars of letters/spaces/dashes) followed by a colon
+  // and putting double newlines around it. Safe lookbehind-free regular expression without /s flag.
+  normalized = normalized.replace(/\s*(?:\n)*\s*([A-Z][A-Z\s\-]{2,40}:)\s*/g, "\n\n$1\n\n");
+
+  const lines = normalized.split(/\n\n+/);
+  const elements: React.ReactNode[] = [];
+  let currentHeader: string | null = null;
+
+  lines.forEach((line, idx) => {
     const trimmed = line.trim();
-    if (!trimmed) return <div key={index} className="h-2" />;
-    
-    // Bullet points check
-    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-      const content = trimmed.substring(1).trim();
-      return (
-        <li key={index} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed list-disc list-inside ml-2 mb-1">
-          {parseBoldText(content)}
-        </li>
-      );
-    }
-    
-    // Headers or bold sections
-    if (trimmed.startsWith('###')) {
-      return (
-        <h4 key={index} className="text-xs font-serif font-bold text-[#15140f] dark:text-[#f7f1de] mt-3 mb-1.5 uppercase tracking-wider">
-          {trimmed.replace(/^###\s*/, '')}
+    if (!trimmed) return;
+
+    // Check if the line itself is a standardized header (e.g. "WHY YOU WILL LOVE IT:")
+    const isHeader = /^[A-Z][A-Z\s\-]{2,40}:$/i.test(trimmed);
+    if (isHeader) {
+      currentHeader = trimmed;
+      const headingText = trimmed.replace(/:$/, '');
+      const isNotice = headingText.toUpperCase().includes("PLEASE NOTE") || headingText.toUpperCase().includes("TERMS");
+
+      elements.push(
+        <h4
+          key={`h-${idx}`}
+          className={`text-[10px] font-mono font-bold tracking-widest uppercase border-b pb-1.5 mt-6 mb-3 first:mt-0 ${
+            isNotice 
+              ? 'text-[#ed6f5c] border-[#ed6f5c]/25' 
+              : 'text-[#ed6f5c] border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)]'
+          }`}
+        >
+          {headingText}
         </h4>
       );
+      return;
     }
 
-    return (
-      <p key={index} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed mb-1.5">
-        {parseBoldText(line)}
-      </p>
-    );
+    // Determine context style based on active header
+    const isNoticeSection = currentHeader?.toUpperCase().includes("PLEASE NOTE") || currentHeader?.toUpperCase().includes("TERMS");
+    
+    // Parse list items or standard paragraphs
+    const hasDashes = trimmed.includes(" - ") || trimmed.includes(" – ") || trimmed.includes(" — ");
+    const hasBullets = trimmed.startsWith("-") || trimmed.startsWith("*") || trimmed.startsWith("•");
+
+    if (hasBullets) {
+      const items = trimmed.split(/\n|[-*•]\s+/).map(item => item.trim()).filter(Boolean);
+      elements.push(
+        <ul key={`ul-${idx}`} className="space-y-2 list-none mb-4 pl-1">
+          {items.map((item, itemIdx) => (
+            <li key={itemIdx} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed pl-3.5 relative">
+              <span className="absolute left-0 top-1.5 text-[#ed6f5c] text-[10px] font-bold select-none leading-none">•</span>
+              {parseBoldText(item)}
+            </li>
+          ))}
+        </ul>
+      );
+    } else if (hasDashes) {
+      // Split into items based on periods followed by spaces (safe, lookbehind-free sentence split)
+      const rawItems = trimmed.split(/\.\s+/);
+      const itemsFiltered = rawItems.map(item => item.trim()).filter(Boolean);
+      
+      const listItems: React.ReactNode[] = [];
+      itemsFiltered.forEach((item, itemIdx) => {
+        let fullItem = item;
+        // Restore trailing period if lost in split and it's not the last item
+        if (!fullItem.endsWith('.') && itemIdx < itemsFiltered.length - 1) {
+          fullItem += '.';
+        }
+
+        // enforce spaces around dashes to avoid breaking words like "High-Quality"
+        const dashMatch = fullItem.match(/^([\s\S]*?)\s+([-–—])\s+([\s\S]*)/);
+        if (dashMatch) {
+          const title = dashMatch[1].trim();
+          const desc = dashMatch[3].trim();
+          listItems.push(
+            <li key={itemIdx} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed pl-3.5 relative">
+              <span className="absolute left-0 top-1.5 text-[#ed6f5c] text-[10px] font-bold select-none leading-none">•</span>
+              <strong className="font-bold text-[#15140f] dark:text-[#f7f1de]">{title}</strong> — {parseBoldText(desc)}
+            </li>
+          );
+        } else {
+          listItems.push(
+            <li key={itemIdx} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed pl-3.5 relative">
+              <span className="absolute left-0 top-1.5 text-[#ed6f5c] text-[10px] font-bold select-none leading-none">•</span>
+              {parseBoldText(fullItem)}
+            </li>
+          );
+        }
+      });
+
+      elements.push(
+        <ul key={`ul-${idx}`} className="space-y-2 list-none mb-4 pl-1">
+          {listItems}
+        </ul>
+      );
+    } else {
+      // Render standard paragraph text
+      if (isNoticeSection) {
+        // Special premium warning callout box design
+        elements.push(
+          <div key={`p-${idx}`} className="p-4 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 dark:bg-[#ed6f5c]/10 text-[#5a5448] dark:text-[#ece4cf] mb-4 text-xs leading-relaxed text-left relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#ed6f5c]" />
+            <span className="font-mono font-bold text-[9px] uppercase tracking-wider text-[#ed6f5c] block mb-1 select-none">Attention Required</span>
+            {parseBoldText(trimmed)}
+          </div>
+        );
+      } else {
+        elements.push(
+          <p key={`p-${idx}`} className="text-xs text-[#5a5448] dark:text-[#ece4cf] leading-relaxed mb-4 last:mb-0">
+            {parseBoldText(trimmed)}
+          </p>
+        );
+      }
+    }
   });
+
+  return <div className="space-y-1">{elements}</div>;
+};
+
+const getFormattedPlainTextDescription = (text: string): string => {
+  if (!text) return "";
+
+  let normalized = text.trim();
+
+  // Normalize by finding any uppercase header (3-40 chars of letters/spaces/dashes) followed by a colon
+  // and putting double newlines around it. Safe lookbehind-free regular expression without /s flag.
+  normalized = normalized.replace(/\s*(?:\n)*\s*([A-Z][A-Z\s\-]{2,40}:)\s*/g, "\n\n$1\n\n");
+
+  const lines = normalized.split(/\n\n+/);
+  const formattedLines: string[] = [];
+  let currentHeader: string | null = null;
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    // Check if the line itself is a standardized header (e.g. "WHY YOU WILL LOVE IT:")
+    const isHeader = /^[A-Z][A-Z\s\-]{2,40}:$/i.test(trimmed);
+    if (isHeader) {
+      currentHeader = trimmed;
+      formattedLines.push(trimmed);
+      return;
+    }
+
+    // Parse list items or standard paragraphs
+    const hasDashes = trimmed.includes(" - ") || trimmed.includes(" – ") || trimmed.includes(" — ");
+    const hasBullets = trimmed.startsWith("-") || trimmed.startsWith("*") || trimmed.startsWith("•");
+
+    if (hasBullets) {
+      const items = trimmed.split(/\n|[-*•]\s+/).map(item => item.trim()).filter(Boolean);
+      items.forEach(item => {
+        formattedLines.push(`• ${item}`);
+      });
+    } else if (hasDashes) {
+      // Split into items based on periods followed by spaces (safe, lookbehind-free sentence split)
+      const rawItems = trimmed.split(/\.\s+/);
+      const itemsFiltered = rawItems.map(item => item.trim()).filter(Boolean);
+      
+      itemsFiltered.forEach((item, itemIdx) => {
+        let fullItem = item;
+        // Restore trailing period if lost in split and it's not the last item
+        if (!fullItem.endsWith('.') && itemIdx < itemsFiltered.length - 1) {
+          fullItem += '.';
+        }
+
+        // enforce spaces around dashes to avoid breaking words like "High-Quality"
+        const dashMatch = fullItem.match(/^([\s\S]*?)\s+([-–—])\s+([\s\S]*)/);
+        if (dashMatch) {
+          const title = dashMatch[1].trim();
+          const desc = dashMatch[3].trim();
+          formattedLines.push(`• ${title} — ${desc}`);
+        } else {
+          formattedLines.push(`• ${fullItem}`);
+        }
+      });
+    } else {
+      formattedLines.push(trimmed);
+    }
+  });
+
+  return formattedLines.join("\n\n");
 };
 
 export default function Home() {
@@ -955,7 +1106,7 @@ export default function Home() {
         status: 'ready',
         pipelineStepText: 'Optimization complete. Ready to publish!',
         title: listingData.title,
-        description: listingData.description,
+        description: getFormattedPlainTextDescription(listingData.description || ''),
         tags: listingData.tags,
         price: listingData.price,
         updatedAt: serverTimestamp()
@@ -1101,6 +1252,7 @@ export default function Home() {
     const sessionFiles = localFilesMap[item.folderName] || { images: [], files: [] };
     setActiveProduct({
       ...item,
+      description: getFormattedPlainTextDescription(item.description || ''),
       images: sessionFiles.images,
       files: sessionFiles.files
     });
@@ -1120,6 +1272,7 @@ export default function Home() {
     const sessionFiles = localFilesMap[project.folderName] || { images: [], files: [] };
     setActiveProduct({
       ...project,
+      description: getFormattedPlainTextDescription(project.description || ''),
       images: sessionFiles.images,
       files: sessionFiles.files
     });
@@ -1132,6 +1285,7 @@ export default function Home() {
     const sessionFiles = localFilesMap[project.folderName] || { images: [], files: [] };
     setActiveProduct({
       ...project,
+      description: getFormattedPlainTextDescription(project.description || ''),
       images: sessionFiles.images,
       files: sessionFiles.files
     });
@@ -3585,8 +3739,8 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Tags Area - fixed height: h-[130px] flex-none */}
-                  <div className="h-[130px] flex-none flex flex-col space-y-1.5">
+                  {/* Tags Area - fixed height: h-[140px] flex-none */}
+                  <div className="h-[140px] flex-none flex flex-col space-y-1.5">
                     <div className="flex justify-between items-center">
                       <Label className="text-[9px] uppercase text-[#8b8676] font-mono tracking-wider font-bold">Tag Keywords ({(activeProduct.tags || []).length} / 13)</Label>
                       <button onClick={() => handleCopyText((activeProduct.tags || []).join(', '), 'Tags list')} className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline flex items-center gap-1 uppercase tracking-wider cursor-pointer">
@@ -3836,8 +3990,8 @@ export default function Home() {
                           <option value="birthday">Birthday</option>
                           <option value="baby_shower">Baby Shower</option>
                           <option value="graduation">Graduation</option>
-                          <option value="mothers_day">Mother's Day</option>
-                          <option value="fathers_day">Father's Day</option>
+                          <option value="mothers_day">{"Mother's Day"}</option>
+                          <option value="fathers_day">{"Father's Day"}</option>
                           <option value="housewarming">Housewarming</option>
                           <option value="wedding">Wedding</option>
                         </select>
@@ -3855,7 +4009,7 @@ export default function Home() {
                           <option value="halloween">Halloween</option>
                           <option value="hanukkah">Hanukkah</option>
                           <option value="thanksgiving">Thanksgiving</option>
-                          <option value="valentines_day">Valentine's Day</option>
+                          <option value="valentines_day">{"Valentine's Day"}</option>
                         </select>
                       </div>
                     </div>
