@@ -1380,11 +1380,11 @@ export default function Home() {
                 </div>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.75rem] font-sans font-bold tracking-[-0.03em] text-[#15140f] dark:text-[#f7f1de] leading-[0.98] select-none text-left max-w-5xl" data-reveal="">
-                Upload raw <span className="font-serif italic font-light tracking-[-0.02em] text-[#15140f] dark:text-[#f7f1de]">products,</span> generate <span className="font-serif italic font-light tracking-[-0.02em] text-[#ed6f5c]">mockups & metadata</span> instantly<span className="text-[#ed6f5c] font-sans inline-block">.</span>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[3.8rem] xl:text-[4.75rem] text-[#15140f] dark:text-[#f7f1de] leading-[1] select-none text-left max-w-5xl" data-reveal="">
+                <strong>Upload raw </strong><em className="text-[#15140f] dark:text-[#f7f1de]">products,</em><strong> generate </strong><em className="text-[#ed6f5c]">mockups & metadata</em><strong> instantly</strong><span className="text-[#ed6f5c] font-sans inline-block">.</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-[#5a5448] dark:text-[#ece4cf] max-w-2xl text-left leading-relaxed font-sans" data-reveal="">
+              <p className="text-[16px] sm:text-[17px] md:text-[18px] text-[#2a2620] dark:text-[#ece4cf] max-w-2xl text-left leading-[1.65] font-sans" data-reveal="">
                 Skip multi-step designer work. Upload your raw JPEG designs, PDF art prints, Lightroom parameters, or planners, and AutoLister dynamically renders elegant mockup templates and complete optimized catalog structures in minutes.
               </p>
 

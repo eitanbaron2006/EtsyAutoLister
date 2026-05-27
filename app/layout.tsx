@@ -1,18 +1,34 @@
 import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import { Toaster } from '@/components/ui/sonner';
-import { Inter, Lora } from 'next/font/google';
+import { Inter, Inter_Tight, Playfair_Display, Lora } from 'next/font/google';
 
-const inter = Inter({
+const interTight = Inter_Tight({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
 });
 
-const lora = Lora({
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-serif',
   display: 'swap',
+  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+});
+
+const lora = Lora({
+  subsets: ['latin'],
+  variable: '--font-lora',
+  display: 'swap',
+  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -22,8 +38,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={`${inter.variable} ${lora.variable}`}>
-      <body className="font-sans antialiased text-[#191919] bg-[#FAF8F5]" suppressHydrationWarning>
+    <html lang="en" className={`${interTight.variable} ${inter.variable} ${playfairDisplay.variable} ${lora.variable}`}>
+      <body className="antialiased text-[#191919] bg-[#FAF8F5]" suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

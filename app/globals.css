@@ -3,9 +3,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @theme {
-  --font-sans: 'Inter Tight', 'Inter', var(--font-sans), ui-sans-serif, system-ui;
-  --font-serif: 'Playfair Display', var(--font-serif), ui-serif, Georgia, serif;
-  --font-mono: 'JetBrains Mono', var(--font-mono), ui-monospace, monospace;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
 :root {
@@ -25,10 +25,11 @@
   --line-soft: rgba(21, 20, 15, 0.08);
   --line-faint: rgba(21, 20, 15, 0.05);
   --shadow: 0 30px 60px -30px rgba(21, 20, 15, 0.18);
-  --serif: 'Playfair Display', 'Times New Roman', serif;
-  --sans: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --body: 'Inter', -apple-system, system-ui, sans-serif;
-  --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  --serif: var(--font-serif), 'Playfair Display', 'Times New Roman', serif;
+  --sans: var(--font-sans), 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --body: var(--font-body), 'Inter', -apple-system, system-ui, sans-serif;
+  --mono: var(--font-mono), 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  --lora: var(--font-lora), 'Lora', Georgia, serif;
 }
 
 :root.dark,
@@ -52,7 +53,6 @@ html,
 body {
   background-color: var(--paper) !important;
   color: var(--ink) !important;
-  font-family: var(--sans);
   scroll-behavior: smooth;
 }
 
@@ -62,6 +62,27 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden !important;
+}
+
+/* Heading hierarchies matching open-design.ai */
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+h1 strong {
+  font-family: var(--sans);
+  font-weight: 800;
+  letter-spacing: -1.404px;
+}
+
+h1 em {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
 }
 
 
@@ -262,7 +283,7 @@ body {
 
 /* Header logo brand matching footer style without animations */
 .header-brand {
-  font-family: var(--sans);
+  font-family: var(--body);
   font-weight: 950;
   font-size: 1.15rem;
   letter-spacing: -0.04em;
@@ -282,11 +303,12 @@ body {
 }
 
 .header-brand em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 950;
   color: var(--coral);
   display: inline-block;
+  padding-right: 0.12em;
 }
 
 .header-brand .dot {
@@ -307,7 +329,7 @@ body {
 }
 
 .foot-mega .word {
-  font-family: var(--sans);
+  font-family: var(--body);
   font-weight: 950;
   font-size: clamp(70px, 13vw, 200px);
   letter-spacing: -0.05em;
@@ -319,18 +341,16 @@ body {
   position: relative;
   cursor: default;
   transition: letter-spacing 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              text-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    text-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Continuous, premium gradient metallic sheen */
-  background: linear-gradient(
-    120deg,
-    var(--ink) 0%,
-    var(--ink) 40%,
-    var(--coral) 50%,
-    var(--ink) 60%,
-    var(--ink) 100%
-  );
+  background: linear-gradient(120deg,
+      var(--ink) 0%,
+      var(--ink) 40%,
+      var(--coral) 50%,
+      var(--ink) 60%,
+      var(--ink) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -341,29 +361,30 @@ body {
 
 /* Subtle elegant hover effect for the entire word */
 .foot-mega .word:hover {
-  letter-spacing: -0.02em; /* Smooth elegant expansion */
-  transform: translateY(-4px); /* Gentle lift */
+  letter-spacing: -0.02em;
+  /* Smooth elegant expansion */
+  transform: translateY(-4px);
+  /* Gentle lift */
   text-shadow: 0 10px 30px rgba(237, 111, 92, 0.12);
 }
 
 .foot-mega .word em {
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 500;
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 950;
   display: inline-block;
+  padding-right: 0.15em;
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.8s ease;
+    color 0.8s ease;
   will-change: transform;
-  
+
   /* Staggered coral/light coral metallic sheen */
-  background: linear-gradient(
-    120deg,
-    var(--coral) 0%,
-    var(--coral) 40%,
-    var(--coral-soft) 50%,
-    var(--coral) 60%,
-    var(--coral) 100%
-  );
+  background: linear-gradient(120deg,
+      var(--coral) 0%,
+      var(--coral) 40%,
+      var(--coral-soft) 50%,
+      var(--coral) 60%,
+      var(--coral) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -381,10 +402,10 @@ body {
 .foot-mega .word .dot {
   display: inline-block;
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.8s ease;
+    color 0.8s ease;
   animation: dot-glow-pulse 3s infinite ease-in-out;
   will-change: transform;
-  
+
   /* Make the dot stand out with its own coral gradient */
   background: linear-gradient(135deg, var(--coral) 0%, var(--coral-soft) 100%);
   -webkit-background-clip: text;
@@ -398,10 +419,13 @@ body {
 
 /* Keyframes for the dot's organic breathing/glow pulse */
 @keyframes dot-glow-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.85;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 1;
@@ -413,6 +437,7 @@ body {
   0% {
     background-position: 200% center;
   }
+
   100% {
     background-position: -200% center;
   }
@@ -678,101 +703,248 @@ body {
 
 /* Premium Product Lifecycle Loop Keyframes (12s timeline loop) */
 @keyframes step-upload {
-  0% { transform: translate(60px, 250px) scale(0.2); opacity: 0; }
-  5% { opacity: 1; }
-  18% { transform: translate(250px, 210px) scale(1); opacity: 1; }
-  75% { transform: translate(250px, 210px) scale(1); opacity: 1; }
-  80% { transform: translate(250px, 210px) scale(0.6); opacity: 0; }
-  100% { transform: translate(250px, 210px) scale(0.6); opacity: 0; }
+  0% {
+    transform: translate(60px, 250px) scale(0.2);
+    opacity: 0;
+  }
+
+  5% {
+    opacity: 1;
+  }
+
+  18% {
+    transform: translate(250px, 210px) scale(1);
+    opacity: 1;
+  }
+
+  75% {
+    transform: translate(250px, 210px) scale(1);
+    opacity: 1;
+  }
+
+  80% {
+    transform: translate(250px, 210px) scale(0.6);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(250px, 210px) scale(0.6);
+    opacity: 0;
+  }
 }
 
 @keyframes step-frame {
-  0%, 18% { opacity: 0; transform: scale(0.9); }
-  22% { opacity: 1; transform: scale(1.03); }
-  25%, 75% { opacity: 1; transform: scale(1); }
-  80%, 100% { opacity: 0; transform: scale(0.9); }
+
+  0%,
+  18% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  22% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+
+  25%,
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 
 @keyframes step-scan {
-  0%, 25% { transform: translateY(85px); opacity: 0; }
-  28% { opacity: 0.95; }
-  35% { transform: translateY(325px); opacity: 0.95; }
-  42% { transform: translateY(85px); opacity: 0.95; }
-  45%, 100% { transform: translateY(85px); opacity: 0; }
+
+  0%,
+  25% {
+    transform: translateY(85px);
+    opacity: 0;
+  }
+
+  28% {
+    opacity: 0.95;
+  }
+
+  35% {
+    transform: translateY(325px);
+    opacity: 0.95;
+  }
+
+  42% {
+    transform: translateY(85px);
+    opacity: 0.95;
+  }
+
+  45%,
+  100% {
+    transform: translateY(85px);
+    opacity: 0;
+  }
 }
 
 @keyframes step-tags {
-  0%, 48% { opacity: 0; transform: translateY(15px); }
-  52%, 75% { opacity: 1; transform: translateY(0); }
-  80%, 100% { opacity: 0; transform: translateY(-10px); }
+
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  52%,
+  75% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes step-sync {
-  0%, 75% { transform: translate(250px, 210px) scale(0.8); opacity: 0; }
-  78% { opacity: 1; }
-  88% { transform: translate(440px, 250px) scale(0.3); opacity: 0.95; }
-  92%, 100% { transform: translate(440px, 250px) scale(0.3); opacity: 0; }
+
+  0%,
+  75% {
+    transform: translate(250px, 210px) scale(0.8);
+    opacity: 0;
+  }
+
+  78% {
+    opacity: 1;
+  }
+
+  88% {
+    transform: translate(440px, 250px) scale(0.3);
+    opacity: 0.95;
+  }
+
+  92%,
+  100% {
+    transform: translate(440px, 250px) scale(0.3);
+    opacity: 0;
+  }
 }
 
 @keyframes step-etsy-check {
-  0%, 86% { transform: scale(0); opacity: 0; }
-  90%, 97% { transform: scale(1.15); opacity: 1; }
-  98%, 100% { transform: scale(0); opacity: 0; }
+
+  0%,
+  86% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  90%,
+  97% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+
+  98%,
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
 }
 
 @keyframes step-pulse-green {
-  0%, 86% { stroke: #6e7448; filter: none; }
-  90%, 97% { stroke: #22c55e; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6)); }
-  98%, 100% { stroke: #6e7448; filter: none; }
+
+  0%,
+  86% {
+    stroke: #6e7448;
+    filter: none;
+  }
+
+  90%,
+  97% {
+    stroke: #22c55e;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6));
+  }
+
+  98%,
+  100% {
+    stroke: #6e7448;
+    filter: none;
+  }
 }
 
 @keyframes float-art {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(0.5deg); }
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
 }
 
 @keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes dash-flow {
-  to { stroke-dashoffset: -40; }
+  to {
+    stroke-dashoffset: -40;
+  }
 }
 
 .animate-step-upload {
   transform-origin: center;
   animation: step-upload 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
 .animate-step-frame {
   transform-origin: center;
   animation: step-frame 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
 .animate-step-scan {
   animation: step-scan 12s ease-in-out infinite;
 }
+
 .animate-step-tags {
   transform-origin: center;
   animation: step-tags 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
 .animate-step-sync {
   transform-origin: center;
   animation: step-sync 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
 .animate-step-etsy-check {
   transform-origin: center;
   animation: step-etsy-check 12s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
+
 .animate-step-etsy-pulse {
   animation: step-pulse-green 12s ease infinite;
 }
+
 .animate-float-art {
   animation: float-art 8s ease-in-out infinite;
 }
+
 .animate-rotate-slow {
   transform-origin: center;
   animation: rotate-slow 35s linear infinite;
 }
+
 .animate-dash-flow {
   stroke-dasharray: 8, 4;
   animation: dash-flow 2s linear infinite;
@@ -794,5 +966,3 @@ body {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
-
-
