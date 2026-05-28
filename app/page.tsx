@@ -390,11 +390,10 @@ const renderFormattedDescription = (text: string) => {
       elements.push(
         <h4
           key={`h-${idx}`}
-          className={`text-[10px] font-mono font-bold tracking-widest uppercase border-b pb-1.5 mt-6 mb-3 first:mt-0 ${
-            isNotice 
-              ? 'text-[#ed6f5c] border-[#ed6f5c]/25' 
+          className={`text-[10px] font-mono font-bold tracking-widest uppercase border-b pb-1.5 mt-6 mb-3 first:mt-0 ${isNotice
+              ? 'text-[#ed6f5c] border-[#ed6f5c]/25'
               : 'text-[#ed6f5c] border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)]'
-          }`}
+            }`}
         >
           {headingText}
         </h4>
@@ -404,7 +403,7 @@ const renderFormattedDescription = (text: string) => {
 
     // Determine context style based on active header
     const isNoticeSection = currentHeader?.toUpperCase().includes("PLEASE NOTE") || currentHeader?.toUpperCase().includes("TERMS");
-    
+
     // Parse list items or standard paragraphs
     const hasDashes = trimmed.includes(" - ") || trimmed.includes(" – ") || trimmed.includes(" — ");
     const hasBullets = trimmed.startsWith("-") || trimmed.startsWith("*") || trimmed.startsWith("•");
@@ -425,7 +424,7 @@ const renderFormattedDescription = (text: string) => {
       // Split into items based on periods followed by spaces (safe, lookbehind-free sentence split)
       const rawItems = trimmed.split(/\.\s+/);
       const itemsFiltered = rawItems.map(item => item.trim()).filter(Boolean);
-      
+
       const listItems: React.ReactNode[] = [];
       itemsFiltered.forEach((item, itemIdx) => {
         let fullItem = item;
@@ -522,7 +521,7 @@ const getFormattedPlainTextDescription = (text: string): string => {
       // Split into items based on periods followed by spaces (safe, lookbehind-free sentence split)
       const rawItems = trimmed.split(/\.\s+/);
       const itemsFiltered = rawItems.map(item => item.trim()).filter(Boolean);
-      
+
       itemsFiltered.forEach((item, itemIdx) => {
         let fullItem = item;
         // Restore trailing period if lost in split and it's not the last item
@@ -575,7 +574,7 @@ export default function Home() {
   const [localFilesMap, setLocalFilesMap] = useState<Record<string, { images: File[]; files: File[] }>>({});
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [descTab, setDescTab] = useState<'edit' | 'preview'>('edit');
+  const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -1258,6 +1257,7 @@ export default function Home() {
     });
     setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
     setSelectedPreviewIndex(0);
+    setDescTab('preview');
     setIsDialogOpen(true);
   };
 
@@ -1291,6 +1291,7 @@ export default function Home() {
     });
     setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
     setSelectedPreviewIndex(0);
+    setDescTab('preview');
     setIsDialogOpen(true);
   };
 
