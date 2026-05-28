@@ -22,6 +22,7 @@ import {
   User,
   Grid,
   ArrowLeft,
+  ArrowUp,
   Sparkles,
   History,
   Plus,
@@ -349,6 +350,7 @@ function ScrollToTop({ darkMode }: { darkMode: boolean }) {
         }`}
       aria-label="Scroll to top"
     >
+      <ArrowUp className="w-5 h-5" />
     </button>
   );
 }
@@ -391,8 +393,8 @@ const renderFormattedDescription = (text: string) => {
         <h4
           key={`h-${idx}`}
           className={`text-[10px] font-mono font-bold tracking-widest uppercase border-b pb-1.5 mt-6 mb-3 first:mt-0 ${isNotice
-              ? 'text-[#ed6f5c] border-[#ed6f5c]/25'
-              : 'text-[#ed6f5c] border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)]'
+            ? 'text-[#ed6f5c] border-[#ed6f5c]/25'
+            : 'text-[#ed6f5c] border-[rgba(21,20,15,0.08)] dark:border-[rgba(247,241,222,0.08)]'
             }`}
         >
           {headingText}
