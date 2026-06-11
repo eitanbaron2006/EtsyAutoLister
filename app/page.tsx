@@ -71,6 +71,15 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
+import {
+  checkMockupGenHealth,
+  downloadMockupOutput,
+  getMockupGenBaseUrl,
+  isMockupGenSupportedImage,
+  renderMockupBatch,
+  setMockupGenBaseUrl,
+  type MockupBatchSpec
+} from '@/lib/mockupgen';
 
 type ListingMetadata = {
   id: string;
@@ -108,6 +117,15 @@ type ListingMetadata = {
 type ProductData = ListingMetadata & {
   images: File[];
   files: File[];
+};
+
+// A mockup rendered by the local MockupGen server, downloaded into browser
+// memory (the server's outputs folder is not guaranteed to persist).
+type GeneratedMockup = {
+  id: string;
+  templateId: string;
+  file: File;
+  url: string; // object URL for in-app display
 };
 
 const SANDBOX_ITEMS = [
@@ -574,6 +592,14 @@ export default function Home() {
   // Listings Datastore & Filter states
   const [dbListings, setDbListings] = useState<ListingMetadata[]>([]);
   const [localFilesMap, setLocalFilesMap] = useState<Record<string, { images: File[]; files: File[] }>>({});
+  const [mockupResultsMap, setMockupResultsMap] = useState<Record<string, GeneratedMockup[]>>({});
+  const [mockupServerUrl, setMockupServerUrl] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return getMockupGenBaseUrl();
+    }
+    return '';
+  });
+  const [mockupServerStatus, setMockupServerStatus] = useState<'unknown' | 'checking' | 'online' | 'offline'>('checking');
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
@@ -592,7 +618,11 @@ export default function Home() {
 
   useEffect(() => {
     return () => {
-      sourcePreviewImages.forEach(preview => URL.revokeObjectURL(preview.image));
+      sourcePreviewImages.forEach(preview => {
+        // Mockup object URLs live in mockupResultsMap and are reused across
+        // dialog opens — they are revoked on regeneration/logout instead.
+        if (!preview.id.startsWith('mockup-')) URL.revokeObjectURL(preview.image);
+      });
     };
   }, [sourcePreviewImages]);
 
@@ -620,6 +650,28 @@ export default function Home() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, [loadingAuth, user, currentView]);
+
+  // Probe the configured MockupGen server availability on load
+  useEffect(() => {
+    let cancelled = false;
+    checkMockupGenHealth().then(ok => {
+      if (!cancelled) setMockupServerStatus(ok ? 'online' : 'offline');
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSaveMockupServerUrl = async () => {
+    setMockupGenBaseUrl(mockupServerUrl);
+    setMockupServerUrl(getMockupGenBaseUrl());
+    setMockupServerStatus('checking');
+    const ok = await checkMockupGenHealth();
+    setMockupServerStatus(ok ? 'online' : 'offline');
+    if (ok) {
+      toast.success('MockupGen render server is reachable.');
+    } else {
+      toast.error('MockupGen render server is not responding at this address.');
+    }
+  };
 
   // Synchronize Dark Mode client state preferences
   useEffect(() => {
@@ -730,6 +782,10 @@ export default function Home() {
         setEtsyToken(null);
         setDbListings([]);
         setLocalFilesMap({});
+        setMockupResultsMap(prev => {
+          Object.values(prev).flat().forEach(mockup => URL.revokeObjectURL(mockup.url));
+          return {};
+        });
         setCurrentView('projects');
       }
     });
@@ -1035,6 +1091,108 @@ export default function Home() {
     return createUploadedPreviews(imageFiles, imageUrls);
   };
 
+  // Combine MockupGen renders (first, so they lead the gallery) with the raw uploads
+  const buildPreviewGallery = (folderName: string, images: File[]): UploadedPreview[] => {
+    const mockupPreviews: UploadedPreview[] = (mockupResultsMap[folderName] || []).map(mockup => ({
+      id: mockup.id,
+      label: mockup.file.name,
+      image: mockup.url
+    }));
+    return [...mockupPreviews, ...createSourcePreviewImages(images)];
+  };
+
+  // Downscaled JPEG data URL — used for Firestore thumbnails and to keep
+  // Gemini payloads small enough to avoid empty/blocked responses.
+  const blobToScaledJpegDataUrl = (blob: Blob, maxEdge: number, quality: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Canvas unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(objectUrl);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to decode rendered mockup'));
+      };
+      img.src = objectUrl;
+    });
+  };
+
+  // Render real mockups on the local MockupGen server for every supported
+  // uploaded image (one batch item = one output mockup, auto template
+  // selection by aspect ratio). Returns the downloaded results.
+  const generateListingMockups = async (folderName: string, images: File[]): Promise<GeneratedMockup[]> => {
+    const artworks = images.filter(isMockupGenSupportedImage).slice(0, 20); // server max: 20 items/request
+    if (artworks.length === 0) return [];
+
+    const healthy = await checkMockupGenHealth();
+    setMockupServerStatus(healthy ? 'online' : 'offline');
+    if (!healthy) {
+      toast.warning('MockupGen server is offline — skipping mockup rendering for this run.');
+      return [];
+    }
+
+    const fileMap: Record<string, File> = {};
+    const spec: MockupBatchSpec = {
+      defaults: {
+        fit_mode: 'auto',
+        realism: true,
+        output: { format: 'jpeg', quality: 90 }
+      },
+      items: artworks.map((file, index) => {
+        const field = `artwork_${index}`;
+        fileMap[field] = file;
+        return { id: `mockup-${index}`, artworks: field };
+      })
+    };
+
+    const response = await renderMockupBatch(spec, fileMap);
+
+    const results: GeneratedMockup[] = [];
+    for (const item of response.items) {
+      // 207 responses mix successes and failures — handle each item on its own
+      if (!item.success || !item.output_url) {
+        toast.warning(`Mockup render failed for one image: ${item.error || 'Unknown error'}`);
+        continue;
+      }
+      try {
+        // Download promptly — the server's outputs folder is not persistent
+        const blob = await downloadMockupOutput(item.output_url);
+        // Output filenames are timestamped by the server, so they are unique per run
+        const fileName = item.output_url.split('/').pop() || `${item.id}.jpg`;
+        const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+        results.push({
+          id: `mockup-${folderName}-${fileName}`,
+          templateId: item.template_id || '',
+          file,
+          url: URL.createObjectURL(file)
+        });
+      } catch (err: any) {
+        toast.warning(`Could not download a rendered mockup: ${err.message || 'Unknown error'}`);
+      }
+    }
+
+    if (results.length > 0) {
+      setMockupResultsMap(prev => {
+        (prev[folderName] || []).forEach(m => URL.revokeObjectURL(m.url));
+        return { ...prev, [folderName]: results };
+      });
+    }
+    return results;
+  };
+
   // Trigger Mockups Generation Canvas and pipeline step indicators
   const runAutomatedAIPipeline = async (listingId: string, folderName: string, productType: string) => {
     if (!user) return;
@@ -1050,19 +1208,41 @@ export default function Home() {
       }, { merge: true });
       await new Promise(r => setTimeout(r, 1500));
 
-      // Step 2: Preparing uploaded product images
+      // Step 2: Render real mockups on the local MockupGen server
       await setDoc(doc(db, docPath), {
         status: 'mockups',
-        pipelineStepText: 'Preparing uploaded product images for listing review...',
+        pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
         updatedAt: serverTimestamp()
       }, { merge: true });
 
+      // Downscale before sending to Gemini — full-resolution uploads can
+      // blow past model limits and come back as an empty response.
       const uploadedImageDataUrls = await Promise.all(
         sessionFiles.images
           .filter(file => file.type.startsWith('image/'))
-          .map(convertFileToBase64)
+          .map(file => blobToScaledJpegDataUrl(file, 1024, 0.85).catch(() => convertFileToBase64(file)))
       );
-      await new Promise(r => setTimeout(r, 2000));
+
+      let renderedMockups: GeneratedMockup[] = [];
+      try {
+        renderedMockups = await generateListingMockups(folderName, sessionFiles.images);
+      } catch (mockupErr: any) {
+        // Mockup rendering is best-effort: keep the rest of the pipeline alive
+        toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
+      }
+
+      if (renderedMockups.length > 0) {
+        try {
+          const thumbnail = await blobToScaledJpegDataUrl(renderedMockups[0].file, 480, 0.8);
+          await setDoc(doc(db, docPath), {
+            mockupImage: thumbnail,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch {
+          // Thumbnail persistence is cosmetic — ignore failures
+        }
+        toast.success(`Rendered ${renderedMockups.length} mockup${renderedMockups.length === 1 ? '' : 's'} via MockupGen.`);
+      }
 
       // Step 3: Promotional thumbnail texts overlays
       await setDoc(doc(db, docPath), {
@@ -1102,14 +1282,27 @@ export default function Home() {
 
       const listingData = await res.json();
 
+      // Firestore rejects undefined field values, so never trust the AI
+      // payload shape blindly — fall back to safe defaults per field.
+      const safeTitle = typeof listingData.title === 'string' && listingData.title.trim()
+        ? listingData.title
+        : folderName;
+      const safeDescription = typeof listingData.description === 'string' ? listingData.description : '';
+      const safeTags = Array.isArray(listingData.tags)
+        ? listingData.tags.filter((tag: unknown): tag is string => typeof tag === 'string').slice(0, 13)
+        : [];
+      const safePrice = typeof listingData.price === 'number' && Number.isFinite(listingData.price)
+        ? listingData.price
+        : 5.00;
+
       // Master complete! Sync the compiled listing result to Firestore.
       await setDoc(doc(db, docPath), {
         status: 'ready',
         pipelineStepText: 'Optimization complete. Ready to publish!',
-        title: listingData.title,
-        description: getFormattedPlainTextDescription(listingData.description || ''),
-        tags: listingData.tags,
-        price: listingData.price,
+        title: safeTitle,
+        description: getFormattedPlainTextDescription(safeDescription),
+        tags: safeTags,
+        price: safePrice,
         updatedAt: serverTimestamp()
       }, { merge: true });
 
@@ -1200,6 +1393,8 @@ export default function Home() {
       if (item.materials) formData.append('materials', item.materials);
       if (item.productionPartners) formData.append('productionPartners', item.productionPartners);
 
+      // Rendered MockupGen composites lead the gallery as listing covers
+      (mockupResultsMap[item.folderName] || []).forEach(mockup => formData.append('image', mockup.file));
       sessionFiles.images.forEach(file => formData.append('image', file));
       sessionFiles.files.forEach(file => formData.append('file', file));
 
@@ -1257,7 +1452,7 @@ export default function Home() {
       images: sessionFiles.images,
       files: sessionFiles.files
     });
-    setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
+    setSourcePreviewImages(buildPreviewGallery(item.folderName, sessionFiles.images));
     setSelectedPreviewIndex(0);
     setDescTab('preview');
     setIsDialogOpen(true);
@@ -1291,7 +1486,7 @@ export default function Home() {
       images: sessionFiles.images,
       files: sessionFiles.files
     });
-    setSourcePreviewImages(createSourcePreviewImages(sessionFiles.images));
+    setSourcePreviewImages(buildPreviewGallery(project.folderName, sessionFiles.images));
     setSelectedPreviewIndex(0);
     setDescTab('preview');
     setIsDialogOpen(true);
@@ -3311,6 +3506,47 @@ export default function Home() {
 
         </div>
 
+        {/* MockupGen Render Server connection settings */}
+        <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-4 font-sans">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#5a5448] dark:text-[#ece4cf] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
+                <Camera className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">MockupGen Render Server</span>
+                <span className="text-[9px] font-mono uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${mockupServerStatus === 'online' ? 'bg-[#6e7448] dark:bg-[#9ea671]' :
+                    mockupServerStatus === 'offline' ? 'bg-[#ed6f5c]' :
+                      'bg-[#8b8676] animate-pulse'
+                    }`} />
+                  <span className={mockupServerStatus === 'online' ? 'text-[#6e7448] dark:text-[#9ea671]' :
+                    mockupServerStatus === 'offline' ? 'text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}>
+                    {mockupServerStatus === 'online' ? 'Connected' :
+                      mockupServerStatus === 'offline' ? 'Unreachable' :
+                        mockupServerStatus === 'checking' ? 'Checking...' : 'Unknown'}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <Input
+              value={mockupServerUrl}
+              onChange={(e) => setMockupServerUrl(e.target.value)}
+              placeholder="http://127.0.0.1:5000"
+              className="flex-1 border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 shadow-none h-9 text-xs font-mono focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
+            />
+            <Button
+              type="button"
+              onClick={handleSaveMockupServerUrl}
+              disabled={mockupServerStatus === 'checking'}
+              className="bg-[#efe7d2] dark:bg-[#12110c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] hover:bg-[#ece4cf] dark:hover:bg-[#22211b] text-[#15140f] dark:text-[#f7f1de] font-mono text-[10px] uppercase tracking-wider h-9 px-4 rounded-lg shadow-none cursor-pointer"
+              variant="outline"
+            >
+              {mockupServerStatus === 'checking' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save & Test'}
+            </Button>
+          </div>
+        </Card>
+
         {/* Global Statistics Portfolio Summary banner */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 font-sans">
 
@@ -3603,7 +3839,7 @@ export default function Home() {
                         <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
                           <span className="bg-[#ed6f5c] text-white text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold">
-                            Uploaded
+                            {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : 'Uploaded'}
                           </span>
                         </div>
                       </div>

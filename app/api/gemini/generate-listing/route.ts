@@ -39,8 +39,22 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const text = response.text || "{}";
+    const text = response.text;
+    if (!text) {
+      const finishReason = response.candidates?.[0]?.finishReason;
+      throw new Error(
+        `Gemini returned an empty response${finishReason ? ` (finish reason: ${finishReason})` : ''}. Try again, or with fewer/smaller images.`
+      );
+    }
+
     const result = JSON.parse(text);
+    if (
+      typeof result.title !== 'string' || !result.title.trim() ||
+      typeof result.description !== 'string' ||
+      !Array.isArray(result.tags)
+    ) {
+      throw new Error('Gemini response is missing required listing fields (title/description/tags).');
+    }
 
     return NextResponse.json(result);
   } catch (err: any) {
