@@ -84,6 +84,7 @@ import {
   type MockupBatchItemSpec,
   type MockupBatchSpec,
   type MockupCategory,
+  type MockupFitMode,
   type MockupTemplateDetails,
   type MockupTemplateSummary
 } from '@/lib/mockupgen';
@@ -634,6 +635,14 @@ export default function Home() {
   // Frame picker: details of the single selected template + user frame choices
   const [frameTemplate, setFrameTemplate] = useState<MockupTemplateDetails | null>(null);
   const [frameAssignments, setFrameAssignments] = useState<Record<number, string>>({});
+  // How artworks fill their frames — stretch by default, user-changeable
+  const [studioFitMode, setStudioFitMode] = useState<MockupFitMode>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('autolister-fit-mode');
+      if (stored === 'auto' || stored === 'cover' || stored === 'contain' || stored === 'stretch') return stored;
+    }
+    return 'stretch';
+  });
   const [isBrowsingTemplates, setIsBrowsingTemplates] = useState(false);
   const [isRenderingMockups, setIsRenderingMockups] = useState(false);
   const [isRunningCopy, setIsRunningCopy] = useState(false);
@@ -1315,7 +1324,7 @@ export default function Home() {
 
     const spec: MockupBatchSpec = {
       defaults: {
-        fit_mode: 'auto',
+        fit_mode: studioFitMode,
         realism: true,
         output: { format: 'jpeg', quality: 90 }
       },
@@ -1719,6 +1728,11 @@ export default function Home() {
       }
       return next;
     });
+  };
+
+  const changeStudioFitMode = (mode: MockupFitMode) => {
+    setStudioFitMode(mode);
+    localStorage.setItem('autolister-fit-mode', mode);
   };
 
   const toggleTemplateSelection = (templateId: string) => {
@@ -4123,6 +4137,32 @@ export default function Home() {
                       <Grid className={`w-3 h-3 mr-1 ${isBrowsingTemplates ? 'text-white' : 'text-[#ed6f5c]'}`} /> {isBrowsingTemplates ? 'Close Browser' : 'Browse Templates'}
                     </Button>
                   </div>
+                </div>
+
+                {/* Fit mode — how artworks fill their frames */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold select-none">{"▪ FIT MODE"}</span>
+                  <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-[9px] font-mono border border-[rgba(21,20,15,0.16)] uppercase tracking-wider select-none">
+                    {([
+                      { mode: 'stretch', label: 'Stretch', hint: 'Fill the frame exactly — may distort proportions' },
+                      { mode: 'auto', label: 'Auto', hint: 'Renderer picks the best fit per frame' },
+                      { mode: 'cover', label: 'Cover', hint: 'Fill the frame — edges may be cropped' },
+                      { mode: 'contain', label: 'Contain', hint: 'Whole image visible — may leave margins' }
+                    ] as { mode: MockupFitMode; label: string; hint: string }[]).map(option => (
+                      <button
+                        key={option.mode}
+                        type="button"
+                        onClick={() => changeStudioFitMode(option.mode)}
+                        title={option.hint}
+                        className={`px-2.5 py-1 rounded-md transition-all duration-150 cursor-pointer ${studioFitMode === option.mode
+                          ? 'bg-[#f7f1de] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] font-bold'
+                          : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[9px] text-[#8b8676] font-mono select-none">applies to every render, including bulk runs</span>
                 </div>
 
                 {/* Template browser */}
