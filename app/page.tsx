@@ -76,9 +76,15 @@ import {
   downloadMockupOutput,
   getMockupGenBaseUrl,
   isMockupGenSupportedImage,
+  listMockupCategories,
+  listMockupTemplates,
   renderMockupBatch,
+  resolveMockupUrl,
   setMockupGenBaseUrl,
-  type MockupBatchSpec
+  type MockupBatchItemSpec,
+  type MockupBatchSpec,
+  type MockupCategory,
+  type MockupTemplateSummary
 } from '@/lib/mockupgen';
 
 type ListingMetadata = {
@@ -119,11 +125,23 @@ type ProductData = ListingMetadata & {
   files: File[];
 };
 
+// A product being assembled in the staging tray before creation. Singles and
+// sets coexist in one batch — every staged entry becomes its own listing.
+type StagedImage = { id: string; file: File; url: string };
+type StagedProduct = {
+  id: string;
+  name: string;
+  kind: 'single' | 'set';
+  images: StagedImage[];
+  files: File[]; // non-image deliverables (PDF/ZIP) attached to this product
+};
+
 // A mockup rendered by the local MockupGen server, downloaded into browser
 // memory (the server's outputs folder is not guaranteed to persist).
 type GeneratedMockup = {
   id: string;
   templateId: string;
+  sourceFileName: string; // which uploaded artwork was rendered
   file: File;
   url: string; // object URL for in-app display
 };
@@ -600,6 +618,25 @@ export default function Home() {
     return '';
   });
   const [mockupServerStatus, setMockupServerStatus] = useState<'unknown' | 'checking' | 'online' | 'offline'>('checking');
+
+  // Mockup Studio states (guided per-listing creation workspace)
+  const [studioListingId, setStudioListingId] = useState<string | null>(null);
+  const [studioAutopilot, setStudioAutopilot] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('autolister-studio-autopilot') !== 'false';
+    }
+    return true;
+  });
+  const [studioSourcePreviews, setStudioSourcePreviews] = useState<UploadedPreview[]>([]);
+  const [studioTemplates, setStudioTemplates] = useState<MockupTemplateSummary[]>([]);
+  const [studioCategories, setStudioCategories] = useState<MockupCategory[]>([]);
+  const [studioTemplateFilter, setStudioTemplateFilter] = useState<string>('all');
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
+  const [isBrowsingTemplates, setIsBrowsingTemplates] = useState(false);
+  const [isRenderingMockups, setIsRenderingMockups] = useState(false);
+  const [isRunningCopy, setIsRunningCopy] = useState(false);
+  const [isRunningAutopilot, setIsRunningAutopilot] = useState(false);
+  const [studioZoomMockup, setStudioZoomMockup] = useState<GeneratedMockup | null>(null);
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
@@ -608,13 +645,14 @@ export default function Home() {
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
   const [activeLabFilter, setActiveLabFilter] = useState<'all' | 'wallart' | 'presets' | 'stickers' | 'planners'>('all');
 
-  // Manual raw assets uploading state
-  const [uploadTitleInput, setUploadTitleInput] = useState('');
+  // Staging tray state — mixed batch of sets and singles before creation
   const [isUploadingRaw, setIsUploadingRaw] = useState(false);
-  const [uploadedRawFiles, setUploadedRawFiles] = useState<File[]>([]);
+  const [stagedProducts, setStagedProducts] = useState<StagedProduct[]>([]);
+  const [stagedSelection, setStagedSelection] = useState<string[]>([]);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const rawFileInputRef = useRef<HTMLInputElement>(null);
+  const setFileInputRef = useRef<HTMLInputElement>(null);
+  const studioImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -786,6 +824,16 @@ export default function Home() {
           Object.values(prev).flat().forEach(mockup => URL.revokeObjectURL(mockup.url));
           return {};
         });
+        setStudioListingId(null);
+        setStudioSourcePreviews(prev => {
+          prev.forEach(preview => URL.revokeObjectURL(preview.image));
+          return [];
+        });
+        setStagedProducts(prev => {
+          prev.forEach(product => product.images.forEach(img => URL.revokeObjectURL(img.url)));
+          return [];
+        });
+        setStagedSelection([]);
         setCurrentView('projects');
       }
     });
@@ -935,11 +983,13 @@ export default function Home() {
   const handleNavigateBackRoutes = () => {
     setSelectedMode(null);
     setSelectedProductType(null);
+    setStudioListingId(null);
   };
 
-  // Switch chosen product category type 
+  // Switch chosen product category type
   const handleNavigateBackProductType = () => {
     setSelectedProductType(null);
+    setStudioListingId(null);
   };
 
   // Persists the product category selection to Firestore user profile for safety
@@ -958,119 +1008,175 @@ export default function Home() {
     }
   };
 
-  // Handle folder upload selection (Catalog Directory)
-  const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length || !user || !selectedProductType) return;
+  // Derive a clean product name from an image file name
+  const productNameFromFile = (fileName: string): string => {
+    const base = fileName.replace(/\.[^.]+$/, '').replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return (base || 'Untitled Product').slice(0, 60);
+  };
 
-    const fileList = Array.from(e.target.files);
-    const groups: Record<string, { images: File[]; files: File[] }> = {};
+  const makeStagedImages = (files: File[]): StagedImage[] => {
+    const stamp = Date.now();
+    return files.map((file, idx) => ({
+      id: `img-${stamp}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+      file,
+      url: URL.createObjectURL(file)
+    }));
+  };
 
-    fileList.forEach(file => {
-      const parts = file.webkitRelativePath.split('/');
-      if (parts.length < 2) return; // Need inside folder relative nesting
-
-      const folderName = parts[parts.length - 2];
-
-      if (!groups[folderName]) {
-        groups[folderName] = { images: [], files: [] };
-      }
-
-      if (file.type.startsWith('image/')) {
-        groups[folderName].images.push(file);
-      } else {
-        groups[folderName].files.push(file);
-      }
-    });
-
-    // Update in-memory session mapping containing active file objects
-    setLocalFilesMap(prev => ({ ...prev, ...groups }));
-
-    // Create a catalog entry for each folder in Firestore database
-    for (const [folderName, bundle] of Object.entries(groups)) {
-      if (bundle.images.length === 0 && bundle.files.length === 0) continue;
-
-      const listingId = folderName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase() + "_" + Date.now().toString().slice(-4);
-      const docPath = `users/${user.uid}/listings/${listingId}`;
-      const docRef = doc(db, docPath);
-
-      try {
-        await setDoc(docRef, {
-          id: listingId,
-          userId: user.uid,
-          folderName,
-          status: 'idle',
-          productType: selectedProductType,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-      } catch (err) {
-        handleFirestoreError(err, OperationType.WRITE, docPath);
-      }
+  // Stage each picked image as its own single product
+  const handleAddSingleProducts = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const picked = Array.from(e.target.files);
+    const images = picked.filter(f => f.type.startsWith('image/'));
+    const skipped = picked.length - images.length;
+    if (skipped > 0) toast.info(`${skipped} non-image file${skipped === 1 ? '' : 's'} skipped — singles are image products.`);
+    if (images.length > 0) {
+      const stamp = Date.now();
+      setStagedProducts(prev => [
+        ...prev,
+        ...makeStagedImages(images).map((img, idx) => ({
+          id: `staged-${stamp}-${idx}`,
+          name: productNameFromFile(img.file.name),
+          kind: 'single' as const,
+          images: [img],
+          files: [] as File[]
+        }))
+      ]);
+      toast.success(`Staged ${images.length} single product${images.length === 1 ? '' : 's'}.`);
     }
-
-    toast.success(`Scanned directory: Syncing ${Object.keys(groups).length} products to database.`);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  // Handle Individual Raw Files upload selection (New pipeline approach)
-  const handleRawFilesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length || !user || !selectedProductType) return;
-    const filesArray = Array.from(e.target.files);
-    setUploadedRawFiles(prev => [...prev, ...filesArray]);
-    toast.info(`Imported ${filesArray.length} assets. Ready to compile listing!`);
-  };
-
-  const clearUploadedRawFiles = () => {
-    setUploadedRawFiles([]);
     if (rawFileInputRef.current) rawFileInputRef.current.value = '';
   };
 
-  // Submit and create custom Listing record from newly uploaded files
-  const handleCreateListingFromRawAssets = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedProductType) return;
-
-    const title = uploadTitleInput.trim() || (uploadedRawFiles[0] ? uploadedRawFiles[0].name.split('.')[0] : `Product Draft`);
-    if (uploadedRawFiles.length === 0) {
-      toast.error("Please add at least one raw digital asset file to compile.");
-      return;
+  // Stage all picked files together as one set product (images + deliverables)
+  const handleAddSetProduct = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const picked = Array.from(e.target.files);
+    const images = picked.filter(f => f.type.startsWith('image/'));
+    const deliverables = picked.filter(f => !f.type.startsWith('image/'));
+    if (images.length === 0) {
+      toast.error('A set needs at least one image.');
+    } else {
+      setStagedProducts(prev => [
+        ...prev,
+        {
+          id: `staged-${Date.now()}-set`,
+          name: productNameFromFile(images[0].name),
+          kind: 'set' as const,
+          images: makeStagedImages(images),
+          files: deliverables
+        }
+      ]);
+      toast.success(`Staged a set of ${images.length} image${images.length === 1 ? '' : 's'}${deliverables.length > 0 ? ` + ${deliverables.length} deliverable(s)` : ''}.`);
     }
+    if (setFileInputRef.current) setFileInputRef.current.value = '';
+  };
+
+  const toggleStagedSelect = (id: string) => {
+    if (isUploadingRaw) return;
+    setStagedSelection(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  };
+
+  // Merge the selected staged products into one set
+  const mergeSelectedIntoSet = () => {
+    setStagedProducts(prev => {
+      const selected = prev.filter(p => stagedSelection.includes(p.id));
+      if (selected.length < 2) return prev;
+      const merged: StagedProduct = {
+        id: `staged-${Date.now()}-merged`,
+        name: selected[0].name,
+        kind: 'set',
+        images: selected.flatMap(p => p.images),
+        files: selected.flatMap(p => p.files)
+      };
+      const firstIndex = prev.findIndex(p => p.id === selected[0].id);
+      const rest = prev.filter(p => !stagedSelection.includes(p.id));
+      return [...rest.slice(0, firstIndex), merged, ...rest.slice(firstIndex)];
+    });
+    setStagedSelection([]);
+    toast.success('Merged selection into one set product.');
+  };
+
+  // Split a staged set back into single products (deliverables stay on the first)
+  const ungroupStagedSet = (id: string) => {
+    setStagedProducts(prev => {
+      const target = prev.find(p => p.id === id);
+      if (!target || target.images.length < 2) return prev;
+      const stamp = Date.now();
+      const singles: StagedProduct[] = target.images.map((img, idx) => ({
+        id: `staged-${stamp}-${idx}-split`,
+        name: productNameFromFile(img.file.name),
+        kind: 'single',
+        images: [img],
+        files: idx === 0 ? target.files : []
+      }));
+      const index = prev.findIndex(p => p.id === id);
+      return [...prev.slice(0, index), ...singles, ...prev.slice(index + 1)];
+    });
+    setStagedSelection([]);
+  };
+
+  const removeStagedProduct = (id: string) => {
+    setStagedProducts(prev => {
+      const target = prev.find(p => p.id === id);
+      target?.images.forEach(img => URL.revokeObjectURL(img.url));
+      return prev.filter(p => p.id !== id);
+    });
+    setStagedSelection(prev => prev.filter(s => s !== id));
+  };
+
+  const clearStagedProducts = () => {
+    setStagedProducts(prev => {
+      prev.forEach(p => p.images.forEach(img => URL.revokeObjectURL(img.url)));
+      return [];
+    });
+    setStagedSelection([]);
+  };
+
+  // Create one listing per staged product — sets and singles alike
+  const handleCreateStagedProducts = async () => {
+    if (!user || !selectedProductType || stagedProducts.length === 0) return;
 
     setIsUploadingRaw(true);
-    const listingId = title.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase() + "_" + Date.now().toString().slice(-4);
-    const docPath = `users/${user.uid}/listings/${listingId}`;
-    const docRef = doc(db, docPath);
-
-    // Differentiate images for mockup processing and binary templates
-    const imagesVal = uploadedRawFiles.filter(f => f.type.startsWith('image/'));
-    const filesVal = uploadedRawFiles.filter(f => !f.type.startsWith('image/'));
-
-    // Save mapping in session
-    setLocalFilesMap(prev => ({
-      ...prev,
-      [title]: {
-        images: imagesVal.length > 0 ? imagesVal : uploadedRawFiles.slice(0, 1), // fallback
-        files: filesVal.length > 0 ? filesVal : uploadedRawFiles
-      }
-    }));
-
     try {
-      await setDoc(docRef, {
-        id: listingId,
-        userId: user.uid,
-        folderName: title,
-        status: 'idle',
-        productType: selectedProductType,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      const usedNames = new Set(Object.keys(localFilesMap));
+      const batchMap: Record<string, { images: File[]; files: File[] }> = {};
+      const stamp = Date.now().toString().slice(-4);
+      let created = 0;
 
-      toast.success(`Succesfully parsed raw files! New ${selectedProductType} listing is initialized in idle queue.`);
-      setUploadTitleInput('');
-      setUploadedRawFiles([]);
-      if (rawFileInputRef.current) rawFileInputRef.current.value = '';
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, docPath);
+      for (const [index, product] of stagedProducts.entries()) {
+        let productName = product.name;
+        let suffix = 2;
+        while (usedNames.has(productName)) productName = `${product.name} (${suffix++})`;
+        usedNames.add(productName);
+
+        const imageFiles = product.images.map(img => img.file);
+        batchMap[productName] = {
+          images: imageFiles,
+          // Without explicit deliverables the images themselves are the product files
+          files: product.files.length > 0 ? product.files : imageFiles
+        };
+
+        const listingId = productName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase() + `_${stamp}_${index}`;
+        const docPath = `users/${user.uid}/listings/${listingId}`;
+        try {
+          await setDoc(doc(db, docPath), {
+            id: listingId,
+            userId: user.uid,
+            folderName: productName,
+            status: 'idle',
+            productType: selectedProductType,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          created++;
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, docPath);
+        }
+      }
+
+      setLocalFilesMap(prev => ({ ...prev, ...batchMap }));
+      toast.success(`Created ${created} product draft${created === 1 ? '' : 's'} — run them from the table or fine-tune each in the Studio.`);
+      clearStagedProducts();
     } finally {
       setIsUploadingRaw(false);
     }
@@ -1130,11 +1236,17 @@ export default function Home() {
     });
   };
 
-  // Render real mockups on the local MockupGen server for every supported
-  // uploaded image (one batch item = one output mockup, auto template
-  // selection by aspect ratio). Returns the downloaded results.
-  const generateListingMockups = async (folderName: string, images: File[]): Promise<GeneratedMockup[]> => {
-    const artworks = images.filter(isMockupGenSupportedImage).slice(0, 20); // server max: 20 items/request
+  // Render real mockups on the local MockupGen server. By default each
+  // supported image becomes one auto-matched mockup (template selected by
+  // aspect ratio). When templateIds are provided, every image is rendered
+  // into every chosen template instead. Returns the downloaded results.
+  const generateListingMockups = async (
+    folderName: string,
+    images: File[],
+    templateIds?: string[],
+    options?: { append?: boolean }
+  ): Promise<GeneratedMockup[]> => {
+    const artworks = images.filter(isMockupGenSupportedImage);
     if (artworks.length === 0) return [];
 
     const healthy = await checkMockupGenHealth();
@@ -1145,17 +1257,43 @@ export default function Home() {
     }
 
     const fileMap: Record<string, File> = {};
+    const itemSource: Record<string, string> = {};
+    const items: MockupBatchItemSpec[] = [];
+    const MAX_ITEMS = 20; // server limit per batch request
+
+    artworks.forEach((file, index) => {
+      const field = `artwork_${index}`;
+      if (templateIds && templateIds.length > 0) {
+        for (const templateId of templateIds) {
+          if (items.length >= MAX_ITEMS) return;
+          const id = `item-${index}-${templateId}`;
+          fileMap[field] = file;
+          itemSource[id] = file.name;
+          items.push({ id, artworks: field, template_id: templateId });
+        }
+      } else {
+        if (items.length >= MAX_ITEMS) return;
+        const id = `item-${index}`;
+        fileMap[field] = file;
+        itemSource[id] = file.name;
+        items.push({ id, artworks: field });
+      }
+    });
+
+    const plannedTotal = templateIds && templateIds.length > 0
+      ? artworks.length * templateIds.length
+      : artworks.length;
+    if (plannedTotal > MAX_ITEMS) {
+      toast.info(`Batch capped at ${MAX_ITEMS} mockups per render (requested ${plannedTotal}).`);
+    }
+
     const spec: MockupBatchSpec = {
       defaults: {
         fit_mode: 'auto',
         realism: true,
         output: { format: 'jpeg', quality: 90 }
       },
-      items: artworks.map((file, index) => {
-        const field = `artwork_${index}`;
-        fileMap[field] = file;
-        return { id: `mockup-${index}`, artworks: field };
-      })
+      items
     };
 
     const response = await renderMockupBatch(spec, fileMap);
@@ -1176,6 +1314,7 @@ export default function Home() {
         results.push({
           id: `mockup-${folderName}-${fileName}`,
           templateId: item.template_id || '',
+          sourceFileName: itemSource[item.id] || '',
           file,
           url: URL.createObjectURL(file)
         });
@@ -1186,6 +1325,9 @@ export default function Home() {
 
     if (results.length > 0) {
       setMockupResultsMap(prev => {
+        if (options?.append) {
+          return { ...prev, [folderName]: [...(prev[folderName] || []), ...results] };
+        }
         (prev[folderName] || []).forEach(m => URL.revokeObjectURL(m.url));
         return { ...prev, [folderName]: results };
       });
@@ -1193,25 +1335,114 @@ export default function Home() {
     return results;
   };
 
-  // Trigger Mockups Generation Canvas and pipeline step indicators
-  const runAutomatedAIPipeline = async (listingId: string, folderName: string, productType: string) => {
-    if (!user) return;
-    const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
-    const docPath = `users/${user.uid}/listings/${listingId}`;
+  // Drop one rendered mockup from the session results
+  const handleRemoveMockup = (folderName: string, mockupId: string) => {
+    setMockupResultsMap(prev => {
+      const existing = prev[folderName] || [];
+      const target = existing.find(m => m.id === mockupId);
+      if (target) URL.revokeObjectURL(target.url);
+      return { ...prev, [folderName]: existing.filter(m => m.id !== mockupId) };
+    });
+  };
 
+  // Re-render a single mockup (same artwork, same template) and replace it
+  const handleRetryMockup = async (folderName: string, mockup: GeneratedMockup) => {
+    const sessionFiles = localFilesMap[folderName];
+    const source = sessionFiles?.images.find(f => f.name === mockup.sourceFileName);
+    if (!source) {
+      toast.error('Source image for this mockup is no longer in browser memory.');
+      return;
+    }
+    setIsRenderingMockups(true);
     try {
-      // Step 1: Scanning Assets
-      await setDoc(doc(db, docPath), {
-        status: 'scanning',
-        pipelineStepText: 'Reading digital deliverable blueprints & structures...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      await new Promise(r => setTimeout(r, 1500));
+      const replacements = await generateListingMockups(
+        folderName,
+        [source],
+        mockup.templateId ? [mockup.templateId] : undefined,
+        { append: true }
+      );
+      if (replacements.length > 0) {
+        handleRemoveMockup(folderName, mockup.id);
+        toast.success('Mockup re-rendered.');
+      }
+    } catch (err: any) {
+      toast.error('Re-render failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsRenderingMockups(false);
+    }
+  };
 
-      // Step 2: Render real mockups on the local MockupGen server
+  // --- Studio pipeline stages ---------------------------------------------
+
+  // Render mockups and persist the dashboard thumbnail (no status changes)
+  const renderMockupsForListing = async (
+    listingId: string,
+    folderName: string,
+    templateIds?: string[]
+  ): Promise<GeneratedMockup[]> => {
+    const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
+    const results = await generateListingMockups(folderName, sessionFiles.images, templateIds);
+
+    if (results.length > 0 && user) {
+      try {
+        const thumbnail = await blobToScaledJpegDataUrl(results[0].file, 480, 0.8);
+        await setDoc(doc(db, `users/${user.uid}/listings/${listingId}`), {
+          mockupImage: thumbnail,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch {
+        // Thumbnail persistence is cosmetic — ignore failures
+      }
+      toast.success(`Rendered ${results.length} mockup${results.length === 1 ? '' : 's'} via MockupGen.`);
+    }
+    return results;
+  };
+
+  // Guided Studio stage: render mockups as an isolated, reviewable step
+  const runMockupStage = async (listing: ListingMetadata, templateIds?: string[]) => {
+    if (!user) return;
+    const docPath = `users/${user.uid}/listings/${listing.id}`;
+    // Re-rendering mockups must not demote an already compiled draft
+    const restoreStatus = ['ready', 'published'].includes(listing.status) ? listing.status : 'idle';
+    setIsRenderingMockups(true);
+    try {
       await setDoc(doc(db, docPath), {
         status: 'mockups',
         pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      const results = await renderMockupsForListing(listing.id, listing.folderName, templateIds);
+
+      await setDoc(doc(db, docPath), {
+        status: restoreStatus,
+        pipelineStepText: results.length > 0
+          ? 'Mockups rendered — review them in the Studio.'
+          : 'Mockup render returned no results.',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (err: any) {
+      toast.error('Mockup stage failed: ' + (err.message || 'Unknown error'));
+      await setDoc(doc(db, docPath), {
+        status: restoreStatus,
+        pipelineStepText: 'Mockup rendering failed — retry from the Studio.',
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => { });
+    } finally {
+      setIsRenderingMockups(false);
+    }
+  };
+
+  // Guided Studio stage: Gemini SEO copywriting
+  const runCopyStage = async (listingId: string, folderName: string) => {
+    if (!user) return;
+    const docPath = `users/${user.uid}/listings/${listingId}`;
+    const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
+    setIsRunningCopy(true);
+    try {
+      await setDoc(doc(db, docPath), {
+        status: 'seo',
+        pipelineStepText: 'Optimizing high-converting titles and metadata with Gemini 3.5...',
         updatedAt: serverTimestamp()
       }, { merge: true });
 
@@ -1223,57 +1454,10 @@ export default function Home() {
           .map(file => blobToScaledJpegDataUrl(file, 1024, 0.85).catch(() => convertFileToBase64(file)))
       );
 
-      let renderedMockups: GeneratedMockup[] = [];
-      try {
-        renderedMockups = await generateListingMockups(folderName, sessionFiles.images);
-      } catch (mockupErr: any) {
-        // Mockup rendering is best-effort: keep the rest of the pipeline alive
-        toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
-      }
-
-      if (renderedMockups.length > 0) {
-        try {
-          const thumbnail = await blobToScaledJpegDataUrl(renderedMockups[0].file, 480, 0.8);
-          await setDoc(doc(db, docPath), {
-            mockupImage: thumbnail,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        } catch {
-          // Thumbnail persistence is cosmetic — ignore failures
-        }
-        toast.success(`Rendered ${renderedMockups.length} mockup${renderedMockups.length === 1 ? '' : 's'} via MockupGen.`);
-      }
-
-      // Step 3: Promotional thumbnail texts overlays
-      await setDoc(doc(db, docPath), {
-        status: 'thumbnail',
-        pipelineStepText: 'Configuring Etsy 300DPI promotional cover layout badges...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      await new Promise(r => setTimeout(r, 1500));
-
-      // Step 4: Zip Packing
-      await setDoc(doc(db, docPath), {
-        status: 'compiling',
-        pipelineStepText: 'Assembling safe high-fidelity deliverable zip packs layers...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      await new Promise(r => setTimeout(r, 1500));
-
-      // Step 5: SEO and copy generation with Gemini
-      await setDoc(doc(db, docPath), {
-        status: 'seo',
-        pipelineStepText: 'Optimizing high-converting titles and metadata with Gemini 3.5...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      // Pass the user's actual uploaded images to Gemini for contextual listing copy.
-      const base64ImagesPayload = uploadedImageDataUrls;
-
       const res = await fetch('/api/gemini/generate-listing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, images: base64ImagesPayload })
+        body: JSON.stringify({ folderName, images: uploadedImageDataUrls })
       });
 
       if (!res.ok) {
@@ -1306,7 +1490,65 @@ export default function Home() {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      toast.success(`Pipeline success! Constructed full Listing draft: ${folderName}`);
+      toast.success(`Listing copy compiled for "${folderName}"!`);
+    } catch (err: any) {
+      toast.error('AI copy stage failed: ' + (err.message || 'Unknown error'));
+      await setDoc(doc(db, docPath), {
+        status: 'idle',
+        pipelineStepText: 'Copy generation failed — run it again from the Studio.',
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => { });
+    } finally {
+      setIsRunningCopy(false);
+    }
+  };
+
+  // Autopilot: the full chained pipeline with step-by-step status updates
+  const runAutomatedAIPipeline = async (listing: ListingMetadata, templateIds?: string[]) => {
+    if (!user) return;
+    const docPath = `users/${user.uid}/listings/${listing.id}`;
+    setIsRunningAutopilot(true);
+    try {
+      // Step 1: Scanning Assets
+      await setDoc(doc(db, docPath), {
+        status: 'scanning',
+        pipelineStepText: 'Reading digital deliverable blueprints & structures...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 2: Render real mockups on the local MockupGen server
+      await setDoc(doc(db, docPath), {
+        status: 'mockups',
+        pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      try {
+        await renderMockupsForListing(listing.id, listing.folderName, templateIds);
+      } catch (mockupErr: any) {
+        // Mockup rendering is best-effort: keep the rest of the pipeline alive
+        toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
+      }
+
+      // Step 3: Promotional thumbnail texts overlays
+      await setDoc(doc(db, docPath), {
+        status: 'thumbnail',
+        pipelineStepText: 'Configuring Etsy 300DPI promotional cover layout badges...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 4: Zip Packing
+      await setDoc(doc(db, docPath), {
+        status: 'compiling',
+        pipelineStepText: 'Assembling safe high-fidelity deliverable zip packs layers...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 5: SEO and copy generation with Gemini (manages its own statuses)
+      await runCopyStage(listing.id, listing.folderName);
     } catch (err: any) {
       toast.error('Pipeline failed: ' + (err.message || 'Unknown error'));
       await setDoc(doc(db, docPath), {
@@ -1314,8 +1556,145 @@ export default function Home() {
         pipelineStepText: 'Failed during automation process. Reloading...',
         updatedAt: serverTimestamp()
       }, { merge: true }).catch(() => { });
+    } finally {
+      setIsRunningAutopilot(false);
     }
   };
+
+  // --- Mockup Studio session handlers --------------------------------------
+
+  const openStudio = (listing: ListingMetadata) => {
+    const sessionFiles = localFilesMap[listing.folderName] || { images: [], files: [] };
+    studioSourcePreviews.forEach(p => URL.revokeObjectURL(p.image));
+    setStudioSourcePreviews(createSourcePreviewImages(sessionFiles.images));
+    setSelectedTemplateIds([]);
+    setStudioTemplateFilter('all');
+    setIsBrowsingTemplates(false);
+    setStudioZoomMockup(null);
+    setStudioListingId(listing.id);
+
+    // Load the template catalog for the picker (best-effort, cached per session)
+    if (studioTemplates.length === 0) {
+      Promise.all([listMockupTemplates(), listMockupCategories()])
+        .then(([templates, categories]) => {
+          setStudioTemplates(templates);
+          setStudioCategories(categories);
+          setMockupServerStatus('online');
+        })
+        .catch(() => {
+          setMockupServerStatus('offline');
+        });
+    }
+  };
+
+  const closeStudio = () => {
+    studioSourcePreviews.forEach(p => URL.revokeObjectURL(p.image));
+    setStudioSourcePreviews([]);
+    setStudioZoomMockup(null);
+    setStudioListingId(null);
+  };
+
+  const toggleStudioAutopilot = () => {
+    setStudioAutopilot(prev => {
+      const next = !prev;
+      localStorage.setItem('autolister-studio-autopilot', next ? 'true' : 'false');
+      toast.info(next
+        ? 'Autopilot enabled — the pipeline runs end-to-end on launch.'
+        : 'Guided mode — you approve each Studio stage yourself.');
+      return next;
+    });
+  };
+
+  // Attach more source images to an open Studio session
+  const handleStudioAttachImages = (listing: ListingMetadata, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const newImages = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+    if (newImages.length === 0) {
+      toast.error('Only image files can be attached as artwork sources.');
+      return;
+    }
+    setLocalFilesMap(prev => {
+      const existing = prev[listing.folderName] || { images: [], files: [] };
+      return {
+        ...prev,
+        [listing.folderName]: { images: [...existing.images, ...newImages], files: existing.files }
+      };
+    });
+    const stamp = Date.now();
+    setStudioSourcePreviews(prev => [
+      ...prev,
+      ...newImages.map((file, idx) => ({
+        id: `upload-${stamp}-${idx}`,
+        label: file.name,
+        image: URL.createObjectURL(file)
+      }))
+    ]);
+    if (studioImageInputRef.current) studioImageInputRef.current.value = '';
+    toast.success(`Attached ${newImages.length} source image${newImages.length === 1 ? '' : 's'}.`);
+  };
+
+  const toggleTemplateSelection = (templateId: string) => {
+    setSelectedTemplateIds(prev => prev.includes(templateId)
+      ? prev.filter(id => id !== templateId)
+      : [...prev, templateId]);
+  };
+
+  // --- Studio derived view state --------------------------------------------
+
+  const activeStudioListing = studioListingId
+    ? dbListings.find(l => l.id === studioListingId) ?? null
+    : null;
+  const studioSessionFiles = activeStudioListing
+    ? (localFilesMap[activeStudioListing.folderName] || { images: [], files: [] })
+    : { images: [], files: [] };
+  const studioMockups = activeStudioListing
+    ? (mockupResultsMap[activeStudioListing.folderName] || [])
+    : [];
+  const filteredStudioTemplates = studioTemplateFilter === 'all'
+    ? studioTemplates
+    : studioTemplates.filter(t => t.product_type === studioTemplateFilter);
+  const studioBusy = isRenderingMockups || isRunningCopy || isRunningAutopilot ||
+    (activeStudioListing ? ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(activeStudioListing.status) : false);
+  const studioTemplateName = (templateId: string) =>
+    studioTemplates.find(t => t.template_id === templateId)?.name || templateId;
+
+  // 'active' = the machine is working (spinner); 'attention' = waiting for
+  // the user to act (clickable call-to-action) — never confuse the two.
+  type StudioStepState = 'done' | 'active' | 'attention' | 'pending';
+  const studioSteps: { label: string; hint: string; state: StudioStepState; onClick?: () => void }[] = activeStudioListing ? [
+    {
+      label: 'Upload Assets',
+      hint: `${studioSessionFiles.images.length + studioSessionFiles.files.length} file(s) staged`,
+      state: 'done'
+    },
+    {
+      label: 'Source Review',
+      hint: `${studioSessionFiles.images.length} artwork image(s)`,
+      state: studioSessionFiles.images.length > 0 ? 'done' : 'pending'
+    },
+    {
+      label: 'Mockup Lab',
+      hint: studioMockups.length > 0 ? `${studioMockups.length} mockup(s) rendered` : 'Render or pick templates',
+      state: (isRenderingMockups || activeStudioListing.status === 'mockups') ? 'active'
+        : (studioMockups.length > 0 || activeStudioListing.mockupImage) ? 'done' : 'pending'
+    },
+    {
+      label: 'AI Copywriting',
+      hint: activeStudioListing.title ? 'Title, tags & copy ready' : 'Gemini SEO metadata',
+      state: (isRunningCopy || activeStudioListing.status === 'seo') ? 'active'
+        : activeStudioListing.title ? 'done' : 'pending'
+    },
+    {
+      label: 'Review & Publish',
+      hint: activeStudioListing.status === 'published' ? 'Live on Etsy'
+        : activeStudioListing.status === 'ready' ? 'Your turn — click to open the draft' : 'Final draft review',
+      state: activeStudioListing.status === 'published' ? 'done'
+        : activeStudioListing.status === 'ready' ? 'attention' : 'pending',
+      onClick: activeStudioListing.status === 'ready' && !studioBusy
+        ? () => openPreviewPanel(activeStudioListing)
+        : undefined
+    }
+  ] : [];
 
   // Real-time synchronization of active draft edits with React state and Firestore
   const handleUpdateActiveProduct = async (key: string, value: any) => {
@@ -3112,6 +3491,7 @@ export default function Home() {
                 onClick={() => {
                   setSelectedMode(null);
                   setSelectedProductType(null);
+                  setStudioListingId(null);
                   setCurrentView('projects');
                 }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
@@ -3302,6 +3682,7 @@ export default function Home() {
                 onClick={() => {
                   setSelectedMode(null);
                   setSelectedProductType(null);
+                  setStudioListingId(null);
                   setCurrentView('projects');
                 }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
@@ -3346,6 +3727,431 @@ export default function Home() {
       {/* Primary Workspace main grid */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
+        {activeStudioListing ? (
+          <>
+            {/* ============ MOCKUP STUDIO ============ */}
+
+            {/* Studio header bar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={closeStudio}
+                  className="font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf] shadow-none cursor-pointer shrink-0"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5 text-[#8b8676]" /> Workspace
+                </Button>
+                <div>
+                  <span className="text-[9px] font-mono font-bold tracking-widest text-[#ed6f5c] uppercase block">{"▪ MOCKUP STUDIO"}</span>
+                  <h2 className="text-xl font-serif font-medium text-[#15140f] leading-tight">{activeStudioListing.folderName}</h2>
+                  {activeStudioListing.pipelineStepText && (
+                    <span className="text-[10px] text-[#5a5448]/80 font-medium">{activeStudioListing.pipelineStepText}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 self-start lg:self-center">
+                {/* Pipeline mode preference toggle */}
+                <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-[10px] font-mono border border-[rgba(21,20,15,0.16)] uppercase tracking-wider select-none">
+                  <button
+                    onClick={() => { if (!studioAutopilot) toggleStudioAutopilot(); }}
+                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${studioAutopilot ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                    title="Run the entire pipeline end-to-end automatically"
+                  >
+                    <Cpu className={`w-3 h-3 ${studioAutopilot ? 'text-[#ed6f5c]' : 'text-[#8b8676]'}`} /> Autopilot
+                  </button>
+                  <button
+                    onClick={() => { if (studioAutopilot) toggleStudioAutopilot(); }}
+                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${!studioAutopilot ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                    title="Approve each stage yourself: mockups, copy, publish"
+                  >
+                    <Settings className={`w-3 h-3 ${!studioAutopilot ? 'text-[#ed6f5c]' : 'text-[#8b8676]'}`} /> Guided
+                  </button>
+                </div>
+
+                <span className={`inline-flex items-center px-2.5 py-1 text-[9px] font-mono font-bold rounded-full uppercase tracking-wider border select-none
+                  ${activeStudioListing.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
+                    ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(activeStudioListing.status) ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
+                      activeStudioListing.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c]' :
+                        'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
+                  }`}>
+                  {activeStudioListing.status === 'idle' ? 'Draft Staged' :
+                    activeStudioListing.status === 'ready' ? 'Ready to Publish' :
+                      activeStudioListing.status === 'published' ? 'Live on Etsy' : 'Pipeline Running'}
+                </span>
+              </div>
+            </div>
+
+            {/* Studio stage guide stepper */}
+            <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none p-5 font-sans">
+              <div className="flex flex-col sm:flex-row items-stretch gap-4 sm:gap-0">
+                {studioSteps.map((step, idx) => (
+                  <div key={step.label} className="flex items-center flex-1 min-w-0">
+                    <div
+                      onClick={step.onClick}
+                      className={`flex items-center gap-2.5 min-w-0 ${step.onClick ? 'cursor-pointer rounded-lg -m-1.5 p-1.5 hover:bg-[#ece4cf]/50 transition-colors' : ''}`}
+                      title={step.onClick ? step.hint : undefined}
+                    >
+                      <span className={`relative w-7 h-7 rounded-full flex items-center justify-center border text-[10px] font-mono font-bold shrink-0 select-none
+                        ${step.state === 'done' ? 'bg-[#6e7448] border-[#6e7448] text-white' :
+                          step.state === 'active' || step.state === 'attention' ? 'bg-[#ed6f5c] border-[#ed6f5c] text-white' :
+                            'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#8b8676]'}`}>
+                        {step.state === 'done' ? <Check className="w-3.5 h-3.5" /> :
+                          step.state === 'active' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
+                            step.state === 'attention' ? <ChevronRight className="w-3.5 h-3.5" /> :
+                              idx + 1}
+                        {step.state === 'attention' && (
+                          <span className="absolute inset-0 rounded-full bg-[#ed6f5c]/50 animate-ping" />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider block truncate
+                          ${step.state === 'done' ? 'text-[#6e7448]' :
+                            step.state === 'active' || step.state === 'attention' ? 'text-[#ed6f5c]' : 'text-[#8b8676]'}`}>
+                          {step.label}
+                        </span>
+                        <span className="text-[9px] text-[#5a5448]/80 font-medium block truncate">{step.hint}</span>
+                      </div>
+                    </div>
+                    {idx < studioSteps.length - 1 && (
+                      <div className={`hidden sm:block flex-1 h-px mx-3 ${step.state === 'done' ? 'bg-[#6e7448]/40' : 'bg-[rgba(21,20,15,0.12)]'}`} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Studio working grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+              {/* Source images panel — the user's original uploads, kept separate */}
+              <Card className="lg:col-span-4 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none p-5 space-y-4 font-sans">
+                <div className="flex items-center justify-between pb-2.5 border-b border-[rgba(21,20,15,0.10)]">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 text-[#5a5448] border border-[rgba(21,20,15,0.16)]">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold block">{"▪ SOURCE IMAGES"}</span>
+                      <span className="text-xs font-serif font-medium text-[#15140f]">{studioSourcePreviews.length} original upload{studioSourcePreviews.length === 1 ? '' : 's'}</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => studioImageInputRef.current?.click()}
+                    className="bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf] text-[#15140f] font-mono text-[9px] uppercase tracking-wider h-7 px-3 rounded-full shadow-none cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3 mr-1 text-[#ed6f5c]" /> Add
+                  </Button>
+                  <input
+                    type="file"
+                    ref={studioImageInputRef}
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleStudioAttachImages(activeStudioListing, e)}
+                  />
+                </div>
+
+                {studioSourcePreviews.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {studioSourcePreviews.map((preview) => (
+                      <div key={preview.id} className="relative aspect-square rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] group" title={preview.label}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={preview.image} alt={preview.label} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-6 bg-[#ece4cf]/40 text-center cursor-pointer hover:bg-[#ece4cf]/60 transition-colors" onClick={() => studioImageInputRef.current?.click()}>
+                    <UploadCloud className="w-8 h-8 text-[#8b8676] mx-auto mb-2" />
+                    <span className="text-xs font-medium text-[#15140f] block">Attach artwork images</span>
+                    <span className="text-[10px] text-[#8b8676] mt-1 block font-mono">PNG / JPG / WEBP sources for the mockup renderer</span>
+                  </div>
+                )}
+
+                {studioSessionFiles.files.length > 0 && (
+                  <div className="p-3 border rounded-lg text-[9px] font-mono bg-[#ece4cf]/50 border-[rgba(21,20,15,0.10)] text-[#5a5448]">
+                    <span className="font-bold uppercase block mb-1 font-sans text-[#15140f]">Deliverable files (not rendered):</span>
+                    <ul className="list-disc pl-3.5 space-y-1 font-sans">
+                      {studioSessionFiles.files.map((file, idx) => (
+                        <li key={idx} className="truncate" title={file.name}>{file.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Stage actions */}
+                <div className="space-y-2 pt-1">
+                  {studioAutopilot ? (
+                    <Button
+                      onClick={() => runAutomatedAIPipeline(activeStudioListing, selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined)}
+                      disabled={studioBusy || studioSessionFiles.images.length === 0}
+                      className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
+                    >
+                      {isRunningAutopilot || studioBusy ? (
+                        <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Pipeline Running...</>
+                      ) : (
+                        <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Run Autopilot Pipeline</>
+                      )}
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => runMockupStage(activeStudioListing, selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined)}
+                        disabled={studioBusy || studioSessionFiles.images.length === 0}
+                        className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
+                      >
+                        {isRenderingMockups ? (
+                          <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Rendering Mockups...</>
+                        ) : (
+                          <><Camera className="w-3.5 h-3.5 mr-1.5" /> {studioMockups.length > 0 ? 'Re-render Mockups' : 'Render Mockups'}</>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => runCopyStage(activeStudioListing.id, activeStudioListing.folderName)}
+                        disabled={studioBusy}
+                        variant="outline"
+                        className="w-full bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer"
+                      >
+                        {isRunningCopy ? (
+                          <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Writing Copy...</>
+                        ) : (
+                          <><Sparkles className="w-3.5 h-3.5 mr-1.5" /> {activeStudioListing.title ? 'Regenerate AI Copy' : 'Generate AI Copy'}</>
+                        )}
+                      </Button>
+                    </>
+                  )}
+
+                  {(activeStudioListing.title || ['ready', 'published'].includes(activeStudioListing.status)) && (
+                    <Button
+                      onClick={() => openPreviewPanel(activeStudioListing)}
+                      disabled={studioBusy}
+                      variant="outline"
+                      className="w-full bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf] text-[#15140f] font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5 text-[#ed6f5c]" /> Open Draft Review
+                    </Button>
+                  )}
+                </div>
+              </Card>
+
+              {/* Mockup Lab — template picking + rendered results review */}
+              <Card className="lg:col-span-8 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none p-5 space-y-5 font-sans">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[rgba(21,20,15,0.10)]">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 text-[#ed6f5c] border border-[rgba(21,20,15,0.16)]">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold block">{"▪ MOCKUP LAB"}</span>
+                      <span className="text-xs font-serif font-medium text-[#15140f]">
+                        {selectedTemplateIds.length > 0
+                          ? <>Manual selection · <span className="text-[#ed6f5c]">{selectedTemplateIds.length} template{selectedTemplateIds.length === 1 ? '' : 's'}</span></>
+                          : <>Auto Match — best template per image ratio</>}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono uppercase tracking-wider flex items-center gap-1.5 select-none">
+                      <span className={`w-1.5 h-1.5 rounded-full ${mockupServerStatus === 'online' ? 'bg-[#6e7448]' : mockupServerStatus === 'offline' ? 'bg-[#ed6f5c]' : 'bg-[#8b8676] animate-pulse'}`} />
+                      <span className={mockupServerStatus === 'online' ? 'text-[#6e7448]' : mockupServerStatus === 'offline' ? 'text-[#ed6f5c]' : 'text-[#8b8676]'}>
+                        {mockupServerStatus === 'online' ? 'Renderer Online' : mockupServerStatus === 'offline' ? 'Renderer Offline' : 'Checking...'}
+                      </span>
+                    </span>
+                    {selectedTemplateIds.length > 0 && (
+                      <Button type="button" size="xs" variant="ghost" onClick={() => setSelectedTemplateIds([])} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
+                        Clear
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      onClick={() => setIsBrowsingTemplates(prev => !prev)}
+                      className={`font-mono text-[9px] uppercase tracking-wider h-7 px-3 rounded-full shadow-none cursor-pointer border ${isBrowsingTemplates ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] hover:bg-[#e25e4a]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] hover:bg-[#ece4cf] text-[#15140f]'}`}
+                    >
+                      <Grid className={`w-3 h-3 mr-1 ${isBrowsingTemplates ? 'text-white' : 'text-[#ed6f5c]'}`} /> {isBrowsingTemplates ? 'Close Browser' : 'Browse Templates'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Template browser */}
+                {isBrowsingTemplates && (
+                  <div className="space-y-3 border border-[rgba(21,20,15,0.12)] rounded-xl p-4 bg-[#ece4cf]/30">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => setStudioTemplateFilter('all')}
+                        className={`px-2.5 py-1 rounded-full text-[9px] font-mono uppercase tracking-wider border transition-colors cursor-pointer ${studioTemplateFilter === 'all' ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold' : 'bg-[#efe7d2] text-[#5a5448] border-[rgba(21,20,15,0.16)] hover:text-[#15140f]'}`}
+                      >
+                        All ({studioTemplates.length})
+                      </button>
+                      {studioCategories.map(category => (
+                        <button
+                          key={category.slug}
+                          onClick={() => setStudioTemplateFilter(category.slug)}
+                          className={`px-2.5 py-1 rounded-full text-[9px] font-mono uppercase tracking-wider border transition-colors cursor-pointer ${studioTemplateFilter === category.slug ? 'bg-[#ed6f5c] text-white border-[#ed6f5c] font-bold' : 'bg-[#efe7d2] text-[#5a5448] border-[rgba(21,20,15,0.16)] hover:text-[#15140f]'}`}
+                        >
+                          {category.name} ({category.template_count})
+                        </button>
+                      ))}
+                    </div>
+
+                    {filteredStudioTemplates.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
+                        {filteredStudioTemplates.map(template => {
+                          const isSelected = selectedTemplateIds.includes(template.template_id);
+                          return (
+                            <button
+                              key={template.template_id}
+                              type="button"
+                              onClick={() => toggleTemplateSelection(template.template_id)}
+                              className={`relative text-left rounded-lg overflow-hidden border transition-all cursor-pointer group ${isSelected ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c]' : 'border-[rgba(21,20,15,0.14)] hover:border-[#ed6f5c]/45'}`}
+                              title={template.name}
+                            >
+                              <div className="aspect-square bg-[#efe7d2] overflow-hidden flex items-center justify-center p-1">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={resolveMockupUrl(template.preview_url)} alt={template.name} loading="lazy" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.03]" />
+                              </div>
+                              <div className="px-2 py-1.5 bg-[#f7f1de]">
+                                <span className="text-[9px] font-medium text-[#15140f] block truncate">{template.name}</span>
+                                <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676]">{template.orientation}</span>
+                              </div>
+                              {isSelected && (
+                                <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#ed6f5c] text-white flex items-center justify-center shadow-sm">
+                                  <Check className="w-3 h-3" />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 space-y-2">
+                        <Layers2 className="w-8 h-8 text-[#8b8676] mx-auto opacity-60" />
+                        <p className="text-xs text-[#5a5448]">
+                          {mockupServerStatus === 'offline'
+                            ? 'MockupGen server is offline — start it and reopen the Studio to browse templates.'
+                            : 'No templates found in this category.'}
+                        </p>
+                      </div>
+                    )}
+
+                    <p className="text-[9px] text-[#8b8676] font-mono leading-relaxed select-none">
+                      Pick templates to render every source image into each selection · leave empty for automatic ratio matching · capped at 20 renders per run.
+                    </p>
+                  </div>
+                )}
+
+                {/* Generated mockups gallery */}
+                <div className="space-y-2.5">
+                  <div className="flex items-end justify-between">
+                    <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold">{"▪ GENERATED MOCKUPS"}</span>
+                    <span className="text-[10px] text-[#8b8676] font-mono">{studioMockups.length} render{studioMockups.length === 1 ? '' : 's'} in session</span>
+                  </div>
+
+                  {studioMockups.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {studioMockups.map(mockup => (
+                        <div key={mockup.id} className="relative rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] group">
+                          <div className="aspect-square overflow-hidden cursor-pointer bg-[#ece4cf]/60 flex items-center justify-center p-1.5" onClick={() => setStudioZoomMockup(mockup)}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={mockup.url} alt={mockup.file.name} className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.03]" />
+                          </div>
+                          <div className="px-2.5 py-2 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
+                            <span className="text-[9px] font-medium text-[#15140f] block truncate" title={studioTemplateName(mockup.templateId)}>
+                              {studioTemplateName(mockup.templateId)}
+                            </span>
+                            <span className="text-[8px] font-mono text-[#8b8676] block truncate" title={mockup.sourceFileName}>
+                              src: {mockup.sourceFileName || 'unknown'}
+                            </span>
+                          </div>
+                          <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => setStudioZoomMockup(mockup)}
+                              className="w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center hover:bg-[#ece4cf] cursor-pointer"
+                              title="Inspect quality"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = mockup.url;
+                                link.download = mockup.file.name;
+                                link.click();
+                                toast.success(`${mockup.file.name} downloaded!`);
+                              }}
+                              className="w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center hover:bg-[#ece4cf] cursor-pointer"
+                              title="Download mockup"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRetryMockup(activeStudioListing.folderName, mockup)}
+                              className="w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center hover:bg-[#ece4cf] cursor-pointer"
+                              title="Re-render this mockup"
+                            >
+                              <History className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMockup(activeStudioListing.folderName, mockup.id)}
+                              className="w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#ed6f5c] flex items-center justify-center hover:bg-[#ece4cf] cursor-pointer"
+                              title="Discard mockup"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-8 bg-[#ece4cf]/40 text-center">
+                      <Camera className="w-8 h-8 text-[#8b8676] mx-auto mb-2" />
+                      <span className="text-xs font-medium text-[#15140f] block">No mockups rendered yet in this session</span>
+                      <span className="text-[10px] text-[#8b8676] mt-1 block font-mono max-w-sm mx-auto leading-relaxed">
+                        {studioAutopilot
+                          ? 'Run the Autopilot pipeline, or browse templates first to pin specific scenes.'
+                          : 'Pick templates (optional) and press Render Mockups to preview your artwork in real scenes.'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Mockup quality inspection lightbox */}
+            <Dialog open={!!studioZoomMockup} onOpenChange={(open) => { if (!open) setStudioZoomMockup(null); }}>
+              <DialogContent className="!max-w-4xl p-0 overflow-hidden bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] sm:rounded-[24px]">
+                {studioZoomMockup && (
+                  <>
+                    <DialogHeader className="px-6 pt-5 pb-3 border-b border-[rgba(21,20,15,0.12)]">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Quality Inspection</span>
+                      <DialogTitle className="text-lg font-serif font-medium text-[#15140f]">{studioTemplateName(studioZoomMockup.templateId)}</DialogTitle>
+                      <DialogDescription className="text-[#5a5448] text-xs font-sans">
+                        Source artwork: {studioZoomMockup.sourceFileName || 'unknown'} · {studioZoomMockup.file.name}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="p-4 bg-[#ece4cf]/40 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={studioZoomMockup.url} alt={studioZoomMockup.file.name} className="max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-lg border border-[rgba(21,20,15,0.14)]" />
+                    </div>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <>
+
         {/* Workspace Redirect Alert */}
         {selectedMode === 'etsy' && (
           <Card className="bg-[#ece4cf]/30 border-[rgba(21,20,15,0.16)] shadow-none relative overflow-hidden">
@@ -3364,151 +4170,170 @@ export default function Home() {
           </Card>
         )}
 
-        {/* Dynamic Dual Files Upload Panel (Both directory scan and custom raw upload) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Studio floor: intake rail (left) + production area (right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-          {/* Main Module A: Upload Raw Digital Asset (Recommended pipeline) */}
-          <Card className="lg:col-span-7 bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col justify-between">
-            <CardHeader className="pb-3 p-6">
+          {/* ---- Intake rail ---- */}
+          <div className="lg:col-span-4 space-y-6">
+
+          {/* Staging tray: mix sets and singles — each card becomes a product */}
+          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col">
+            <CardHeader className="pb-3 p-5">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
                   <Sparkles className="w-4 h-4" />
                 </div>
-                <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Upload Raw Product Elements</CardTitle>
+                <div>
+                  <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Product Staging Tray</CardTitle>
+                  <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-0.5">
+                    Mix sets and singles freely — every card below becomes its own product.
+                  </CardDescription>
+                </div>
               </div>
-              <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-1">
-                Provide your raw printable PDFs, JPEGs, or clipart overlays. The AutoLister pipeline formats structural packages and constructs high-fidelity mockups automatically.
-              </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-6 pt-0">
-              <form onSubmit={handleCreateListingFromRawAssets} className="space-y-4">
+            <CardContent className="p-5 pt-0 space-y-4">
 
-                {/* Title element */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="manualTitle" className="text-xs font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf]">Product Clipart / Collection Name</Label>
-                  <Input
-                    id="manualTitle"
-                    value={uploadTitleInput}
-                    onChange={(e) => setUploadTitleInput(e.target.value)}
-                    placeholder="e.g. Handmade Autumn Watercolor Forest"
-                    className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-10 text-sm focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
-                  />
-                </div>
-
-                {/* File box trigger */}
+              {/* Two intake actions: singles vs a set */}
+              <div className="grid grid-cols-2 gap-2.5">
                 <div
-                  className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-6 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                  className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
                   onClick={() => rawFileInputRef.current?.click()}
                 >
-                  <UploadCloud className="w-8 h-8 text-[#8b8676] dark:text-[#a39e8f] mx-auto mb-2" />
-                  <span className="text-xs font-medium text-[#15140f] dark:text-[#f7f1de] block">Drag or Click to Choose Files</span>
-                  <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] mt-1 block font-mono">Supports PNG, PDF, JPG, or ZIP deliverable assets</span>
-
-                  <input
-                    type="file"
-                    ref={rawFileInputRef}
-                    onChange={handleRawFilesUpload}
-                    multiple
-                    className="hidden"
-                  />
+                  <ImageIcon className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
+                  <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add Singles</span>
+                  <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">each image → product</span>
                 </div>
+                <div
+                  className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                  onClick={() => setFileInputRef.current?.click()}
+                >
+                  <Layers className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
+                  <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add a Set</span>
+                  <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">picked files → one product</span>
+                </div>
+              </div>
+              <input type="file" ref={rawFileInputRef} accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAddSingleProducts} />
+              <input type="file" ref={setFileInputRef} multiple className="hidden" onChange={handleAddSetProduct} />
 
-                {/* Display list of uploaded raw items */}
-                {uploadedRawFiles.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf]">Ready Assets for Processing ({uploadedRawFiles.length})</span>
-                      <Button type="button" size="xs" variant="ghost" onClick={clearUploadedRawFiles} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent">
-                        Discard All
-                      </Button>
-                    </div>
-
-                    <div className="max-h-24 overflow-y-auto border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded-lg p-2 bg-[#efe7d2] dark:bg-[#12110c] space-y-1">
-                      {uploadedRawFiles.map((file, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.12)] p-1.5 rounded px-2">
-                          <span className="text-[#15140f] dark:text-[#f7f1de] truncate font-medium max-w-[200px]" title={file.name}>{file.name}</span>
-                          <span className="text-[#8b8676] dark:text-[#a39e8f] uppercase font-bold text-[8px] tracking-wider font-mono">{(file.size / 1024).toFixed(1)} KB</span>
-                        </div>
-                      ))}
-                    </div>
+              {stagedProducts.length > 0 ? (
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf] font-bold">
+                      {"▪ STAGED PRODUCTS"} ({stagedProducts.length})
+                    </span>
+                    <Button type="button" size="xs" variant="ghost" onClick={clearStagedProducts} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
+                      Discard All
+                    </Button>
                   </div>
-                )}
 
-                <div className="pt-2 flex justify-end">
+                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                    {stagedProducts.map(product => {
+                      const isSelected = stagedSelection.includes(product.id);
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => toggleStagedSelect(product.id)}
+                          className={`flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${isSelected
+                            ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c] bg-[#ed6f5c]/5'
+                            : 'border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2]/40 dark:bg-[#12110c]/40 hover:border-[#ed6f5c]/40'
+                            }`}
+                          title={product.name}
+                        >
+                          {/* Collage thumbnail: single image or up-to-4 set grid */}
+                          <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c]">
+                            {product.images.length === 1 ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
+                                {product.images.slice(0, 4).map(img => (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img key={img.id} src={img.url} alt="" className="w-full h-full object-cover" />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10.5px] font-medium text-[#15140f] dark:text-[#f7f1de] block truncate">{product.name}</span>
+                            <span className={`text-[8px] font-mono font-bold uppercase tracking-wider ${product.kind === 'set' ? 'text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}`}>
+                              {product.kind === 'set' ? `Set · ${product.images.length} images` : 'Single'}
+                              {product.files.length > 0 ? ` · ${product.files.length} file${product.files.length === 1 ? '' : 's'}` : ''}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {product.kind === 'set' && product.images.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); ungroupStagedSet(product.id); }}
+                                className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
+                                title="Split back into singles"
+                              >
+                                <Layers2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removeStagedProduct(product.id); }}
+                              className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
+                              title="Remove from tray"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] font-mono leading-relaxed select-none">
+                    Tip: click cards to select, then merge them into one set.
+                  </p>
+
+                  {stagedSelection.length >= 2 && (
+                    <Button
+                      type="button"
+                      onClick={mergeSelectedIntoSet}
+                      variant="outline"
+                      className="w-full bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] uppercase tracking-wider h-9 rounded-full shadow-none cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5 mr-1.5" /> Merge {stagedSelection.length} into one set
+                    </Button>
+                  )}
+
                   <Button
-                    type="submit"
-                    disabled={uploadedRawFiles.length === 0 || isUploadingRaw}
-                    className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 px-6 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
+                    type="button"
+                    onClick={handleCreateStagedProducts}
+                    disabled={isUploadingRaw}
+                    className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
                   >
                     {isUploadingRaw ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                        Assembling Workspace...
+                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Creating Products...
                       </>
                     ) : (
                       <>
-                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Assemble Draft Listing
+                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Create {stagedProducts.length} Product{stagedProducts.length === 1 ? '' : 's'}
                       </>
                     )}
                   </Button>
                 </div>
-
-              </form>
-            </CardContent>
-
-          </Card>
-
-          {/* Module B: Directory Folder Catalog scanner */}
-          <Card className="lg:col-span-5 bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col justify-between">
-            <CardHeader className="pb-3 p-6 font-sans">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#5a5448] dark:text-[#ece4cf] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
-                  <FolderUp className="w-4 h-4" />
+              ) : (
+                <div className="text-center py-4">
+                  <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] font-mono block leading-relaxed select-none">
+                    Nothing staged yet. Example: add 3 sets + 10 singles<br />→ 13 products created in one click.
+                  </span>
                 </div>
-                <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Or Scan Directory Folders</CardTitle>
-              </div>
-              <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-1">
-                Select your structured product subfolders. Files inside are categorized as thumbnails vs digital printable deliverables automatically.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="h-full flex flex-col justify-center p-6 pt-0 font-sans">
-              <div
-                className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-8 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 cursor-pointer transition-colors text-center relative py-12"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FolderUp className="w-10 h-10 text-[#8b8676] dark:text-[#a39e8f] mx-auto mb-3" />
-                <h4 className="text-xs font-mono uppercase tracking-wider text-[#15140f] dark:text-[#f7f1de] mb-1 font-sans">Upload Catalog Folders</h4>
-                <p className="text-[10px] text-[#5a5448] dark:text-[#ece4cf] leading-relaxed max-w-[200px] mx-auto font-sans">
-                  Processes and syncs folders in one click to compile active listings.
-                </p>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  // @ts-ignore - directory attributes
-                  webkitdirectory="true"
-                  directory="true"
-                  multiple
-                  onChange={handleFolderSelect}
-                  className="hidden"
-                />
-              </div>
+              )}
             </CardContent>
 
-            <CardFooter className="py-4 border-t border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] bg-[#ece4cf]/30 dark:bg-[#22211b]/35 flex justify-center rounded-b-[18px]">
-              <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] font-mono tracking-wide flex items-center gap-1 select-none">
-                ✓ Syncs immediately with Cloud Firestore
-              </span>
-            </CardFooter>
           </Card>
 
-        </div>
-
-        {/* MockupGen Render Server connection settings */}
-        <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-4 font-sans">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* MockupGen Render Server connection settings */}
+          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-4 font-sans">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#5a5448] dark:text-[#ece4cf] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
                 <Camera className="w-4 h-4" />
@@ -3545,52 +4370,54 @@ export default function Home() {
               {mockupServerStatus === 'checking' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save & Test'}
             </Button>
           </div>
-        </Card>
-
-        {/* Global Statistics Portfolio Summary banner */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 font-sans">
-
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-5 flex items-center justify-between hover:translate-y-[-2px] transition-transform duration-200">
-            <div>
-              <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Scanned Portfolio</p>
-              <h3 className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de] mt-1">{listingsCohort.total} Products</h3>
-            </div>
-            <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#5a5448] dark:text-[#ece4cf]">
-              <FolderOpen className="w-4 h-4" />
-            </div>
           </Card>
 
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-5 flex items-center justify-between hover:translate-y-[-2px] transition-transform duration-200">
-            <div>
-              <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Active Pipeline</p>
-              <h3 className="text-lg font-serif font-medium text-[#ed6f5c] mt-1">{listingsCohort.activePipeline + listingsCohort.unprocessedIdle} Processing</h3>
-            </div>
-            <div className="w-8 h-8 bg-[#efe7d2] dark:bg-[#12110c] border border-[#ed6f5c]/20 rounded-lg flex items-center justify-center text-[#ed6f5c]">
-              <Cpu className="w-4 h-4" />
+          </div>
+
+          {/* ---- Production area ---- */}
+          <div className="lg:col-span-8 space-y-6">
+
+          {/* Compact portfolio statistics strip */}
+          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none px-5 py-3.5 font-sans">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#5a5448] dark:text-[#ece4cf] shrink-0">
+                  <FolderOpen className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{listingsCohort.total}</h3>
+                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Portfolio</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-[#efe7d2] dark:bg-[#12110c] border border-[#ed6f5c]/20 rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-serif font-medium text-[#ed6f5c] leading-none">{listingsCohort.activePipeline + listingsCohort.unprocessedIdle}</h3>
+                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Processing</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{listingsCohort.readyDrafts}</h3>
+                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Ready Drafts</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[#6e7448]/20 rounded-lg flex items-center justify-center text-[#6e7448] dark:text-[#9ea671] shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{listingsCohort.publishedHistory}</h3>
+                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Live on Etsy</p>
+                </div>
+              </div>
             </div>
           </Card>
-
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-5 flex items-center justify-between hover:translate-y-[-2px] transition-transform duration-200">
-            <div>
-              <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Ready to Launch</p>
-              <h3 className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de] mt-1">{listingsCohort.readyDrafts} Drafts</h3>
-            </div>
-            <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#ed6f5c]">
-              <Sparkles className="w-4 h-4" />
-            </div>
-          </Card>
-
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none p-5 flex items-center justify-between hover:translate-y-[-2px] transition-transform duration-200">
-            <div>
-              <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f]">Successful Listings</p>
-              <h3 className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de] mt-1">{listingsCohort.publishedHistory} Live</h3>
-            </div>
-            <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[#6e7448]/20 rounded-lg flex items-center justify-center text-[#6e7448] dark:text-[#9ea671] font-sans">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </Card>
-
-        </div>
 
         {/* Categories Tab and Database portfolio table list */}
         <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
@@ -3740,11 +4567,11 @@ export default function Home() {
                             {listingItem.status === 'idle' && (
                               <Button
                                 size="sm"
-                                onClick={() => runAutomatedAIPipeline(listingItem.id, listingItem.folderName, listingItem.productType || selectedProductType || 'png_graphics')}
+                                onClick={() => openStudio(listingItem)}
                                 className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
                               >
                                 <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
-                                <span>Compile Listing</span>
+                                <span>Open Studio</span>
                               </Button>
                             )}
 
@@ -3756,15 +4583,26 @@ export default function Home() {
                             )}
 
                             {['ready', 'published'].includes(listingItem.status) && (
-                              <Button
-                                size="sm"
-                                onClick={() => openPreviewPanel(listingItem)}
-                                className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
-                                variant="default"
-                              >
-                                {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
-                                <span>{listingItem.status === 'published' ? 'Review Listed' : 'Open Draft'}</span>
-                              </Button>
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openStudio(listingItem)}
+                                  className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                  title="Open in Mockup Studio"
+                                >
+                                  <Camera className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => openPreviewPanel(listingItem)}
+                                  className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
+                                  variant="default"
+                                >
+                                  {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
+                                  <span>{listingItem.status === 'published' ? 'Review Listed' : 'Open Draft'}</span>
+                                </Button>
+                              </>
                             )}
 
                             {/* Discard / Delete element */}
@@ -3791,6 +4629,13 @@ export default function Home() {
             )}
           </CardContent>
         </Card>
+
+          </div>
+
+        </div>
+
+          </>
+        )}
 
       </main>
 
