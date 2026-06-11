@@ -1695,6 +1695,32 @@ export default function Home() {
     toast.success(`Attached ${newImages.length} source image${newImages.length === 1 ? '' : 's'}.`);
   };
 
+  // Remove one source image from an open Studio session
+  const handleStudioRemoveImage = (listing: ListingMetadata, preview: UploadedPreview) => {
+    setLocalFilesMap(prev => {
+      const existing = prev[listing.folderName] || { images: [], files: [] };
+      const index = existing.images.findIndex(f => f.name === preview.label);
+      if (index === -1) return prev;
+      return {
+        ...prev,
+        [listing.folderName]: {
+          images: [...existing.images.slice(0, index), ...existing.images.slice(index + 1)],
+          files: existing.files
+        }
+      };
+    });
+    URL.revokeObjectURL(preview.image);
+    setStudioSourcePreviews(prev => prev.filter(p => p.id !== preview.id));
+    // Frame assignments pointing at the removed image would fail the render
+    setFrameAssignments(prev => {
+      const next: Record<number, string> = {};
+      for (const [frame, fileName] of Object.entries(prev)) {
+        if (fileName !== preview.label) next[Number(frame)] = fileName;
+      }
+      return next;
+    });
+  };
+
   const toggleTemplateSelection = (templateId: string) => {
     const next = selectedTemplateIds.includes(templateId)
       ? selectedTemplateIds.filter(id => id !== templateId)
@@ -3971,6 +3997,14 @@ export default function Home() {
                       <div key={preview.id} className="relative aspect-square rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] group" title={preview.label}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={preview.image} alt={preview.label} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                        <button
+                          type="button"
+                          onClick={() => handleStudioRemoveImage(activeStudioListing, preview)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#ed6f5c] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ece4cf] cursor-pointer"
+                          title={`Remove ${preview.label}`}
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
