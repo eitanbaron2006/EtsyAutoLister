@@ -627,6 +627,10 @@ export default function Home() {
   const [mockupServerStatus, setMockupServerStatus] = useState<'unknown' | 'checking' | 'online' | 'offline'>('checking');
   // Listings activated in this browser session (created here or continued from the hub)
   const [sessionListingIds, setSessionListingIds] = useState<string[]>([]);
+  // Small per-listing source thumbnails (up to 4 object URLs per folder)
+  const [sourceThumbsMap, setSourceThumbsMap] = useState<Record<string, string[]>>({});
+  // Floating enlarged preview shown while hovering a product thumbnail
+  const [hoverThumb, setHoverThumb] = useState<{ urls: string[]; label: string; x: number; y: number } | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Mockup Studio states (guided per-listing creation workspace)
@@ -726,6 +730,11 @@ export default function Home() {
         if (cancelled) return;
         // In-memory entries from this session always win over restored ones
         setLocalFilesMap(prev => ({ ...sources, ...prev }));
+        const restoredThumbs: Record<string, string[]> = {};
+        for (const [folderName, bundle] of Object.entries(sources)) {
+          restoredThumbs[folderName] = bundle.images.slice(0, 4).map(file => URL.createObjectURL(file));
+        }
+        setSourceThumbsMap(prev => ({ ...restoredThumbs, ...prev }));
         setMockupResultsMap(prev => {
           const restored: Record<string, GeneratedMockup[]> = {};
           for (const [folderName, mockups] of Object.entries(storedMockups)) {
@@ -919,6 +928,11 @@ export default function Home() {
         setStagedSelection([]);
         setSessionListingIds([]);
         setStudioPrefsMap({});
+        setSourceThumbsMap(prev => {
+          Object.values(prev).flat().forEach(url => URL.revokeObjectURL(url));
+          return {};
+        });
+        setHoverThumb(null);
         setCurrentView('projects');
       }
     });
@@ -1269,6 +1283,7 @@ export default function Home() {
       }
 
       Object.keys(batchMap).forEach(name => pendingPersistRef.current.sources.add(name));
+      Object.entries(batchMap).forEach(([name, bundle]) => updateSourceThumbs(name, bundle.images));
       setLocalFilesMap(prev => ({ ...prev, ...batchMap }));
       setSessionListingIds(prev => [...prev, ...createdIds]);
       toast.success(`Project "${projectName}" created with ${created} product${created === 1 ? '' : 's'} — compile them all in one click.`);
@@ -1331,6 +1346,13 @@ export default function Home() {
       };
       img.src = objectUrl;
     });
+  };
+
+  // Refresh the cached source thumbnails for one listing folder
+  const updateSourceThumbs = (folderName: string, images: File[]) => {
+    (sourceThumbsMap[folderName] || []).forEach(url => URL.revokeObjectURL(url));
+    const urls = images.slice(0, 4).map(file => URL.createObjectURL(file));
+    setSourceThumbsMap(prev => ({ ...prev, [folderName]: urls }));
   };
 
   // Static info images attached to every product of a type
@@ -1883,6 +1905,9 @@ export default function Home() {
       return;
     }
     pendingPersistRef.current.sources.add(listing.folderName);
+    const existingEntry = localFilesMap[listing.folderName] || { images: [], files: [] };
+    const combinedImages = [...existingEntry.images, ...newImages];
+    updateSourceThumbs(listing.folderName, combinedImages);
     setLocalFilesMap(prev => {
       const existing = prev[listing.folderName] || { images: [], files: [] };
       return {
@@ -1890,15 +1915,12 @@ export default function Home() {
         [listing.folderName]: { images: [...existing.images, ...newImages], files: existing.files }
       };
     });
-    const stamp = Date.now();
-    setStudioSourcePreviews(prev => [
-      ...prev,
-      ...newImages.map((file, idx) => ({
-        id: `upload-${stamp}-${idx}`,
-        label: file.name,
-        image: URL.createObjectURL(file)
-      }))
-    ]);
+    const appendedPreviews = newImages.map((file, idx) => ({
+      id: `upload-${file.lastModified}-${idx}-${file.name}`,
+      label: file.name,
+      image: URL.createObjectURL(file)
+    }));
+    setStudioSourcePreviews(prev => [...prev, ...appendedPreviews]);
     if (studioImageInputRef.current) studioImageInputRef.current.value = '';
     toast.success(`Attached ${newImages.length} source image${newImages.length === 1 ? '' : 's'}.`);
   };
@@ -1906,6 +1928,14 @@ export default function Home() {
   // Remove one source image from an open Studio session
   const handleStudioRemoveImage = (listing: ListingMetadata, preview: UploadedPreview) => {
     pendingPersistRef.current.sources.add(listing.folderName);
+    const existingEntry = localFilesMap[listing.folderName] || { images: [], files: [] };
+    const removeIndex = existingEntry.images.findIndex(f => f.name === preview.label);
+    if (removeIndex !== -1) {
+      updateSourceThumbs(listing.folderName, [
+        ...existingEntry.images.slice(0, removeIndex),
+        ...existingEntry.images.slice(removeIndex + 1)
+      ]);
+    }
     setLocalFilesMap(prev => {
       const existing = prev[listing.folderName] || { images: [], files: [] };
       const index = existing.images.findIndex(f => f.name === preview.label);
@@ -2164,6 +2194,12 @@ export default function Home() {
     try {
       await deleteDoc(doc(db, docPath));
       deleteListingAssets(user.uid, item.folderName).catch(() => { });
+      setSourceThumbsMap(prev => {
+        (prev[item.folderName] || []).forEach(url => URL.revokeObjectURL(url));
+        const next = { ...prev };
+        delete next[item.folderName];
+        return next;
+      });
       toast.success("Listing draft discarded from database.");
     } catch (err: any) {
       toast.error("Discard failed: " + err.message);
@@ -2220,6 +2256,14 @@ export default function Home() {
       }
     }
     setSessionListingIds(prev => prev.filter(id => !items.some(item => item.id === id)));
+    setSourceThumbsMap(prev => {
+      const next = { ...prev };
+      for (const item of items) {
+        (next[item.folderName] || []).forEach(url => URL.revokeObjectURL(url));
+        delete next[item.folderName];
+      }
+      return next;
+    });
     toast.success(`Project discarded (${items.length} listing${items.length === 1 ? '' : 's'}).`);
   };
 
@@ -4753,7 +4797,16 @@ export default function Home() {
                           title={product.name}
                         >
                           {/* Collage thumbnail: single image or up-to-4 set grid */}
-                          <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c]">
+                          <div
+                            className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] cursor-zoom-in"
+                            onMouseEnter={(e) => setHoverThumb({
+                              urls: product.images.slice(0, 4).map(img => img.url),
+                              label: product.name,
+                              x: Math.min(e.clientX, window.innerWidth - 320),
+                              y: e.clientY
+                            })}
+                            onMouseLeave={() => setHoverThumb(null)}
+                          >
                             {product.images.length === 1 ? (
                               /* eslint-disable-next-line @next/next/no-img-element */
                               <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
@@ -5012,13 +5065,44 @@ export default function Home() {
                     return (
                       <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] bg-transparent hover:bg-[#ece4cf]/30 transition-colors">
 
-                        {/* Title of Listing / Folder name */}
+                        {/* Title of Listing / Folder name + source thumbnail */}
                         <TableCell className="pl-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="font-serif font-medium text-[#15140f] text-sm leading-tight block max-w-[220px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
-                            <span className="text-[10px] text-[#5a5448] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
-                              <FileCode className="w-3.5 h-3.5 text-[#8b8676]" /> {activeSessionCount}
-                            </span>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] cursor-zoom-in"
+                              onMouseEnter={(e) => {
+                                const urls = sourceThumbsMap[listingItem.folderName] || [];
+                                if (urls.length > 0) {
+                                  setHoverThumb({ urls, label: listingItem.folderName, x: Math.min(e.clientX, window.innerWidth - 320), y: e.clientY });
+                                }
+                              }}
+                              onMouseLeave={() => setHoverThumb(null)}
+                            >
+                              {(() => {
+                                const urls = sourceThumbsMap[listingItem.folderName] || [];
+                                if (urls.length === 0) {
+                                  return <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#8b8676]" /></div>;
+                                }
+                                if (urls.length === 1) {
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  return <img src={urls[0]} alt={listingItem.folderName} className="w-full h-full object-cover" />;
+                                }
+                                return (
+                                  <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
+                                    {urls.slice(0, 4).map((url, idx) => (
+                                      /* eslint-disable-next-line @next/next/no-img-element */
+                                      <img key={idx} src={url} alt="" className="w-full h-full object-cover" />
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-serif font-medium text-[#15140f] text-sm leading-tight block max-w-[180px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
+                              <span className="text-[10px] text-[#5a5448] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
+                                <FileCode className="w-3.5 h-3.5 text-[#8b8676]" /> {activeSessionCount}
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
 
@@ -5167,6 +5251,29 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* Floating enlarged product thumbnail while hovering */}
+      {hoverThumb && (
+        <div
+          className="fixed z-[120] pointer-events-none"
+          style={{ left: hoverThumb.x + 18, top: Math.max(12, hoverThumb.y - 150) }}
+        >
+          <div className="w-[280px] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.2)] bg-[#f7f1de] shadow-lg p-1.5">
+            {hoverThumb.urls.length === 1 ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={hoverThumb.urls[0]} alt={hoverThumb.label} className="w-full h-auto max-h-[300px] object-contain rounded-lg bg-[#efe7d2]" />
+            ) : (
+              <div className="grid grid-cols-2 gap-1">
+                {hoverThumb.urls.slice(0, 4).map((url, idx) => (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img key={idx} src={url} alt="" className="w-full aspect-square object-cover rounded-md bg-[#efe7d2]" />
+                ))}
+              </div>
+            )}
+            <span className="block text-[9px] font-mono text-[#5a5448] px-1 pt-1.5 truncate select-none">{hoverThumb.label}</span>
+          </div>
+        </div>
+      )}
 
       {/* Review Dialog Structure (Draft metadata + publish logic) */}
       <Dialog
