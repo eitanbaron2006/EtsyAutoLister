@@ -5396,8 +5396,9 @@ export default function Home() {
               <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_460px] gap-6 flex-1 min-h-0 overflow-hidden">
 
                 {/* COLUMN 1: Visual Mockup & ZIP Package (Width: 240px) */}
-                <section className="space-y-3 flex flex-col justify-between h-full overflow-y-auto pr-1">
-                  <div className="space-y-2.5">
+                <section className="flex flex-col h-full min-h-0 gap-3">
+                  {/* Scrollable gallery — the package card below stays pinned */}
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2.5">
                     <div className="flex items-end justify-between">
                       <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Listing Photos</span>
                       <span className="flex items-center gap-2">
@@ -5483,7 +5484,7 @@ export default function Home() {
                     })()}
                   </div>
 
-                  <Card className="bg-[#efe7d2]/55 p-2.5 border border-[rgba(21,20,15,0.12)] rounded-xl shadow-none space-y-2">
+                  <Card className="shrink-0 bg-[#efe7d2]/55 p-2.5 border border-[rgba(21,20,15,0.12)] rounded-xl shadow-none space-y-2">
                     <div>
                       <h4 className="text-[11px] font-serif font-medium text-[#15140f] leading-none">Compiled Etsy Package</h4>
                       <p className="text-[9px] text-[#5a5448] mt-0.5 leading-tight">
