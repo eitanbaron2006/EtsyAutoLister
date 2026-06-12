@@ -670,6 +670,8 @@ export default function Home() {
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
   const [isPackingZip, setIsPackingZip] = useState(false);
   const [isGalleryInspectorOpen, setIsGalleryInspectorOpen] = useState(false);
+  // Mockup viewer dialog opened from the table's Live Mockup Thumb column
+  const [mockupViewerListing, setMockupViewerListing] = useState<ListingMetadata | null>(null);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -5224,15 +5226,25 @@ export default function Home() {
 
                                 {/* Inline visual representation thumbnail mock indicator */}
                                 <TableCell className="align-middle">
-                                  {listingItem.mockupImage ? (
-                                    <div className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group">
+                                  {(listingItem.mockupImage || (mockupResultsMap[listingItem.folderName] || []).length > 0) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setMockupViewerListing(listingItem)}
+                                      className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group cursor-zoom-in"
+                                      title="View all generated mockups"
+                                    >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img
-                                        src={listingItem.mockupImage}
+                                        src={(mockupResultsMap[listingItem.folderName] || [])[0]?.url || listingItem.mockupImage}
                                         alt="mockup thumb"
                                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                       />
-                                    </div>
+                                      {(mockupResultsMap[listingItem.folderName] || []).length > 1 && (
+                                        <span className="absolute bottom-0 right-0 bg-[#ed6f5c] text-white text-[8px] font-mono font-bold px-1 rounded-tl select-none">
+                                          {(mockupResultsMap[listingItem.folderName] || []).length}
+                                        </span>
+                                      )}
+                                    </button>
                                   ) : (
                                     <span className="text-[#8b8676] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
                                   )}
@@ -5956,6 +5968,108 @@ export default function Home() {
           </div>
 
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Mockup viewer — all renders for one listing, opened from the table thumb */}
+      <Dialog open={!!mockupViewerListing} onOpenChange={(open) => { if (!open) setMockupViewerListing(null); }}>
+        <DialogContent className="!flex !flex-col !gap-0 w-[calc(100vw-2rem)] lg:!max-w-[1100px] h-[88vh] overflow-hidden sm:rounded-[24px] p-0 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
+          {mockupViewerListing && (() => {
+            const liveListing = dbListings.find(l => l.id === mockupViewerListing.id) || mockupViewerListing;
+            const viewerMockups = mockupResultsMap[mockupViewerListing.folderName] || [];
+            const isRenderingNow = isRenderingMockups ||
+              ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(liveListing.status);
+            return (
+              <>
+                <DialogHeader className="shrink-0 px-6 sm:px-8 pt-5 pb-4 border-b border-[rgba(21,20,15,0.12)]">
+                  <div className="flex items-start justify-between gap-4 pr-9">
+                    <div>
+                      <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Generated Mockups</span>
+                      <DialogTitle className="text-xl font-serif font-medium leading-tight text-[#15140f] max-w-[560px] truncate" title={liveListing.folderName}>
+                        {liveListing.folderName}
+                      </DialogTitle>
+                      <DialogDescription className="text-[#5a5448] text-xs font-sans">
+                        {viewerMockups.length} render{viewerMockups.length === 1 ? '' : 's'} in this session · click a card to download it
+                      </DialogDescription>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setMockupViewerListing(null); openStudio(liveListing); }}
+                      className="font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#efe7d2] hover:bg-[#ece4cf] shadow-none cursor-pointer shrink-0"
+                    >
+                      <Camera className="w-3.5 h-3.5 mr-1.5 text-[#ed6f5c]" /> Open Studio
+                    </Button>
+                  </div>
+                </DialogHeader>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-4">
+                  {isRenderingNow && (
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-xs">
+                      <Loader2 className="w-4 h-4 animate-spin text-[#ed6f5c] shrink-0" />
+                      The pipeline is running for this product — fresh mockups will appear here when the render finishes.
+                    </div>
+                  )}
+
+                  {viewerMockups.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {viewerMockups.map(mockup => (
+                        <button
+                          type="button"
+                          key={mockup.id}
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = mockup.url;
+                            link.download = mockup.file.name;
+                            link.click();
+                            toast.success(`${mockup.file.name} downloaded!`);
+                          }}
+                          className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-pointer group"
+                          title="Download this mockup"
+                        >
+                          <div className="aspect-square flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={mockup.url} alt={mockup.file.name} className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.02]" />
+                            <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Download className="w-3 h-3" />
+                            </span>
+                          </div>
+                          <div className="px-3 py-2 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
+                            <span className="text-[10px] font-medium text-[#15140f] block truncate" title={studioTemplateName(mockup.templateId)}>
+                              {studioTemplateName(mockup.templateId)}
+                            </span>
+                            <span className="text-[8.5px] font-mono text-[#8b8676] block truncate">
+                              {mockup.sourceFileNames.length > 1
+                                ? `SET · ${mockup.sourceFileNames.length} artworks`
+                                : mockup.sourceFileNames[0] || ''}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : liveListing.mockupImage ? (
+                    <div className="text-center space-y-3 py-6">
+                      <span className="text-[10px] text-[#8b8676] font-mono block leading-relaxed max-w-md mx-auto">
+                        Full renders from the previous session are not in browser memory — this is the saved listing cover:
+                      </span>
+                      <div className="max-w-[320px] mx-auto rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={liveListing.mockupImage} alt="Saved listing cover" className="w-full h-auto object-contain" />
+                      </div>
+                      <span className="text-[10px] text-[#5a5448] font-medium block">
+                        Open the Studio to re-attach sources and render fresh mockups.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-center py-16">
+                      <Camera className="w-10 h-10 text-[#8b8676] mx-auto opacity-60 mb-3" />
+                      <p className="text-xs text-[#5a5448]">No mockups rendered yet for this product.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
