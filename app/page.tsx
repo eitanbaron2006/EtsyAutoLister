@@ -979,15 +979,17 @@ export default function Home() {
     });
   };
 
-  // Template catalog for client-side planning (cached in studio state)
+  // Template catalog for client-side planning. Always fetched fresh — the
+  // admin re-categorizes and adds templates on the render server, and a
+  // session-long cache made the planner use stale MAIN/orientation data.
   const getTemplateCatalog = async (): Promise<MockupTemplateSummary[]> => {
-    if (studioTemplates.length > 0) return studioTemplates;
     try {
       const templates = await listMockupTemplates();
       setStudioTemplates(templates);
       return templates;
     } catch {
-      return [];
+      // Server unreachable — fall back to whatever the session already has
+      return studioTemplates;
     }
   };
 
@@ -1094,7 +1096,8 @@ export default function Home() {
         const leadOrientation = planOrientations[0];
         const wantedCategory = leadOrientation === 'landscape' ? 'main-horizontal'
           : leadOrientation === 'portrait' ? 'main-vertical' : 'main-square';
-        const pool = catalog.filter(t => t.product_type === wantedCategory);
+        // The cover is always a single-frame scene of the lead artwork
+        const pool = catalog.filter(t => t.product_type === wantedCategory && (t.frame_count ?? 1) === 1);
         if (pool.length > 0) {
           // Seeded by the artwork file so bulk products get varied covers
           // while staying deterministic per product
@@ -1123,8 +1126,12 @@ export default function Home() {
             const index = cursor % planArtworks.length;
             const field = `artwork_${index}`;
             const orientation = planOrientations[index];
-            // Strict orientation match only — no "any template" fallback
-            const pick = fillCatalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation);
+            // Strict match: same orientation AND a single frame — multi-frame
+            // set scenes must never receive one repeated artwork
+            const pick = fillCatalog.find(t =>
+              !usedTemplates.has(t.template_id) &&
+              t.orientation === orientation &&
+              (t.frame_count ?? 1) === 1);
             if (!pick) {
               consecutiveMisses++;
               if (consecutiveMisses >= planArtworks.length) break; // no artwork has matches left
@@ -2539,7 +2546,12 @@ export default function Home() {
                               </div>
                               <div className="px-2 py-1.5 bg-[#f7f1de]">
                                 <span className="text-[9px] font-medium text-[#15140f] block truncate">{template.name}</span>
-                                <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676]">{template.orientation}</span>
+                                <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676]">
+                                  {template.orientation}
+                                  {(template.frame_count ?? 1) > 1 && (
+                                    <span className="text-[#ed6f5c] font-bold"> · {template.frame_count} frames</span>
+                                  )}
+                                </span>
                               </div>
                               {isSelected && (
                                 <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#ed6f5c] text-white flex items-center justify-center shadow-sm">
@@ -3023,28 +3035,15 @@ export default function Home() {
                 {/* Categories Tab and Database portfolio table list */}
                 <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
                   <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] p-6 font-sans">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-base font-serif font-medium text-[#15140f]">Active Session Listings</CardTitle>
-                        <CardDescription className="text-[#5a5448] text-xs mt-1 leading-relaxed font-sans">
+                    <div className="flex flex-row items-center justify-between gap-3 flex-nowrap">
+                      <div className="min-w-0 shrink">
+                        <CardTitle className="text-base font-serif font-medium text-[#15140f] truncate">Active Session Listings</CardTitle>
+                        <CardDescription className="text-[#5a5448] text-xs mt-1 leading-relaxed font-sans truncate">
                           Products you activated in this session. The full archive lives in the Projects Hub.
                         </CardDescription>
                       </div>
 
-                      <div className="flex items-center gap-3 self-start sm:self-center flex-wrap">
-                        {/* Bulk compile — the primary production action */}
-                        <Button
-                          onClick={runAllIdleListings}
-                          disabled={!!bulkProgress || isRunningAutopilot || sessionCohort.unprocessedIdle === 0}
-                          className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs h-9 flex items-center shadow-none font-serif font-medium px-5 rounded-full cursor-pointer transition-colors"
-                        >
-                          {bulkProgress ? (
-                            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Compiling {bulkProgress.done}/{bulkProgress.total}...</>
-                          ) : (
-                            <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Compile All ({sessionCohort.unprocessedIdle})</>
-                          )}
-                        </Button>
-
+                      <div className="flex items-center gap-3 shrink-0">
                         {/* Status Tabs Category Selection */}
                         <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] overflow-x-auto uppercase tracking-wider">
                           <button
@@ -3073,6 +3072,19 @@ export default function Home() {
                             Live ({sessionCohort.publishedHistory})
                           </button>
                         </div>
+
+                        {/* Bulk compile — the primary action, rightmost */}
+                        <Button
+                          onClick={runAllIdleListings}
+                          disabled={!!bulkProgress || isRunningAutopilot || sessionCohort.unprocessedIdle === 0}
+                          className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs h-9 flex items-center shadow-none font-serif font-medium px-5 rounded-full cursor-pointer transition-colors shrink-0"
+                        >
+                          {bulkProgress ? (
+                            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Compiling {bulkProgress.done}/{bulkProgress.total}...</>
+                          ) : (
+                            <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Compile All ({sessionCohort.unprocessedIdle})</>
+                          )}
+                        </Button>
                       </div>
 
                     </div>

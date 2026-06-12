@@ -91,25 +91,26 @@ export function ListingReviewDialog({
 
                 {/* COLUMN 1: Visual Mockup & ZIP Package (Width: 240px) */}
                 <section className="flex flex-col h-full min-h-0 gap-3">
+                  {/* Pinned header — never scrolls with the gallery */}
+                  <div className="shrink-0 flex items-end justify-between">
+                    <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Listing Photos</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-[10px] text-[#8b8676] font-mono">{sourcePreviewImages.length} Image{sourcePreviewImages.length === 1 ? '' : 's'}</span>
+                      {sourcePreviewImages.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsGalleryInspectorOpen(true)}
+                          className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                          title="Inspect every photo in large view"
+                        >
+                          <Grid className="w-2.5 h-2.5" /> Inspect
+                        </button>
+                      )}
+                    </span>
+                  </div>
+
                   {/* Scrollable gallery — the package card below stays pinned */}
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2.5">
-                    <div className="flex items-end justify-between">
-                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Listing Photos</span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-[10px] text-[#8b8676] font-mono">{sourcePreviewImages.length} Image{sourcePreviewImages.length === 1 ? '' : 's'}</span>
-                        {sourcePreviewImages.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setIsGalleryInspectorOpen(true)}
-                            className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline uppercase tracking-wider cursor-pointer flex items-center gap-1"
-                            title="Inspect every photo in large view"
-                          >
-                            <Grid className="w-2.5 h-2.5" /> Inspect
-                          </button>
-                        )}
-                      </span>
-                    </div>
-
                     {selectedPreview ? (
                       <button
                         type="button"

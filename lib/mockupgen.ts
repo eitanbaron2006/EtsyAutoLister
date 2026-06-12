@@ -50,6 +50,7 @@ export interface MockupTemplateSummary {
   supported_modes: string[];
   orientation: MockupOrientation;
   product_type: string;
+  frame_count: number; // artwork slots: 1 = classic, >1 = multi-frame set scene
 }
 
 export interface MockupTemplateFrame {
