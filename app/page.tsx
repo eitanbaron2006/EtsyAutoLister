@@ -4858,7 +4858,7 @@ export default function Home() {
 
                             {/* Active textual walkthrough updates */}
                             {listingItem.pipelineStepText && (
-                              <span className="text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px]">
+                              <span className="block text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
                                 {listingItem.pipelineStepText}
                               </span>
                             )}
@@ -4888,15 +4888,6 @@ export default function Home() {
                             {listingItem.status === 'idle' && (
                               <>
                                 <Button
-                                  size="sm"
-                                  onClick={() => runAutomatedAIPipeline(listingItem)}
-                                  disabled={!!bulkProgress || isRunningAutopilot || !localFilesMap[listingItem.folderName]?.images.length}
-                                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
-                                >
-                                  <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
-                                  <span>Run</span>
-                                </Button>
-                                <Button
                                   size="icon"
                                   variant="ghost"
                                   onClick={() => openStudio(listingItem)}
@@ -4904,6 +4895,15 @@ export default function Home() {
                                   title="Open in Mockup Studio"
                                 >
                                   <Camera className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => runAutomatedAIPipeline(listingItem)}
+                                  disabled={!!bulkProgress || isRunningAutopilot || !localFilesMap[listingItem.folderName]?.images.length}
+                                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
+                                >
+                                  <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
+                                  <span>Run</span>
                                 </Button>
                               </>
                             )}
