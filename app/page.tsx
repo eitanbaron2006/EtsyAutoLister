@@ -4070,6 +4070,16 @@ export default function Home() {
             <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-wider text-[#8b8676]">
               <span>Filed under <b className="text-[#ed6f5c]">Etsy · Automation</b></span>
               <span>Production Mode · Secure Sync</span>
+              <span className="inline-flex items-center gap-1.5" title="MockupGen render server status">
+                <span className={`w-1.5 h-1.5 rounded-full ${mockupServerStatus === 'online' ? 'bg-[#6e7448]' :
+                  mockupServerStatus === 'offline' ? 'bg-[#ed6f5c]' :
+                    'bg-[#8b8676] animate-pulse'
+                  }`} />
+                <span className={mockupServerStatus === 'online' ? 'text-[#6e7448]' :
+                  mockupServerStatus === 'offline' ? 'text-[#ed6f5c]' : 'text-[#8b8676]'}>
+                  Mockup Engine · {mockupServerStatus === 'online' ? 'Connected' : mockupServerStatus === 'offline' ? 'Offline' : 'Checking'}
+                </span>
+              </span>
             </span>
             <span className="right">
               <span className="inline-flex items-center text-[10px] font-mono tracking-wider"><span className="pulse"></span>Live · v0.3.0</span>
@@ -4935,30 +4945,6 @@ export default function Home() {
               )}
             </CardContent>
 
-          </Card>
-
-          {/* Mockup renderer status — configuration is administrator-only (env) */}
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none px-4 py-3 font-sans">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#5a5448] dark:text-[#ece4cf] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shrink-0">
-                  <Camera className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-serif font-medium text-[#15140f] dark:text-[#f7f1de] truncate">Mockup Render Engine</span>
-              </div>
-              <span className="text-[9px] font-mono uppercase tracking-wider flex items-center gap-1.5 select-none shrink-0">
-                <span className={`w-1.5 h-1.5 rounded-full ${mockupServerStatus === 'online' ? 'bg-[#6e7448] dark:bg-[#9ea671]' :
-                  mockupServerStatus === 'offline' ? 'bg-[#ed6f5c]' :
-                    'bg-[#8b8676] animate-pulse'
-                  }`} />
-                <span className={mockupServerStatus === 'online' ? 'text-[#6e7448] dark:text-[#9ea671]' :
-                  mockupServerStatus === 'offline' ? 'text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}>
-                  {mockupServerStatus === 'online' ? 'Connected' :
-                    mockupServerStatus === 'offline' ? 'Offline' :
-                      'Checking...'}
-                </span>
-              </span>
-            </div>
           </Card>
 
           </div>
