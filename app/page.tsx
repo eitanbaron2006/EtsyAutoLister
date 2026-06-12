@@ -70,6 +70,7 @@ import {
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
+import JSZip from 'jszip';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
 import {
   deleteListingAssets,
@@ -667,6 +668,7 @@ export default function Home() {
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
+  const [isPackingZip, setIsPackingZip] = useState(false);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -1386,6 +1388,60 @@ export default function Home() {
       return extras;
     } catch {
       return [];
+    }
+  };
+
+  // Build and download the full product package as a real ZIP:
+  // mockups, per-type info images, source images, deliverables + listing copy
+  const handleDownloadZipPackage = async (product: ProductData) => {
+    setIsPackingZip(true);
+    try {
+      const sessionFiles = localFilesMap[product.folderName] || { images: [], files: [] };
+      const mockups = mockupResultsMap[product.folderName] || [];
+      const extras = await fetchListingExtras(product.productType);
+
+      if (mockups.length === 0 && extras.length === 0 && sessionFiles.images.length === 0 && sessionFiles.files.length === 0) {
+        toast.error('Nothing to pack — no mockups or files are loaded for this product in the browser.');
+        return;
+      }
+
+      const zip = new JSZip();
+      if (mockups.length > 0) {
+        const dir = zip.folder('mockups');
+        mockups.forEach(mockup => dir?.file(mockup.file.name, mockup.file));
+      }
+      if (extras.length > 0) {
+        const dir = zip.folder('info-images');
+        extras.forEach(extra => dir?.file(extra.file.name, extra.file));
+      }
+      if (sessionFiles.images.length > 0) {
+        const dir = zip.folder('source-images');
+        sessionFiles.images.forEach(file => dir?.file(file.name, file));
+      }
+      if (sessionFiles.files.length > 0) {
+        const dir = zip.folder('deliverables');
+        sessionFiles.files.forEach(file => dir?.file(file.name, file));
+      }
+      zip.file('listing.txt', [
+        `TITLE:\n${product.title || ''}`,
+        `DESCRIPTION:\n${product.description || ''}`,
+        `TAGS:\n${(product.tags || []).join(', ')}`,
+        `PRICE: ${product.price ?? ''}`
+      ].join('\n\n'));
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const zipName = `${product.folderName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase()}_etsy_package.zip`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = zipName;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${zipName} downloaded (${mockups.length} mockups · ${extras.length} info · ${sessionFiles.images.length} sources · ${sessionFiles.files.length} deliverables).`);
+    } catch (err: any) {
+      toast.error('ZIP packaging failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsPackingZip(false);
     }
   };
 
@@ -5408,14 +5464,17 @@ export default function Home() {
                         <Download className="w-3 h-3 mr-1 text-[#ed6f5c]" /> Download Selected
                       </Button>
                       <Button
-                        onClick={() => {
-                          toast.success(`Successfully saved client package zip: ${activeProduct.folderName.toLowerCase()}_etsy_package.zip`);
-                        }}
+                        onClick={() => handleDownloadZipPackage(activeProduct)}
+                        disabled={isPackingZip}
                         size="xs"
                         className="w-full bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[9px] py-1.5 rounded-md uppercase tracking-wider cursor-pointer"
                         variant="outline"
                       >
-                        <FileCode className="w-3 h-3 mr-1" /> Get ZIP Package
+                        {isPackingZip ? (
+                          <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Packing...</>
+                        ) : (
+                          <><FileCode className="w-3 h-3 mr-1" /> Get ZIP Package</>
+                        )}
                       </Button>
                     </div>
                   </Card>
