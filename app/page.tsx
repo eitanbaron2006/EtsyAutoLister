@@ -3879,7 +3879,7 @@ export default function Home() {
                                       });
                                       if (items.length > 0) setLightbox({ items, index: 0 });
                                     }}
-                                    className={`relative w-12 h-9 border rounded overflow-hidden shadow-none bg-transparent group cursor-zoom-in ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}
+                                    className={`relative w-12 h-12 border rounded overflow-hidden shadow-none bg-transparent group cursor-zoom-in ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}
                                     title="View the project's mockups fullscreen"
                                   >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -5369,7 +5369,7 @@ export default function Home() {
                                     <button
                                       type="button"
                                       onClick={() => setMockupViewerListing(listingItem)}
-                                      className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group cursor-zoom-in"
+                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group cursor-zoom-in"
                                       title="View all generated mockups"
                                     >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
