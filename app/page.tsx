@@ -669,6 +669,7 @@ export default function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [descTab, setDescTab] = useState<'edit' | 'preview'>('preview');
   const [isPackingZip, setIsPackingZip] = useState(false);
+  const [isGalleryInspectorOpen, setIsGalleryInspectorOpen] = useState(false);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -5357,6 +5358,7 @@ export default function Home() {
         onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) {
+            setIsGalleryInspectorOpen(false);
             setSourcePreviewImages([]);
             setSelectedPreviewIndex(0);
           }
@@ -5386,8 +5388,20 @@ export default function Home() {
                 <section className="space-y-3 flex flex-col justify-between h-full overflow-y-auto pr-1">
                   <div className="space-y-2.5">
                     <div className="flex items-end justify-between">
-                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Uploaded Images</span>
-                      <span className="text-[10px] text-[#8b8676] font-mono">{sourcePreviewImages.length} Image{sourcePreviewImages.length === 1 ? '' : 's'}</span>
+                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-[0.18em] font-bold">Listing Photos</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-[10px] text-[#8b8676] font-mono">{sourcePreviewImages.length} Image{sourcePreviewImages.length === 1 ? '' : 's'}</span>
+                        {sourcePreviewImages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsGalleryInspectorOpen(true)}
+                            className="text-[9px] font-mono font-bold text-[#ed6f5c] hover:underline uppercase tracking-wider cursor-pointer flex items-center gap-1"
+                            title="Inspect every photo in large view"
+                          >
+                            <Grid className="w-2.5 h-2.5" /> Inspect
+                          </button>
+                        )}
+                      </span>
                     </div>
 
                     {selectedPreview ? (
@@ -5396,7 +5410,7 @@ export default function Home() {
                         <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
                           <span className="bg-[#ed6f5c] text-white text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold">
-                            {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : selectedPreview.id.startsWith('extra-') ? 'Info' : 'Uploaded'}
+                            {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : selectedPreview.id.startsWith('extra-') ? 'Info' : 'Product Image'}
                           </span>
                         </div>
                       </div>
@@ -5416,26 +5430,46 @@ export default function Home() {
                       </div>
                     )}
 
-                    {sourcePreviewImages.length > 0 && (
-                      <div className="grid grid-cols-4 gap-1 w-full max-w-[220px] mx-auto">
-                        {sourcePreviewImages.map((preview, index) => (
-                          <button
-                            type="button"
-                            key={preview.id}
-                            onClick={() => setSelectedPreviewIndex(index)}
-                            className={`overflow-hidden rounded-md border p-0.5 text-left transition-colors cursor-pointer ${selectedPreview?.id === preview.id
-                              ? 'border-[#ed6f5c] bg-[#ed6f5c]/5'
-                              : 'border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/40 hover:border-[#ed6f5c]/45'
-                              }`}
-                          >
-                            <div className="aspect-[4/3] rounded overflow-hidden bg-[#ece4cf]">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={preview.image} alt="" className="w-full h-full object-cover" />
+                    {sourcePreviewImages.length > 0 && (() => {
+                      // Grouped thumbnails: what sells (mockups), what informs
+                      // (info images), and what IS the product (sources)
+                      const indexed = sourcePreviewImages.map((preview, index) => ({ preview, index }));
+                      const groups = [
+                        { label: 'Mockups', items: indexed.filter(e => e.preview.id.startsWith('mockup-')) },
+                        { label: 'Info Images', items: indexed.filter(e => e.preview.id.startsWith('extra-')) },
+                        { label: 'Product Images', items: indexed.filter(e => !e.preview.id.startsWith('mockup-') && !e.preview.id.startsWith('extra-')) }
+                      ];
+                      return (
+                        <div className="space-y-3 w-full max-w-[220px] mx-auto">
+                          {groups.filter(group => group.items.length > 0).map(group => (
+                            <div key={group.label} className="space-y-1">
+                              <span className="text-[8px] font-mono uppercase tracking-widest text-[#8b8676] font-bold block select-none border-b border-[rgba(21,20,15,0.08)] pb-0.5">
+                                {"▪ "}{group.label} ({group.items.length})
+                              </span>
+                              <div className="grid grid-cols-4 gap-1">
+                                {group.items.map(({ preview, index }) => (
+                                  <button
+                                    type="button"
+                                    key={preview.id}
+                                    onClick={() => setSelectedPreviewIndex(index)}
+                                    title={preview.label}
+                                    className={`overflow-hidden rounded-md border p-0.5 text-left transition-colors cursor-pointer ${selectedPreview?.id === preview.id
+                                      ? 'border-[#ed6f5c] bg-[#ed6f5c]/5'
+                                      : 'border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/40 hover:border-[#ed6f5c]/45'
+                                      }`}
+                                  >
+                                    <div className="aspect-[4/3] rounded overflow-hidden bg-[#ece4cf]">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={preview.image} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <Card className="bg-[#efe7d2]/55 p-2.5 border border-[rgba(21,20,15,0.12)] rounded-xl shadow-none space-y-2">
@@ -5922,6 +5956,71 @@ export default function Home() {
           </div>
 
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Listing photo inspector — every package photo, large and grouped */}
+      <Dialog open={isGalleryInspectorOpen} onOpenChange={setIsGalleryInspectorOpen}>
+        <DialogContent className="!flex !flex-col !gap-0 w-[calc(100vw-2rem)] lg:!max-w-[1100px] h-[88vh] overflow-hidden sm:rounded-[24px] p-0 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
+          <DialogHeader className="shrink-0 px-6 sm:px-8 pt-5 pb-4 border-b border-[rgba(21,20,15,0.12)]">
+            <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Photo Package Inspector</span>
+            <DialogTitle className="text-xl font-serif font-medium leading-tight text-[#15140f]">
+              {activeProduct?.folderName || 'Listing photos'}
+            </DialogTitle>
+            <DialogDescription className="text-[#5a5448] text-xs font-sans">
+              Every photo that ships with this listing, full size — click one to select it in the review panel.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-7">
+            {(() => {
+              const indexed = sourcePreviewImages.map((preview, index) => ({ preview, index }));
+              const groups = [
+                { label: 'Mockups', hint: 'Rendered scenes that sell the product', items: indexed.filter(e => e.preview.id.startsWith('mockup-')) },
+                { label: 'Info Images', hint: 'Shared product-type information cards', items: indexed.filter(e => e.preview.id.startsWith('extra-')) },
+                { label: 'Product Images', hint: 'The artwork the buyer actually receives', items: indexed.filter(e => !e.preview.id.startsWith('mockup-') && !e.preview.id.startsWith('extra-')) }
+              ].filter(group => group.items.length > 0);
+
+              if (groups.length === 0) {
+                return (
+                  <div className="text-center py-20">
+                    <ImageIcon className="w-10 h-10 text-[#8b8676] mx-auto opacity-60 mb-3" />
+                    <p className="text-xs text-[#5a5448]">No photos loaded for this listing in the browser.</p>
+                  </div>
+                );
+              }
+
+              return groups.map(group => (
+                <section key={group.label} className="space-y-3">
+                  <div className="flex items-end justify-between border-b border-[rgba(21,20,15,0.10)] pb-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#ed6f5c] font-bold select-none">
+                      {"▪ "}{group.label} ({group.items.length})
+                    </span>
+                    <span className="text-[9px] text-[#8b8676] font-mono select-none">{group.hint}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {group.items.map(({ preview, index }) => (
+                      <button
+                        type="button"
+                        key={preview.id}
+                        onClick={() => { setSelectedPreviewIndex(index); setIsGalleryInspectorOpen(false); }}
+                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-pointer group"
+                        title="Select this photo in the review panel"
+                      >
+                        <div className="aspect-square flex items-center justify-center bg-[#ece4cf]/60 p-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={preview.image} alt={preview.label} className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.02]" />
+                        </div>
+                        <div className="px-3 py-2 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
+                          <span className="text-[10px] font-medium text-[#15140f] block truncate" title={preview.label}>{preview.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ));
+            })()}
+          </div>
         </DialogContent>
       </Dialog>
 
