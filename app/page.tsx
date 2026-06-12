@@ -92,6 +92,8 @@ import {
 type ListingMetadata = {
   id: string;
   folderName: string;
+  projectId?: string; // all listings created in one staging-tray batch share this
+  projectName?: string;
   title?: string;
   description?: string;
   price?: number;
@@ -635,6 +637,8 @@ export default function Home() {
   // Frame picker: details of the single selected template + user frame choices
   const [frameTemplate, setFrameTemplate] = useState<MockupTemplateDetails | null>(null);
   const [frameAssignments, setFrameAssignments] = useState<Record<number, string>>({});
+  // Per-listing studio choices (templates + frame layout), kept for the session
+  const [studioPrefsMap, setStudioPrefsMap] = useState<Record<string, { templateIds: string[]; assignments: Record<number, string> }>>({});
   // How artworks fill their frames — stretch by default, user-changeable
   const [studioFitMode, setStudioFitMode] = useState<MockupFitMode>(() => {
     if (typeof window !== 'undefined') {
@@ -660,6 +664,7 @@ export default function Home() {
   const [isUploadingRaw, setIsUploadingRaw] = useState(false);
   const [stagedProducts, setStagedProducts] = useState<StagedProduct[]>([]);
   const [stagedSelection, setStagedSelection] = useState<string[]>([]);
+  const [projectNameInput, setProjectNameInput] = useState('');
 
   const rawFileInputRef = useRef<HTMLInputElement>(null);
   const setFileInputRef = useRef<HTMLInputElement>(null);
@@ -833,6 +838,7 @@ export default function Home() {
         });
         setStagedSelection([]);
         setSessionListingIds([]);
+        setStudioPrefsMap({});
         setCurrentView('projects');
       }
     });
@@ -1143,6 +1149,11 @@ export default function Home() {
       const createdIds: string[] = [];
       let created = 0;
 
+      // Every listing in this batch belongs to one project entity
+      const projectId = `proj_${Date.now()}`;
+      const projectName = projectNameInput.trim() ||
+        `Project ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${stagedProducts.length} product${stagedProducts.length === 1 ? '' : 's'}`;
+
       for (const [index, product] of stagedProducts.entries()) {
         let productName = product.name;
         let suffix = 2;
@@ -1163,6 +1174,8 @@ export default function Home() {
             id: listingId,
             userId: user.uid,
             folderName: productName,
+            projectId,
+            projectName,
             status: 'idle',
             productType: selectedProductType,
             createdAt: serverTimestamp(),
@@ -1177,7 +1190,8 @@ export default function Home() {
 
       setLocalFilesMap(prev => ({ ...prev, ...batchMap }));
       setSessionListingIds(prev => [...prev, ...createdIds]);
-      toast.success(`Created ${created} product draft${created === 1 ? '' : 's'} — compile them all in one click or fine-tune each in the Studio.`);
+      toast.success(`Project "${projectName}" created with ${created} product${created === 1 ? '' : 's'} — compile them all in one click.`);
+      setProjectNameInput('');
       clearStagedProducts();
     } finally {
       setIsUploadingRaw(false);
@@ -1636,9 +1650,19 @@ export default function Home() {
     const sessionFiles = localFilesMap[listing.folderName] || { images: [], files: [] };
     studioSourcePreviews.forEach(p => URL.revokeObjectURL(p.image));
     setStudioSourcePreviews(createSourcePreviewImages(sessionFiles.images));
-    setSelectedTemplateIds([]);
-    setFrameTemplate(null);
-    setFrameAssignments({});
+
+    // Restore this listing's previous template/frame choices from the session
+    const prefs = studioPrefsMap[listing.id];
+    setSelectedTemplateIds(prefs?.templateIds || []);
+    setFrameAssignments(prefs?.assignments || {});
+    if (prefs?.templateIds.length === 1) {
+      getMockupTemplate(prefs.templateIds[0])
+        .then(details => setFrameTemplate(details))
+        .catch(() => setFrameTemplate(null));
+    } else {
+      setFrameTemplate(null);
+    }
+
     setStudioTemplateFilter('all');
     setIsBrowsingTemplates(false);
     setStudioZoomMockup(null);
@@ -1721,18 +1745,24 @@ export default function Home() {
     URL.revokeObjectURL(preview.image);
     setStudioSourcePreviews(prev => prev.filter(p => p.id !== preview.id));
     // Frame assignments pointing at the removed image would fail the render
-    setFrameAssignments(prev => {
-      const next: Record<number, string> = {};
-      for (const [frame, fileName] of Object.entries(prev)) {
-        if (fileName !== preview.label) next[Number(frame)] = fileName;
-      }
-      return next;
-    });
+    const nextAssignments: Record<number, string> = {};
+    for (const [frame, fileName] of Object.entries(frameAssignments)) {
+      if (fileName !== preview.label) nextAssignments[Number(frame)] = fileName;
+    }
+    setFrameAssignments(nextAssignments);
+    saveStudioPrefs(selectedTemplateIds, nextAssignments);
   };
 
   const changeStudioFitMode = (mode: MockupFitMode) => {
     setStudioFitMode(mode);
     localStorage.setItem('autolister-fit-mode', mode);
+  };
+
+  // Remember the studio's template/frame choices for this listing so they
+  // survive leaving and re-entering the Studio within the session
+  const saveStudioPrefs = (templateIds: string[], assignments: Record<number, string>) => {
+    if (!studioListingId) return;
+    setStudioPrefsMap(prev => ({ ...prev, [studioListingId]: { templateIds, assignments } }));
   };
 
   const toggleTemplateSelection = (templateId: string) => {
@@ -1741,6 +1771,7 @@ export default function Home() {
       : [...selectedTemplateIds, templateId];
     setSelectedTemplateIds(next);
     setFrameAssignments({});
+    saveStudioPrefs(next, {});
     // The frame picker works against exactly one chosen template
     if (next.length === 1) {
       getMockupTemplate(next[0])
@@ -1755,18 +1786,18 @@ export default function Home() {
     setSelectedTemplateIds([]);
     setFrameTemplate(null);
     setFrameAssignments({});
+    saveStudioPrefs([], {});
   };
 
   // Assign an artwork to a numbered frame (an artwork can hold only one frame)
   const assignArtworkToFrame = (frame: number, fileName: string) => {
-    setFrameAssignments(prev => {
-      const next: Record<number, string> = {};
-      for (const [key, value] of Object.entries(prev)) {
-        if (Number(key) !== frame && value !== fileName) next[Number(key)] = value;
-      }
-      if (fileName) next[frame] = fileName;
-      return next;
-    });
+    const next: Record<number, string> = {};
+    for (const [key, value] of Object.entries(frameAssignments)) {
+      if (Number(key) !== frame && value !== fileName) next[Number(key)] = value;
+    }
+    if (fileName) next[frame] = fileName;
+    setFrameAssignments(next);
+    saveStudioPrefs(selectedTemplateIds, next);
   };
 
   // --- Studio derived view state --------------------------------------------
@@ -1967,39 +1998,33 @@ export default function Home() {
     setIsDialogOpen(true);
   };
 
-  // Resume a project inside the core Workspace
-  const handleContinueProject = (project: ListingMetadata) => {
-    setSessionListingIds(prev => prev.includes(project.id) ? prev : [...prev, project.id]);
-    setSelectedProductType(project.productType || 'png_graphics');
+  // Resume a whole project: load ALL its listings into the session
+  // (replaces the previous session scope — no accumulation between clicks)
+  const handleContinueProjectGroup = (name: string, items: ListingMetadata[]) => {
+    setSessionListingIds(items.map(item => item.id));
+    const first = items[0];
+    setSelectedProductType(first?.productType || 'png_graphics');
     // If we have an Etsy token connected, we use Direct Store Mode, else Manual Mode
     setSelectedMode(etsyToken ? 'etsy' : 'manual');
+    setStudioListingId(null);
     setCurrentView('workspace');
-
-    // Set activeProduct
-    const sessionFiles = localFilesMap[project.folderName] || { images: [], files: [] };
-    setActiveProduct({
-      ...project,
-      description: getFormattedPlainTextDescription(project.description || ''),
-      images: sessionFiles.images,
-      files: sessionFiles.files
-    });
-
-    toast.success(`Resumed pipeline workspace for "${project.folderName}"`);
+    toast.success(`Resumed project "${name}" — ${items.length} listing${items.length === 1 ? '' : 's'} loaded into the session.`);
   };
 
-  // Preview completed metadata & mockups from Dashboard
-  const handlePreviewProject = (project: ListingMetadata) => {
-    const sessionFiles = localFilesMap[project.folderName] || { images: [], files: [] };
-    setActiveProduct({
-      ...project,
-      description: getFormattedPlainTextDescription(project.description || ''),
-      images: sessionFiles.images,
-      files: sessionFiles.files
-    });
-    setSourcePreviewImages(buildPreviewGallery(project.folderName, sessionFiles.images));
-    setSelectedPreviewIndex(0);
-    setDescTab('preview');
-    setIsDialogOpen(true);
+  // Discard an entire project (all of its listings)
+  const handleDeleteProjectGroup = async (items: ListingMetadata[]) => {
+    if (!user) return;
+    for (const item of items) {
+      const docPath = `users/${user.uid}/listings/${item.id}`;
+      try {
+        await deleteDoc(doc(db, docPath));
+      } catch (err: any) {
+        toast.error(`Failed to discard "${item.folderName}": ${err.message}`);
+        return;
+      }
+    }
+    setSessionListingIds(prev => prev.filter(id => !items.some(item => item.id === id)));
+    toast.success(`Project discarded (${items.length} listing${items.length === 1 ? '' : 's'}).`);
   };
 
   const handleCopyText = (text: string, label: string) => {
@@ -2042,6 +2067,29 @@ export default function Home() {
     if (filterTab === 'published') return item.status === 'published';
     return true;
   });
+
+  // The hub groups listings into projects — one row per creation batch.
+  // Listings created before the project model stand alone as one-item projects.
+  const hubProjects = (() => {
+    const map = new Map<string, { key: string; name: string; items: ListingMetadata[] }>();
+    for (const item of dbListings) {
+      const key = item.projectId || item.id;
+      const entry = map.get(key);
+      if (entry) {
+        entry.items.push(item);
+      } else {
+        map.set(key, { key, name: item.projectName || item.folderName, items: [item] });
+      }
+    }
+    return Array.from(map.values());
+  })();
+  const hubFilteredProjects = hubProjects.filter(project => project.items.some(item => {
+    if (filterTab === 'all') return true;
+    if (filterTab === 'pipeline') return ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo', 'idle'].includes(item.status);
+    if (filterTab === 'ready') return item.status === 'ready';
+    if (filterTab === 'published') return item.status === 'published';
+    return true;
+  }));
   const selectedPreview = sourcePreviewImages[selectedPreviewIndex] || sourcePreviewImages[0];
 
   // --- RENDERS ---
@@ -3291,7 +3339,7 @@ export default function Home() {
               </CardHeader>
 
               <CardContent className="px-0 py-0 bg-transparent">
-                {filteredListings.length === 0 ? (
+                {hubFilteredProjects.length === 0 ? (
                   <div className="text-center py-20 px-4 space-y-4">
                     <div className={`p-4 rounded-full max-w-max mx-auto ${darkMode ? 'bg-[#22211b]' : 'bg-[#ece4cf]/50'}`}>
                       <FileText className={`w-8 h-8 ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'}`} />
@@ -3318,31 +3366,33 @@ export default function Home() {
                     <Table>
                       <TableHeader>
                         <TableRow className={`${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#1e1d17]/50 hover:bg-transparent' : 'border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/30 hover:bg-transparent'} h-12`}>
-                          <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} pl-6 h-11`}>Collection / Folder Name</TableHead>
+                          <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} pl-6 h-11`}>Project / Collection</TableHead>
                           <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} h-11`}>Product Format</TableHead>
-                          <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} h-11`}>Listing Status</TableHead>
+                          <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} h-11`}>Production Status</TableHead>
                           <TableHead className={`text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} h-11`}>Mockup Cover</TableHead>
                           <TableHead className={`text-right text-[10px] font-mono font-bold uppercase tracking-wider ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} pr-6 h-11`}>Manage Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredListings.map((listingItem) => {
-                          const isComplete = listingItem.status === 'published';
-                          const sessionItem = localFilesMap[listingItem.folderName];
-                          const activeSessionCount = sessionItem
-                            ? `${sessionItem.images.length} Image(s), ${sessionItem.files.length} Template(s)`
-                            : "Ready to run optimization";
-                          const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
+                        {hubFilteredProjects.map((project) => {
+                          const first = project.items[0];
+                          const counts = {
+                            running: project.items.filter(i => ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(i.status)).length,
+                            queued: project.items.filter(i => i.status === 'idle').length,
+                            ready: project.items.filter(i => i.status === 'ready').length,
+                            live: project.items.filter(i => i.status === 'published').length
+                          };
+                          const cover = project.items.find(i => i.mockupImage)?.mockupImage;
 
                           return (
-                            <TableRow key={listingItem.id} className={`${darkMode ? 'border-[rgba(247,241,222,0.10)] text-[#f7f1de]' : 'border-[rgba(21,20,15,0.12)] text-[#15140f]'} bg-transparent hover:bg-[#ece4cf]/15 dark:hover:bg-[#22211b]/30 h-16 transition-colors`}>
+                            <TableRow key={project.key} className={`${darkMode ? 'border-[rgba(247,241,222,0.10)] text-[#f7f1de]' : 'border-[rgba(21,20,15,0.12)] text-[#15140f]'} bg-transparent hover:bg-[#ece4cf]/15 dark:hover:bg-[#22211b]/30 h-16 transition-colors`}>
 
-                              {/* Title / Folder Name */}
+                              {/* Project Name + listing count */}
                               <TableCell className="pl-6 py-4">
                                 <div className="flex flex-col">
-                                  <span className="font-serif font-medium text-sm leading-tight block max-w-[280px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
+                                  <span className="font-serif font-medium text-sm leading-tight block max-w-[280px] truncate" title={project.name}>{project.name}</span>
                                   <span className={`text-[10px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'} font-mono mt-1 flex items-center gap-1.5`}>
-                                    <FileCode className={`w-3.5 h-3.5 ${darkMode ? 'text-[#807b6c]' : 'text-[#8b8676]'}`} /> {activeSessionCount}
+                                    <Layers className={`w-3.5 h-3.5 ${darkMode ? 'text-[#807b6c]' : 'text-[#8b8676]'}`} /> {project.items.length} product listing{project.items.length === 1 ? '' : 's'}
                                   </span>
                                 </div>
                               </TableCell>
@@ -3350,33 +3400,33 @@ export default function Home() {
                               {/* Format Class */}
                               <TableCell className="align-middle">
                                 <span className={`text-[10px] font-mono uppercase font-bold border px-2 py-0.5 rounded ${darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#ece4cf]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]'}`}>
-                                  {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
-                                    listingItem.productType === 'printable_wallart' ? 'Wall Art' :
-                                      listingItem.productType === 'presets' ? 'Presets' : 'Planner PDF'}
+                                  {first?.productType === 'png_graphics' ? 'PNG Graphics' :
+                                    first?.productType === 'printable_wallart' ? 'Wall Art' :
+                                      first?.productType === 'presets' ? 'Presets' : 'Planner PDF'}
                                 </span>
                               </TableCell>
 
-                              {/* Status Badge */}
+                              {/* Aggregated production status */}
                               <TableCell className="align-middle">
-                                <div className="flex flex-col">
-                                  <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
-                                    ${listingItem.status === 'idle' ? (darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#a39e8f]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]') :
-                                      isInProgressPipeline ? 'bg-[#efe7d2]/10 border-[#ed6f5c]/40 text-[#ed6f5c]' :
-                                        listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                          `bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] ${darkMode ? 'dark:text-[#9ea671]' : ''} font-bold`
-                                    }`}>
-                                    {listingItem.status === 'idle' && 'Waiting to Compile'}
-                                    {listingItem.status === 'scanning' && 'Scanning Blueprints'}
-                                    {listingItem.status === 'mockups' && 'Framing Canvas'}
-                                    {listingItem.status === 'thumbnail' && 'Branding Covers'}
-                                    {listingItem.status === 'compiling' && 'Packaging ZIP File'}
-                                    {listingItem.status === 'seo' && 'Analyzing SEO Metadata'}
-                                    {listingItem.status === 'ready' && 'Ready to Publish'}
-                                    {listingItem.status === 'published' && 'Listed live on Etsy'}
-                                  </span>
-                                  {listingItem.pipelineStepText && (
-                                    <span className={`text-[10px] ${darkMode ? 'text-[#a39e8f]/80' : 'text-[#5a5448]/80'} mt-1 font-medium leading-tight max-w-[180px] break-words`}>
-                                      {listingItem.pipelineStepText}
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {counts.running > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border bg-[#efe7d2]/10 border-[#ed6f5c]/40 text-[#ed6f5c]">
+                                      <Loader2 className="w-2.5 h-2.5 animate-spin" /> {counts.running} Running
+                                    </span>
+                                  )}
+                                  {counts.queued > 0 && (
+                                    <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border ${darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.16)] text-[#a39e8f]' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]'}`}>
+                                      {counts.queued} Queued
+                                    </span>
+                                  )}
+                                  {counts.ready > 0 && (
+                                    <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c]">
+                                      {counts.ready} Ready
+                                    </span>
+                                  )}
+                                  {counts.live > 0 && (
+                                    <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] ${darkMode ? 'dark:text-[#9ea671]' : ''}`}>
+                                      {counts.live} Live
                                     </span>
                                   )}
                                 </div>
@@ -3384,11 +3434,11 @@ export default function Home() {
 
                               {/* Thumbnail Mockup Preview */}
                               <TableCell className="align-middle">
-                                {listingItem.mockupImage ? (
+                                {cover ? (
                                   <div className={`relative w-12 h-9 border rounded overflow-hidden shadow-none bg-transparent group ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                      src={listingItem.mockupImage}
+                                      src={cover}
                                       alt="Mockup Thumbnail"
                                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                     />
@@ -3401,33 +3451,20 @@ export default function Home() {
                               {/* Quick Action triggers */}
                               <TableCell className="align-middle text-right pr-6">
                                 <div className="flex items-center justify-end gap-2.5">
-                                  {isComplete ? (
-                                    // Complete status -> Action: Preview
-                                    <Button
-                                      onClick={() => handlePreviewProject(listingItem)}
-                                      size="sm"
-                                      variant="outline"
-                                      className={`font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer flex items-center gap-1.5 bg-transparent hover:bg-[#6e7448]/10 hover:text-[#6e7448] dark:hover:text-[#9ea671] border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448]'} transition-all`}
-                                    >
-                                      <Eye className="w-3.5 h-3.5 text-[#ed6f5c]" /> Preview Live
-                                    </Button>
-                                  ) : (
-                                    // In-complete status -> Action: Continue Project
-                                    <Button
-                                      onClick={() => handleContinueProject(listingItem)}
-                                      size="sm"
-                                      className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer border-0 inline-flex items-center gap-1.5 transition-all"
-                                    >
-                                      <ChevronRight className="w-3.5 h-3.5 text-[#ed6f5c]" /> Continue project
-                                    </Button>
-                                  )}
+                                  <Button
+                                    onClick={() => handleContinueProjectGroup(project.name, project.items)}
+                                    size="sm"
+                                    className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer border-0 inline-flex items-center gap-1.5 transition-all"
+                                  >
+                                    <ChevronRight className="w-3.5 h-3.5 text-[#ed6f5c]" /> {counts.live === project.items.length ? 'Review project' : 'Continue project'}
+                                  </Button>
 
                                   <Button
-                                    onClick={() => handleDeleteListingDraft(listingItem)}
+                                    onClick={() => handleDeleteProjectGroup(project.items)}
                                     size="xs"
                                     variant="ghost"
                                     className={`h-7 px-2 rounded-full hover:bg-[#ed6f5c]/10 text-[#ed6f5c] hover:text-[#e25e4a] cursor-pointer`}
-                                    title="Discard draft listing"
+                                    title="Discard the whole project"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </Button>
@@ -4023,10 +4060,19 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-6 bg-[#ece4cf]/40 text-center cursor-pointer hover:bg-[#ece4cf]/60 transition-colors" onClick={() => studioImageInputRef.current?.click()}>
-                    <UploadCloud className="w-8 h-8 text-[#8b8676] mx-auto mb-2" />
-                    <span className="text-xs font-medium text-[#15140f] block">Attach artwork images</span>
-                    <span className="text-[10px] text-[#8b8676] mt-1 block font-mono">PNG / JPG / WEBP sources for the mockup renderer</span>
+                  <div className="space-y-3">
+                    {(activeStudioListing.mockupImage || activeStudioListing.title) && (
+                      <div className="p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-[10px] leading-relaxed relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#ed6f5c]" />
+                        <span className="font-mono font-bold text-[8.5px] uppercase tracking-wider text-[#ed6f5c] block mb-0.5 select-none">Previous Session</span>
+                        This product was processed earlier. Source files live only in browser memory, so after a refresh they must be re-attached to render again — the saved draft (title, tags, cover) is untouched.
+                      </div>
+                    )}
+                    <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-6 bg-[#ece4cf]/40 text-center cursor-pointer hover:bg-[#ece4cf]/60 transition-colors" onClick={() => studioImageInputRef.current?.click()}>
+                      <UploadCloud className="w-8 h-8 text-[#8b8676] mx-auto mb-2" />
+                      <span className="text-xs font-medium text-[#15140f] block">Attach artwork images</span>
+                      <span className="text-[10px] text-[#8b8676] mt-1 block font-mono">PNG / JPG / WEBP sources for the mockup renderer</span>
+                    </div>
                   </div>
                 )}
 
@@ -4242,7 +4288,7 @@ export default function Home() {
                         {"▪ FRAME ASSIGNMENT"} — <span className="text-[#ed6f5c]">{frameTemplate.name}</span>
                       </span>
                       {Object.keys(frameAssignments).length > 0 && (
-                        <Button type="button" size="xs" variant="ghost" onClick={() => setFrameAssignments({})} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
+                        <Button type="button" size="xs" variant="ghost" onClick={() => { setFrameAssignments({}); saveStudioPrefs(selectedTemplateIds, {}); }} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
                           Reset to Auto
                         </Button>
                       )}
@@ -4367,6 +4413,19 @@ export default function Home() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  ) : activeStudioListing.mockupImage ? (
+                    <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-5 bg-[#ece4cf]/40 text-center space-y-3">
+                      <span className="text-[10px] text-[#8b8676] font-mono block leading-relaxed max-w-md mx-auto">
+                        Full renders from the previous session are not kept in browser memory — this is the saved listing cover:
+                      </span>
+                      <div className="max-w-[280px] mx-auto rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={activeStudioListing.mockupImage} alt="Saved listing cover" className="w-full h-auto object-contain" />
+                      </div>
+                      <span className="text-[10px] text-[#5a5448] font-medium block">
+                        Re-attach source images on the left and render again for fresh full-quality mockups.
+                      </span>
                     </div>
                   ) : (
                     <div className="border border-dashed border-[rgba(21,20,15,0.24)] rounded-[14px] p-8 bg-[#ece4cf]/40 text-center">
@@ -4559,6 +4618,13 @@ export default function Home() {
                       <Layers className="w-3.5 h-3.5 mr-1.5" /> Merge {stagedSelection.length} into one set
                     </Button>
                   )}
+
+                  <Input
+                    value={projectNameInput}
+                    onChange={(e) => setProjectNameInput(e.target.value)}
+                    placeholder="Project name (optional) — e.g. June Portraits Batch"
+                    className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-9 text-xs focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
+                  />
 
                   <Button
                     type="button"
