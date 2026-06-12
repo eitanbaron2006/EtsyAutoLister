@@ -677,6 +677,9 @@ export default function Home() {
   const [stagedProducts, setStagedProducts] = useState<StagedProduct[]>([]);
   const [stagedSelection, setStagedSelection] = useState<string[]>([]);
   const [projectNameInput, setProjectNameInput] = useState('');
+  // The project this session works inside — set by the first creation or by
+  // continuing a project from the hub; later creations join it.
+  const [activeProject, setActiveProject] = useState<{ id: string; name: string } | null>(null);
 
   const rawFileInputRef = useRef<HTMLInputElement>(null);
   const setFileInputRef = useRef<HTMLInputElement>(null);
@@ -928,6 +931,7 @@ export default function Home() {
         setStagedSelection([]);
         setSessionListingIds([]);
         setStudioPrefsMap({});
+        setActiveProject(null);
         setSourceThumbsMap(prev => {
           Object.values(prev).flat().forEach(url => URL.revokeObjectURL(url));
           return {};
@@ -1083,12 +1087,14 @@ export default function Home() {
     setSelectedMode(null);
     setSelectedProductType(null);
     setStudioListingId(null);
+    setActiveProject(null);
   };
 
   // Switch chosen product category type
   const handleNavigateBackProductType = () => {
     setSelectedProductType(null);
     setStudioListingId(null);
+    setActiveProject(null);
   };
 
   // Persists the product category selection to Firestore user profile for safety
@@ -1243,9 +1249,9 @@ export default function Home() {
       const createdIds: string[] = [];
       let created = 0;
 
-      // Every listing in this batch belongs to one project entity
-      const projectId = `proj_${Date.now()}`;
-      const projectName = projectNameInput.trim() ||
+      // First creation defines the session's project; later batches join it
+      const projectId = activeProject?.id || `proj_${Date.now()}`;
+      const projectName = activeProject?.name || projectNameInput.trim() ||
         `Project ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${stagedProducts.length} product${stagedProducts.length === 1 ? '' : 's'}`;
 
       for (const [index, product] of stagedProducts.entries()) {
@@ -1286,7 +1292,10 @@ export default function Home() {
       Object.entries(batchMap).forEach(([name, bundle]) => updateSourceThumbs(name, bundle.images));
       setLocalFilesMap(prev => ({ ...prev, ...batchMap }));
       setSessionListingIds(prev => [...prev, ...createdIds]);
-      toast.success(`Project "${projectName}" created with ${created} product${created === 1 ? '' : 's'} — compile them all in one click.`);
+      setActiveProject({ id: projectId, name: projectName });
+      toast.success(activeProject
+        ? `Added ${created} product${created === 1 ? '' : 's'} to project "${projectName}".`
+        : `Project "${projectName}" created with ${created} product${created === 1 ? '' : 's'} — compile them all in one click.`);
       setProjectNameInput('');
       clearStagedProducts();
     } finally {
@@ -2234,6 +2243,8 @@ export default function Home() {
   const handleContinueProjectGroup = (name: string, items: ListingMetadata[]) => {
     setSessionListingIds(items.map(item => item.id));
     const first = items[0];
+    // New uploads in this session will join the continued project
+    setActiveProject(first ? { id: first.projectId || first.id, name } : null);
     setSelectedProductType(first?.productType || 'png_graphics');
     // If we have an Etsy token connected, we use Direct Store Mode, else Manual Mode
     setSelectedMode(etsyToken ? 'etsy' : 'manual');
@@ -3918,6 +3929,7 @@ export default function Home() {
                   setSelectedMode(null);
                   setSelectedProductType(null);
                   setStudioListingId(null);
+                  setActiveProject(null);
                   setCurrentView('projects');
                 }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
@@ -4109,6 +4121,7 @@ export default function Home() {
                   setSelectedMode(null);
                   setSelectedProductType(null);
                   setStudioListingId(null);
+                  setActiveProject(null);
                   setCurrentView('projects');
                 }}
                 className={`font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 border ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914] hover:bg-[#22211b]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de] hover:bg-[#ece4cf]'} shadow-none cursor-pointer flex items-center gap-1.5`}
@@ -4868,12 +4881,29 @@ export default function Home() {
                     </Button>
                   )}
 
-                  <Input
-                    value={projectNameInput}
-                    onChange={(e) => setProjectNameInput(e.target.value)}
-                    placeholder="Project name (optional) — e.g. June Portraits Batch"
-                    className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-9 text-xs focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
-                  />
+                  {activeProject ? (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c]">
+                      <div className="min-w-0">
+                        <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] block select-none">Active Project</span>
+                        <span className="text-xs font-serif font-medium text-[#15140f] dark:text-[#f7f1de] block truncate" title={activeProject.name}>{activeProject.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveProject(null); toast.info('Next creation will start a new project.'); }}
+                        className="text-[9px] font-mono uppercase tracking-wider text-[#ed6f5c] hover:text-[#e25e4a] font-bold shrink-0 cursor-pointer select-none"
+                        title="Detach — the next creation starts a fresh project"
+                      >
+                        Start New
+                      </button>
+                    </div>
+                  ) : (
+                    <Input
+                      value={projectNameInput}
+                      onChange={(e) => setProjectNameInput(e.target.value)}
+                      placeholder="Project name (optional) — e.g. June Portraits Batch"
+                      className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-9 text-xs focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
+                    />
+                  )}
 
                   <Button
                     type="button"
@@ -4884,6 +4914,10 @@ export default function Home() {
                     {isUploadingRaw ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Creating Products...
+                      </>
+                    ) : activeProject ? (
+                      <>
+                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add {stagedProducts.length} to Project
                       </>
                     ) : (
                       <>
