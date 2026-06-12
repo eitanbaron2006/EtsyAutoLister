@@ -483,6 +483,45 @@ function PhotoLightbox({ lightbox, setLightbox }: { lightbox: LightboxState; set
   );
 }
 
+// Confirmation dialog for destructive actions (shared across views)
+function DeleteConfirmDialog({ request, onClose }: {
+  request: { title: string; description: string; action: () => void } | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={!!request} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="!max-w-md bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] sm:rounded-[24px] text-[#15140f] font-sans">
+        {request && (
+          <>
+            <DialogHeader>
+              <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Confirm Deletion</span>
+              <DialogTitle className="text-lg font-serif font-medium text-[#15140f]">{request.title}</DialogTitle>
+              <DialogDescription className="text-[#5a5448] text-xs leading-relaxed">
+                {request.description}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 pt-2">
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-xs font-mono uppercase tracking-wider cursor-pointer rounded-full px-5"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => { request.action(); onClose(); }}
+                className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-6 uppercase tracking-wider cursor-pointer border-0"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Yes, Discard
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ScrollToTop({ darkMode }: { darkMode: boolean }) {
   const [visible, setVisible] = useState(false);
 
@@ -786,6 +825,8 @@ export default function Home() {
   const [mockupViewerListing, setMockupViewerListing] = useState<ListingMetadata | null>(null);
   // Fullscreen lightbox with prev/next navigation over a set of photos
   const [lightbox, setLightbox] = useState<LightboxState>(null);
+  // Pending destructive action awaiting user confirmation
+  const [deleteRequest, setDeleteRequest] = useState<{ title: string; description: string; action: () => void } | null>(null);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -3959,7 +4000,11 @@ export default function Home() {
                                   </Button>
 
                                   <Button
-                                    onClick={() => handleDeleteProjectGroup(project.items)}
+                                    onClick={() => setDeleteRequest({
+                                      title: 'Discard the whole project?',
+                                      description: `"${project.name}" and all of its ${project.items.length} product listing${project.items.length === 1 ? '' : 's'} will be permanently removed, including saved drafts and covers. This cannot be undone.`,
+                                      action: () => handleDeleteProjectGroup(project.items)
+                                    })}
                                     size="xs"
                                     variant="ghost"
                                     className={`h-7 px-2 rounded-full hover:bg-[#ed6f5c]/10 text-[#ed6f5c] hover:text-[#e25e4a] cursor-pointer`}
@@ -3989,6 +4034,9 @@ export default function Home() {
 
         {/* Fullscreen photo lightbox (shared component) */}
         <PhotoLightbox lightbox={lightbox} setLightbox={setLightbox} />
+
+        {/* Destructive action confirmation */}
+        <DeleteConfirmDialog request={deleteRequest} onClose={() => setDeleteRequest(null)} />
       </div>
     );
   }
@@ -5518,7 +5566,11 @@ export default function Home() {
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        onClick={() => handleDeleteListingDraft(listingItem)}
+                                        onClick={() => setDeleteRequest({
+                                          title: 'Discard this listing?',
+                                          description: `"${listingItem.folderName}" will be permanently removed, including its saved draft, cover and browser assets. This cannot be undone.`,
+                                          action: () => handleDeleteListingDraft(listingItem)
+                                        })}
                                         className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
                                         title="Discard listing task"
                                       >
@@ -6395,6 +6447,9 @@ export default function Home() {
 
       {/* Fullscreen photo lightbox (shared component) */}
       <PhotoLightbox lightbox={lightbox} setLightbox={setLightbox} />
+
+      {/* Destructive action confirmation */}
+      <DeleteConfirmDialog request={deleteRequest} onClose={() => setDeleteRequest(null)} />
 
     </div>
   );
