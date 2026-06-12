@@ -1682,12 +1682,39 @@ export default function Home() {
       }
     }
 
-    // Top up to MIN_MOCKUPS: extra single renders on distinct templates whose
-    // orientation matches each artwork (sets get their set mockup first, then
-    // each image individually in a ratio-appropriate frame).
+    // MAIN cover: every product leads with exactly ONE thumbnail mockup from
+    // a main-* category (main-horizontal / main-vertical / main-square),
+    // matched to the lead artwork's orientation — it becomes the Etsy cover.
+    // The rest of the plan never touches main templates.
+    const catalog = await getTemplateCatalog();
+    const isMainTemplate = (t: MockupTemplateSummary) => t.product_type.startsWith('main-');
+    const userPickedMain = (templateIds || []).some(id => {
+      const picked = catalog.find(t => t.template_id === id);
+      return picked ? isMainTemplate(picked) : false;
+    });
+    if (!userPickedMain && catalog.length > 0) {
+      const leadOrientation = await getImageOrientation(artworks[0]);
+      const wantedCategory = leadOrientation === 'landscape' ? 'main-horizontal'
+        : leadOrientation === 'portrait' ? 'main-vertical' : 'main-square';
+      let pool = catalog.filter(t => t.product_type === wantedCategory);
+      if (pool.length === 0) pool = catalog.filter(isMainTemplate);
+      if (pool.length > 0) {
+        // Seeded by the artwork file so bulk products get varied covers
+        // while staying deterministic per product
+        const seed = artworks[0].size + artworks[0].lastModified + artworks[0].name.length;
+        const mainTemplate = pool[seed % pool.length];
+        fileMap['artwork_0'] = artworks[0];
+        fieldToName['artwork_0'] = artworks[0].name;
+        items.unshift({ id: `main-${mainTemplate.template_id}`, artworks: 'artwork_0', template_id: mainTemplate.template_id });
+      }
+    }
+
+    // Top up to MIN_MOCKUPS: extra single renders on distinct non-main
+    // templates whose orientation matches each artwork (sets get their set
+    // mockup first, then each image individually in a fitting frame).
     if (items.length < MIN_MOCKUPS) {
-      const catalog = await getTemplateCatalog();
-      if (catalog.length > 0) {
+      const fillCatalog = catalog.filter(t => !isMainTemplate(t));
+      if (fillCatalog.length > 0) {
         const usedTemplates = new Set<string>(
           items.map(item => item.template_id).filter((id): id is string => Boolean(id))
         );
@@ -1695,15 +1722,15 @@ export default function Home() {
         const orientations = await Promise.all(fillArtworks.map(file => getImageOrientation(file)));
         let cursor = 0;
         let guard = 0;
-        while (items.length < Math.min(MIN_MOCKUPS, MAX_ITEMS) && guard < catalog.length * 2) {
+        while (items.length < Math.min(MIN_MOCKUPS, MAX_ITEMS) && guard < fillCatalog.length * 2) {
           guard++;
           const index = cursor % fillArtworks.length;
           const field = `artwork_${index}`;
           fileMap[field] = fillArtworks[index];
           fieldToName[field] = fillArtworks[index].name;
           const orientation = orientations[index];
-          const pick = catalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation)
-            || catalog.find(t => !usedTemplates.has(t.template_id));
+          const pick = fillCatalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation)
+            || fillCatalog.find(t => !usedTemplates.has(t.template_id));
           if (!pick) break; // distinct templates exhausted
           usedTemplates.add(pick.template_id);
           items.push({ id: `fill-${index}-${pick.template_id}`, artworks: field, template_id: pick.template_id });
