@@ -371,6 +371,117 @@ function SandboxPlayground({ darkMode }: { darkMode?: boolean }) {
   );
 }
 
+type LightboxState = { items: { url: string; label: string; sub?: string }[]; index: number } | null;
+
+// Fullscreen dark photo viewer with arrows, filmstrip and wheel navigation.
+// Rendered in every view that can open it (hub + workspace).
+function PhotoLightbox({ lightbox, setLightbox }: { lightbox: LightboxState; setLightbox: (next: LightboxState) => void }) {
+  const wheelStampRef = useRef(0);
+  if (!lightbox) {
+    return (
+      <Dialog open={false} onOpenChange={() => { }}>
+        <DialogContent className="hidden" />
+      </Dialog>
+    );
+  }
+  const current = lightbox.items[lightbox.index];
+  const goTo = (offset: number) => setLightbox({
+    ...lightbox,
+    index: (lightbox.index + offset + lightbox.items.length) % lightbox.items.length
+  });
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) setLightbox(null); }}>
+      <DialogContent className="!flex !flex-col !gap-0 !max-w-none w-[100vw] h-[100vh] sm:rounded-none border-0 p-0 bg-[#12110c]/[0.97] text-[#f7f1de] font-sans [&>button]:top-6 [&>button]:right-6 [&>button]:z-20 [&>button]:w-11 [&>button]:h-11 [&>button]:rounded-full [&>button]:bg-white/10 [&>button]:hover:bg-white/20 [&>button]:text-white [&>button]:opacity-100 [&>button]:flex [&>button]:items-center [&>button]:justify-center">
+        <DialogTitle className="sr-only">{current.label}</DialogTitle>
+        <DialogDescription className="sr-only">Fullscreen photo viewer</DialogDescription>
+
+        {/* Single wrapper keeps the nav arrows out of the [&>button]
+            close-button styling and anchors their positioning */}
+        <div
+          className="relative flex flex-col w-full h-full"
+          onWheel={(e) => {
+            if (lightbox.items.length < 2) return;
+            const now = Date.now();
+            if (now - wheelStampRef.current < 180) return;
+            wheelStampRef.current = now;
+            if (e.deltaY > 0) goTo(1);
+            else if (e.deltaY < 0) goTo(-1);
+          }}
+        >
+          {/* Floating image */}
+          <div className="min-h-0 flex-1 w-full flex items-center justify-center px-20 sm:px-28 pt-8 pb-2 select-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={current.url} alt={current.label} className="max-w-full max-h-full object-contain rounded-md shadow-2xl" />
+          </div>
+
+          {/* Caption + counter + download, like the render-server viewer */}
+          <div className="shrink-0 pt-1 pb-2 text-center space-y-1 select-none">
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="text-sm font-medium text-white max-w-[70vw] truncate" title={current.label}>{current.label}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = current.url;
+                  link.download = current.label || 'photo';
+                  link.click();
+                  toast.success('Photo downloaded!');
+                }}
+                className="text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="Download this photo"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+            <span className="text-xs text-white/55 font-mono block">{lightbox.index + 1} / {lightbox.items.length}</span>
+            {current.sub && <span className="text-[10px] text-white/35 block max-w-[70vw] mx-auto truncate">{current.sub}</span>}
+          </div>
+
+          {/* Filmstrip for direct jumps */}
+          {lightbox.items.length > 1 && (
+            <div className="shrink-0 pb-5 px-6 flex gap-1.5 justify-center overflow-x-auto select-none">
+              {lightbox.items.map((item, idx) => (
+                <button
+                  type="button"
+                  key={`${item.url}-${idx}`}
+                  onClick={() => setLightbox({ ...lightbox, index: idx })}
+                  className={`w-14 h-14 shrink-0 rounded-md overflow-hidden border-2 transition-all cursor-pointer bg-white/5 ${idx === lightbox.index ? 'border-[#ed6f5c] opacity-100' : 'border-white/15 opacity-60 hover:opacity-100 hover:border-white/40'}`}
+                  title={item.label}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Side navigation */}
+          {lightbox.items.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => goTo(-1)}
+                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors z-10"
+                title="Previous (←)"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(1)}
+                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors z-10"
+                title="Next (→)"
+              >
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ScrollToTop({ darkMode }: { darkMode: boolean }) {
   const [visible, setVisible] = useState(false);
 
@@ -672,6 +783,8 @@ export default function Home() {
   const [isGalleryInspectorOpen, setIsGalleryInspectorOpen] = useState(false);
   // Mockup viewer dialog opened from the table's Live Mockup Thumb column
   const [mockupViewerListing, setMockupViewerListing] = useState<ListingMetadata | null>(null);
+  // Fullscreen lightbox with prev/next navigation over a set of photos
+  const [lightbox, setLightbox] = useState<LightboxState>(null);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -795,6 +908,20 @@ export default function Home() {
       persistMockups(user.uid, folderName, stored).catch(() => { });
     }
   }, [mockupResultsMap, user]);
+
+  // Arrow-key navigation inside the fullscreen lightbox
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.items.length } : prev);
+      } else if (e.key === 'ArrowLeft') {
+        setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.items.length) % prev.items.length } : prev);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightbox]);
 
   // Probe the configured MockupGen server availability on load
   useEffect(() => {
@@ -3739,14 +3866,29 @@ export default function Home() {
                               {/* Thumbnail Mockup Preview */}
                               <TableCell className="align-middle">
                                 {cover ? (
-                                  <div className={`relative w-12 h-9 border rounded overflow-hidden shadow-none bg-transparent group ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // Full session renders when available, saved covers otherwise
+                                      const items = project.items.flatMap(item => {
+                                        const sessionMockups = mockupResultsMap[item.folderName] || [];
+                                        if (sessionMockups.length > 0) {
+                                          return sessionMockups.map(m => ({ url: m.url, label: item.folderName, sub: studioTemplateName(m.templateId) }));
+                                        }
+                                        return item.mockupImage ? [{ url: item.mockupImage, label: item.folderName, sub: 'Saved cover' }] : [];
+                                      });
+                                      if (items.length > 0) setLightbox({ items, index: 0 });
+                                    }}
+                                    className={`relative w-12 h-9 border rounded overflow-hidden shadow-none bg-transparent group cursor-zoom-in ${darkMode ? 'border-[rgba(247,241,222,0.16)]' : 'border-[rgba(21,20,15,0.16)]'}`}
+                                    title="View the project's mockups fullscreen"
+                                  >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                       src={cover}
                                       alt="Mockup Thumbnail"
                                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                     />
-                                  </div>
+                                  </button>
                                 ) : (
                                   <span className={`text-[9px] font-mono uppercase tracking-tight font-medium ${darkMode ? 'text-[#807b6c]' : 'text-[#8b8676]'}`}>Pending</span>
                                 )}
@@ -3791,6 +3933,9 @@ export default function Home() {
         <footer className={`h-16 border-t ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#12110c]' : 'border-[rgba(21,20,15,0.16)] bg-[#efe7d2]'} flex items-center justify-center text-[10px] ${darkMode ? 'text-[#a39e8f]' : 'text-[#8b8676]'} font-mono tracking-wide mt-12`}>
           Etsy AutoLister — Securely synchronizing {dbListings.length} project drafting assets in the Cloud Run container sandbox.
         </footer>
+
+        {/* Fullscreen photo lightbox (shared component) */}
+        <PhotoLightbox lightbox={lightbox} setLightbox={setLightbox} />
       </div>
     );
   }
@@ -5417,25 +5562,45 @@ export default function Home() {
                     </div>
 
                     {selectedPreview ? (
-                      <div className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setLightbox({
+                          items: sourcePreviewImages.map(p => ({
+                            url: p.image,
+                            label: p.label,
+                            sub: p.id.startsWith('mockup-') ? 'Mockup' : p.id.startsWith('extra-') ? 'Info' : 'Product Image'
+                          })),
+                          index: Math.max(0, sourcePreviewImages.findIndex(p => p.id === selectedPreview.id))
+                        })}
+                        className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center cursor-zoom-in group"
+                        title="Open fullscreen view"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2]" />
+                        <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2] transition-transform group-hover:scale-[1.02]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
                           <span className="bg-[#ed6f5c] text-white text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold">
                             {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : selectedPreview.id.startsWith('extra-') ? 'Info' : 'Product Image'}
                           </span>
                         </div>
-                      </div>
+                      </button>
                     ) : activeProduct?.mockupImage ? (
-                      <div className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => activeProduct.mockupImage && setLightbox({
+                          items: [{ url: activeProduct.mockupImage, label: 'Saved listing cover', sub: 'Mockup' }],
+                          index: 0
+                        })}
+                        className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center cursor-zoom-in group"
+                        title="Open fullscreen view"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={activeProduct.mockupImage} alt="persisted preview" className="w-full h-full object-contain bg-[#efe7d2]" />
+                        <img src={activeProduct.mockupImage} alt="persisted preview" className="w-full h-full object-contain bg-[#efe7d2] transition-transform group-hover:scale-[1.02]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
                           <span className="bg-[#ed6f5c] text-white text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold">
                             Mockup
                           </span>
                         </div>
-                      </div>
+                      </button>
                     ) : (
                       <div className="h-32 w-full max-w-[220px] mx-auto rounded-xl flex items-center justify-center bg-[#ece4cf]/60 border border-[rgba(21,20,15,0.16)] text-[#5a5448]">
                         <span className="text-[10px] font-mono uppercase text-center px-4">No Image</span>
@@ -6003,45 +6168,60 @@ export default function Home() {
                   </div>
                 </DialogHeader>
 
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-4">
+                <div className="min-h-0 flex-1 px-6 sm:px-8 py-5 flex flex-col gap-3">
                   {isRenderingNow && (
-                    <div className="flex items-center gap-2.5 p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-xs">
+                    <div className="shrink-0 flex items-center gap-2.5 p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-xs">
                       <Loader2 className="w-4 h-4 animate-spin text-[#ed6f5c] shrink-0" />
                       The pipeline is running for this product — fresh mockups will appear here when the render finishes.
                     </div>
                   )}
 
                   {viewerMockups.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {viewerMockups.map(mockup => (
+                    <div
+                      className="flex-1 min-h-0 grid gap-3"
+                      // Balanced rows: 7 → 4+3, 8 → 4+4 (never 6+2)
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.ceil(viewerMockups.length / Math.ceil(viewerMockups.length / 6))}, minmax(0, 1fr))`,
+                        gridAutoRows: '1fr'
+                      }}
+                    >
+                      {viewerMockups.map((mockup, index) => (
                         <button
                           type="button"
                           key={mockup.id}
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = mockup.url;
-                            link.download = mockup.file.name;
-                            link.click();
-                            toast.success(`${mockup.file.name} downloaded!`);
-                          }}
-                          className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-pointer group"
-                          title="Download this mockup"
+                          onClick={() => setLightbox({
+                            items: viewerMockups.map(m => ({
+                              url: m.url,
+                              label: studioTemplateName(m.templateId),
+                              sub: m.sourceFileNames.length > 1 ? `SET · ${m.sourceFileNames.length} artworks · ${m.file.name}` : m.file.name
+                            })),
+                            index
+                          })}
+                          className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0"
+                          title="Open fullscreen view"
                         >
-                          <div className="aspect-square flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
+                          <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={mockup.url} alt={mockup.file.name} className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.02]" />
-                            <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span
+                              role="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const link = document.createElement('a');
+                                link.href = mockup.url;
+                                link.download = mockup.file.name;
+                                link.click();
+                                toast.success(`${mockup.file.name} downloaded!`);
+                              }}
+                              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#f7f1de]/95 border border-[rgba(21,20,15,0.16)] text-[#15140f] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#ece4cf] cursor-pointer"
+                              title="Download this mockup"
+                            >
                               <Download className="w-3 h-3" />
                             </span>
                           </div>
-                          <div className="px-3 py-2 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
-                            <span className="text-[10px] font-medium text-[#15140f] block truncate" title={studioTemplateName(mockup.templateId)}>
+                          <div className="shrink-0 px-2.5 py-1.5 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
+                            <span className="text-[9px] font-medium text-[#15140f] block truncate" title={studioTemplateName(mockup.templateId)}>
                               {studioTemplateName(mockup.templateId)}
-                            </span>
-                            <span className="text-[8.5px] font-mono text-[#8b8676] block truncate">
-                              {mockup.sourceFileNames.length > 1
-                                ? `SET · ${mockup.sourceFileNames.length} artworks`
-                                : mockup.sourceFileNames[0] || ''}
                             </span>
                           </div>
                         </button>
@@ -6082,20 +6262,20 @@ export default function Home() {
               {activeProduct?.folderName || 'Listing photos'}
             </DialogTitle>
             <DialogDescription className="text-[#5a5448] text-xs font-sans">
-              Every photo that ships with this listing, full size — click one to select it in the review panel.
+              Every photo that ships with this listing — click one for a fullscreen view with navigation.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-7">
+          <div className="min-h-0 flex-1 px-6 sm:px-8 py-5 flex flex-col">
             {(() => {
-              const indexed = sourcePreviewImages.map((preview, index) => ({ preview, index }));
-              const groups = [
-                { label: 'Mockups', hint: 'Rendered scenes that sell the product', items: indexed.filter(e => e.preview.id.startsWith('mockup-')) },
-                { label: 'Info Images', hint: 'Shared product-type information cards', items: indexed.filter(e => e.preview.id.startsWith('extra-')) },
-                { label: 'Product Images', hint: 'The artwork the buyer actually receives', items: indexed.filter(e => !e.preview.id.startsWith('mockup-') && !e.preview.id.startsWith('extra-')) }
-              ].filter(group => group.items.length > 0);
+              const kindOf = (id: string) => id.startsWith('mockup-') ? 'Mockup' : id.startsWith('extra-') ? 'Info' : 'Product';
+              const badgeClass = (kind: string) => kind === 'Mockup'
+                ? 'bg-[#ed6f5c] text-white'
+                : kind === 'Info'
+                  ? 'bg-[#6e7448] text-white'
+                  : 'bg-[#15140f] text-[#f7f1de]';
 
-              if (groups.length === 0) {
+              if (sourcePreviewImages.length === 0) {
                 return (
                   <div className="text-center py-20">
                     <ImageIcon className="w-10 h-10 text-[#8b8676] mx-auto opacity-60 mb-3" />
@@ -6104,39 +6284,50 @@ export default function Home() {
                 );
               }
 
-              return groups.map(group => (
-                <section key={group.label} className="space-y-3">
-                  <div className="flex items-end justify-between border-b border-[rgba(21,20,15,0.10)] pb-1.5">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#ed6f5c] font-bold select-none">
-                      {"▪ "}{group.label} ({group.items.length})
-                    </span>
-                    <span className="text-[9px] text-[#8b8676] font-mono select-none">{group.hint}</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {group.items.map(({ preview, index }) => (
+              return (
+                <div
+                  className="flex-1 min-h-0 grid gap-3"
+                  // Balanced rows: 7 → 4+3, 8 → 4+4 (never 6+2)
+                  style={{
+                    gridTemplateColumns: `repeat(${Math.ceil(sourcePreviewImages.length / Math.ceil(sourcePreviewImages.length / 6))}, minmax(0, 1fr))`,
+                    gridAutoRows: '1fr'
+                  }}
+                >
+                  {sourcePreviewImages.map((preview, index) => {
+                    const kind = kindOf(preview.id);
+                    return (
                       <button
                         type="button"
                         key={preview.id}
-                        onClick={() => { setSelectedPreviewIndex(index); setIsGalleryInspectorOpen(false); }}
-                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-pointer group"
-                        title="Select this photo in the review panel"
+                        onClick={() => setLightbox({
+                          items: sourcePreviewImages.map(p => ({ url: p.image, label: p.label, sub: kindOf(p.id) })),
+                          index
+                        })}
+                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0"
+                        title="Open fullscreen view"
                       >
-                        <div className="aspect-square flex items-center justify-center bg-[#ece4cf]/60 p-2">
+                        <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={preview.image} alt={preview.label} className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.02]" />
+                          <span className={`absolute top-2 left-2 text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold select-none ${badgeClass(kind)}`}>
+                            {kind}
+                          </span>
                         </div>
-                        <div className="px-3 py-2 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
-                          <span className="text-[10px] font-medium text-[#15140f] block truncate" title={preview.label}>{preview.label}</span>
+                        <div className="shrink-0 px-2.5 py-1.5 bg-[#f7f1de] border-t border-[rgba(21,20,15,0.10)]">
+                          <span className="text-[9px] font-medium text-[#15140f] block truncate" title={preview.label}>{preview.label}</span>
                         </div>
                       </button>
-                    ))}
-                  </div>
-                </section>
-              ));
+                    );
+                  })}
+                </div>
+              );
             })()}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Fullscreen photo lightbox (shared component) */}
+      <PhotoLightbox lightbox={lightbox} setLightbox={setLightbox} />
 
     </div>
   );
