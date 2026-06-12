@@ -483,6 +483,29 @@ function PhotoLightbox({ lightbox, setLightbox }: { lightbox: LightboxState; set
   );
 }
 
+// Pick a column count whose cells stay close to square inside a wide dialog
+// (4 → 2+2, 6 → 3+3, 7 → 4+3, 8 → 4+4). Tall narrow cells are penalized
+// harder than wide flat ones — square-ish photos waste far more space in
+// them — and incomplete last rows cost a little extra.
+function balancedGridColumns(count: number): number {
+  const CONTAINER_ASPECT = 2.2; // typical width/height of the dialog grid area
+  let best = 1;
+  let bestScore = Infinity;
+  for (let cols = 1; cols <= Math.min(count, 8); cols++) {
+    const rows = Math.ceil(count / cols);
+    const cellAspect = (CONTAINER_ASPECT * rows) / cols;
+    const aspectScore = cellAspect >= 1
+      ? Math.log(cellAspect) * 0.6 // wide cell — mild penalty
+      : -Math.log(cellAspect) * 1.5; // tall cell — heavy penalty
+    const score = aspectScore + (cols * rows - count) * 0.25;
+    if (score < bestScore) {
+      bestScore = score;
+      best = cols;
+    }
+  }
+  return best;
+}
+
 // Confirmation dialog for destructive actions (shared across views)
 function DeleteConfirmDialog({ request, onClose }: {
   request: { title: string; description: string; action: () => void } | null;
@@ -6297,10 +6320,9 @@ export default function Home() {
 
                   {viewerMockups.length > 0 ? (
                     <div
-                      className="flex-1 min-h-0 grid gap-3"
-                      // Balanced rows: 7 → 4+3, 8 → 4+4 (never 6+2)
+                      className="flex-1 min-h-0 grid gap-3 items-center"
                       style={{
-                        gridTemplateColumns: `repeat(${Math.ceil(viewerMockups.length / Math.ceil(viewerMockups.length / 6))}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${balancedGridColumns(viewerMockups.length)}, minmax(0, 1fr))`,
                         gridAutoRows: '1fr'
                       }}
                     >
@@ -6316,7 +6338,10 @@ export default function Home() {
                             })),
                             index
                           })}
-                          className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0"
+                          className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0 w-full"
+                          // Cards stay near-square: in tall cells they stop
+                          // growing and center instead of stretching
+                          style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
                           title="Open fullscreen view"
                         >
                           <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
@@ -6405,10 +6430,9 @@ export default function Home() {
 
               return (
                 <div
-                  className="flex-1 min-h-0 grid gap-3"
-                  // Balanced rows: 7 → 4+3, 8 → 4+4 (never 6+2)
+                  className="flex-1 min-h-0 grid gap-3 items-center"
                   style={{
-                    gridTemplateColumns: `repeat(${Math.ceil(sourcePreviewImages.length / Math.ceil(sourcePreviewImages.length / 6))}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(${balancedGridColumns(sourcePreviewImages.length)}, minmax(0, 1fr))`,
                     gridAutoRows: '1fr'
                   }}
                 >
@@ -6422,7 +6446,10 @@ export default function Home() {
                           items: sourcePreviewImages.map(p => ({ url: p.image, label: p.label, sub: kindOf(p.id) })),
                           index
                         })}
-                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0"
+                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0 w-full"
+                        // Cards stay near-square: in tall cells they stop
+                        // growing and center instead of stretching
+                        style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
                         title="Open fullscreen view"
                       >
                         <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
