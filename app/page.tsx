@@ -72,6 +72,14 @@ import {
 } from 'firebase/firestore';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
 import {
+  deleteListingAssets,
+  loadAllMockups,
+  loadAllSources,
+  persistMockups,
+  persistSources,
+  type StoredMockup
+} from '@/lib/asset-store';
+import {
   checkMockupGenHealth,
   downloadMockupOutput,
   getMockupTemplate,
@@ -705,6 +713,78 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [loadingAuth, user, currentView]);
 
+  // Mark listing folders whose assets changed; a follow-up effect persists
+  // them to IndexedDB so refreshes don't lose sources or rendered mockups.
+  const pendingPersistRef = useRef<{ sources: Set<string>; mockups: Set<string> }>({ sources: new Set(), mockups: new Set() });
+
+  // Restore browser-persisted assets after login (per-user records)
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    Promise.all([loadAllSources(user.uid), loadAllMockups(user.uid)])
+      .then(([sources, storedMockups]) => {
+        if (cancelled) return;
+        // In-memory entries from this session always win over restored ones
+        setLocalFilesMap(prev => ({ ...sources, ...prev }));
+        setMockupResultsMap(prev => {
+          const restored: Record<string, GeneratedMockup[]> = {};
+          for (const [folderName, mockups] of Object.entries(storedMockups)) {
+            if (prev[folderName]) continue;
+            restored[folderName] = mockups.map(stored => {
+              const file = new File([stored.blob], stored.fileName, { type: stored.fileType });
+              return {
+                id: stored.id,
+                templateId: stored.templateId,
+                sourceFileNames: stored.sourceFileNames,
+                frameAssignment: stored.frameAssignment,
+                file,
+                url: URL.createObjectURL(file)
+              };
+            });
+          }
+          return { ...restored, ...prev };
+        });
+      })
+      .catch(() => {
+        // IndexedDB unavailable — assets stay in-memory only for this session
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Persist dirty source folders after every commit
+  useEffect(() => {
+    if (!user) return;
+    const pending = pendingPersistRef.current.sources;
+    if (pending.size === 0) return;
+    const folders = Array.from(pending);
+    pending.clear();
+    for (const folderName of folders) {
+      const entry = localFilesMap[folderName];
+      persistSources(user.uid, folderName, entry?.images || [], entry?.files || []).catch(() => { });
+    }
+  }, [localFilesMap, user]);
+
+  // Persist dirty mockup folders after every commit
+  useEffect(() => {
+    if (!user) return;
+    const pending = pendingPersistRef.current.mockups;
+    if (pending.size === 0) return;
+    const folders = Array.from(pending);
+    pending.clear();
+    for (const folderName of folders) {
+      const stored: StoredMockup[] = (mockupResultsMap[folderName] || []).map(mockup => ({
+        id: mockup.id,
+        templateId: mockup.templateId,
+        sourceFileNames: mockup.sourceFileNames,
+        frameAssignment: mockup.frameAssignment,
+        fileName: mockup.file.name,
+        fileType: mockup.file.type,
+        blob: mockup.file
+      }));
+      persistMockups(user.uid, folderName, stored).catch(() => { });
+    }
+  }, [mockupResultsMap, user]);
+
   // Probe the configured MockupGen server availability on load
   useEffect(() => {
     let cancelled = false;
@@ -1188,6 +1268,7 @@ export default function Home() {
         }
       }
 
+      Object.keys(batchMap).forEach(name => pendingPersistRef.current.sources.add(name));
       setLocalFilesMap(prev => ({ ...prev, ...batchMap }));
       setSessionListingIds(prev => [...prev, ...createdIds]);
       toast.success(`Project "${projectName}" created with ${created} product${created === 1 ? '' : 's'} — compile them all in one click.`);
@@ -1252,6 +1333,61 @@ export default function Home() {
     });
   };
 
+  // Static info images attached to every product of a type
+  // (administrator drops files into public/listing-extras/<productType>/)
+  const fetchListingExtras = async (productType?: string): Promise<{ url: string; file: File }[]> => {
+    if (!productType) return [];
+    try {
+      const res = await fetch(`/api/listing-extras/${productType}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      const urls: string[] = Array.isArray(data.files) ? data.files : [];
+      const extras: { url: string; file: File }[] = [];
+      for (const url of urls) {
+        try {
+          const blob = await (await fetch(url)).blob();
+          const name = url.split('/').pop() || 'extra.png';
+          extras.push({ url, file: new File([blob], name, { type: blob.type || 'image/png' }) });
+        } catch {
+          // Skip unreadable extras — never block the listing flow
+        }
+      }
+      return extras;
+    } catch {
+      return [];
+    }
+  };
+
+  // Detect an image's orientation so we can pick ratio-appropriate templates
+  const getImageOrientation = (file: File): Promise<'portrait' | 'landscape' | 'square'> => {
+    return new Promise(resolve => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const ratio = img.width / img.height;
+        resolve(ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square');
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve('square');
+      };
+      img.src = objectUrl;
+    });
+  };
+
+  // Template catalog for client-side planning (cached in studio state)
+  const getTemplateCatalog = async (): Promise<MockupTemplateSummary[]> => {
+    if (studioTemplates.length > 0) return studioTemplates;
+    try {
+      const templates = await listMockupTemplates();
+      setStudioTemplates(templates);
+      return templates;
+    } catch {
+      return [];
+    }
+  };
+
   // Render real mockups on the local MockupGen server.
   // One image → one mockup per template (or one auto-matched mockup).
   // Multiple images → a SET: all images appear together in ONE mockup
@@ -1276,6 +1412,7 @@ export default function Home() {
 
     const MAX_ITEMS = 20; // server limit per batch request
     const MAX_SET_ARTWORKS = 12; // server limit per artworks list
+    const MIN_MOCKUPS = 7; // every product ships with at least this many mockups
     const fileMap: Record<string, File> = {};
     const fieldToName: Record<string, string> = {};
     const items: MockupBatchItemSpec[] = [];
@@ -1331,7 +1468,42 @@ export default function Home() {
         for (const templateId of templateIds.slice(0, MAX_ITEMS)) {
           items.push({ id: `single-${templateId}`, artworks: field, template_id: templateId });
         }
-      } else {
+      }
+    }
+
+    // Top up to MIN_MOCKUPS: extra single renders on distinct templates whose
+    // orientation matches each artwork (sets get their set mockup first, then
+    // each image individually in a ratio-appropriate frame).
+    if (items.length < MIN_MOCKUPS) {
+      const catalog = await getTemplateCatalog();
+      if (catalog.length > 0) {
+        const usedTemplates = new Set<string>(
+          items.map(item => item.template_id).filter((id): id is string => Boolean(id))
+        );
+        const fillArtworks = artworks.slice(0, MAX_SET_ARTWORKS);
+        const orientations = await Promise.all(fillArtworks.map(file => getImageOrientation(file)));
+        let cursor = 0;
+        let guard = 0;
+        while (items.length < Math.min(MIN_MOCKUPS, MAX_ITEMS) && guard < catalog.length * 2) {
+          guard++;
+          const index = cursor % fillArtworks.length;
+          const field = `artwork_${index}`;
+          fileMap[field] = fillArtworks[index];
+          fieldToName[field] = fillArtworks[index].name;
+          const orientation = orientations[index];
+          const pick = catalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation)
+            || catalog.find(t => !usedTemplates.has(t.template_id));
+          if (!pick) break; // distinct templates exhausted
+          usedTemplates.add(pick.template_id);
+          items.push({ id: `fill-${index}-${pick.template_id}`, artworks: field, template_id: pick.template_id });
+          cursor++;
+        }
+      }
+      if (items.length === 0) {
+        // Catalog unreachable — fall back to a single auto-matched render
+        const field = 'artwork_0';
+        fileMap[field] = artworks[0];
+        fieldToName[field] = artworks[0].name;
         items.push({ id: 'single-auto', artworks: field });
       }
     }
@@ -1374,6 +1546,7 @@ export default function Home() {
     }
 
     if (results.length > 0) {
+      pendingPersistRef.current.mockups.add(folderName);
       setMockupResultsMap(prev => {
         if (options?.append) {
           return { ...prev, [folderName]: [...(prev[folderName] || []), ...results] };
@@ -1387,6 +1560,7 @@ export default function Home() {
 
   // Drop one rendered mockup from the session results
   const handleRemoveMockup = (folderName: string, mockupId: string) => {
+    pendingPersistRef.current.mockups.add(folderName);
     setMockupResultsMap(prev => {
       const existing = prev[folderName] || [];
       const target = existing.find(m => m.id === mockupId);
@@ -1708,6 +1882,7 @@ export default function Home() {
       toast.error('Only image files can be attached as artwork sources.');
       return;
     }
+    pendingPersistRef.current.sources.add(listing.folderName);
     setLocalFilesMap(prev => {
       const existing = prev[listing.folderName] || { images: [], files: [] };
       return {
@@ -1730,6 +1905,7 @@ export default function Home() {
 
   // Remove one source image from an open Studio session
   const handleStudioRemoveImage = (listing: ListingMetadata, preview: UploadedPreview) => {
+    pendingPersistRef.current.sources.add(listing.folderName);
     setLocalFilesMap(prev => {
       const existing = prev[listing.folderName] || { images: [], files: [] };
       const index = existing.images.findIndex(f => f.name === preview.label);
@@ -1933,9 +2109,19 @@ export default function Home() {
       if (item.materials) formData.append('materials', item.materials);
       if (item.productionPartners) formData.append('productionPartners', item.productionPartners);
 
-      // Rendered MockupGen composites lead the gallery as listing covers
-      (mockupResultsMap[item.folderName] || []).forEach(mockup => formData.append('image', mockup.file));
-      sessionFiles.images.forEach(file => formData.append('image', file));
+      // Photo package, in cover order: mockups → per-type info extras →
+      // original source images. Etsy allows up to 20 photos per listing.
+      const ETSY_MAX_PHOTOS = 20;
+      const extras = await fetchListingExtras(item.productType);
+      const photoFiles: File[] = [
+        ...(mockupResultsMap[item.folderName] || []).map(mockup => mockup.file),
+        ...extras.map(extra => extra.file),
+        ...sessionFiles.images
+      ];
+      if (photoFiles.length > ETSY_MAX_PHOTOS) {
+        toast.info(`Etsy allows ${ETSY_MAX_PHOTOS} photos — ${photoFiles.length - ETSY_MAX_PHOTOS} trimmed from the end of the package.`);
+      }
+      photoFiles.slice(0, ETSY_MAX_PHOTOS).forEach(file => formData.append('image', file));
       sessionFiles.files.forEach(file => formData.append('file', file));
 
       const res = await fetch('/api/etsy/create-listing', {
@@ -1977,6 +2163,7 @@ export default function Home() {
     const docPath = `users/${user.uid}/listings/${item.id}`;
     try {
       await deleteDoc(doc(db, docPath));
+      deleteListingAssets(user.uid, item.folderName).catch(() => { });
       toast.success("Listing draft discarded from database.");
     } catch (err: any) {
       toast.error("Discard failed: " + err.message);
@@ -1996,6 +2183,14 @@ export default function Home() {
     setSelectedPreviewIndex(0);
     setDescTab('preview');
     setIsDialogOpen(true);
+
+    // Append the per-type info extras to the gallery once they load
+    fetchListingExtras(item.productType).then(extras => {
+      if (extras.length === 0) return;
+      setSourcePreviewImages(prev => prev.some(p => p.id.startsWith('extra-'))
+        ? prev
+        : [...prev, ...extras.map((extra, index) => ({ id: `extra-${index}`, label: extra.file.name, image: extra.url }))]);
+    });
   };
 
   // Resume a whole project: load ALL its listings into the session
@@ -2018,6 +2213,7 @@ export default function Home() {
       const docPath = `users/${user.uid}/listings/${item.id}`;
       try {
         await deleteDoc(doc(db, docPath));
+        deleteListingAssets(user.uid, item.folderName).catch(() => { });
       } catch (err: any) {
         toast.error(`Failed to discard "${item.folderName}": ${err.message}`);
         return;
@@ -5017,7 +5213,7 @@ export default function Home() {
                         <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
                           <span className="bg-[#ed6f5c] text-white text-[7px] font-mono tracking-wider px-1.5 py-0.5 rounded-full uppercase font-bold">
-                            {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : 'Uploaded'}
+                            {selectedPreview.id.startsWith('mockup-') ? 'Mockup' : selectedPreview.id.startsWith('extra-') ? 'Info' : 'Uploaded'}
                           </span>
                         </div>
                       </div>
