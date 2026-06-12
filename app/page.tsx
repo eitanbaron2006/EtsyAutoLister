@@ -113,6 +113,7 @@ type ListingMetadata = {
   productType?: string; // 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
   pipelineStepText?: string;
   mockupImage?: string; // Legacy saved preview from older drafts.
+  mockupNote?: string | null; // admin note: not enough suitable templates on the render server
   quantity?: number;
   listingType?: string;
   renewalOption?: string;
@@ -1610,15 +1611,15 @@ export default function Home() {
     images: File[],
     templateIds?: string[],
     options?: { append?: boolean; frameAssignments?: Record<number, string> }
-  ): Promise<GeneratedMockup[]> => {
+  ): Promise<{ mockups: GeneratedMockup[]; shortfallNote: string | null }> => {
     const artworks = images.filter(isMockupGenSupportedImage);
-    if (artworks.length === 0) return [];
+    if (artworks.length === 0) return { mockups: [], shortfallNote: null };
 
     const healthy = await checkMockupGenHealth();
     setMockupServerStatus(healthy ? 'online' : 'offline');
     if (!healthy) {
       toast.warning('MockupGen server is offline — skipping mockup rendering for this run.');
-      return [];
+      return { mockups: [], shortfallNote: null };
     }
 
     const MAX_ITEMS = 20; // server limit per batch request
@@ -1682,67 +1683,84 @@ export default function Home() {
       }
     }
 
-    // MAIN cover: every product leads with exactly ONE thumbnail mockup from
-    // a main-* category (main-horizontal / main-vertical / main-square),
-    // matched to the lead artwork's orientation — it becomes the Etsy cover.
-    // The rest of the plan never touches main templates.
-    const catalog = await getTemplateCatalog();
-    const isMainTemplate = (t: MockupTemplateSummary) => t.product_type.startsWith('main-');
-    const userPickedMain = (templateIds || []).some(id => {
-      const picked = catalog.find(t => t.template_id === id);
-      return picked ? isMainTemplate(picked) : false;
-    });
-    if (!userPickedMain && catalog.length > 0) {
-      const leadOrientation = await getImageOrientation(artworks[0]);
-      const wantedCategory = leadOrientation === 'landscape' ? 'main-horizontal'
-        : leadOrientation === 'portrait' ? 'main-vertical' : 'main-square';
-      let pool = catalog.filter(t => t.product_type === wantedCategory);
-      if (pool.length === 0) pool = catalog.filter(isMainTemplate);
-      if (pool.length > 0) {
-        // Seeded by the artwork file so bulk products get varied covers
-        // while staying deterministic per product
-        const seed = artworks[0].size + artworks[0].lastModified + artworks[0].name.length;
-        const mainTemplate = pool[seed % pool.length];
-        fileMap['artwork_0'] = artworks[0];
-        fieldToName['artwork_0'] = artworks[0].name;
-        items.unshift({ id: `main-${mainTemplate.template_id}`, artworks: 'artwork_0', template_id: mainTemplate.template_id });
-      }
-    }
-
-    // Top up to MIN_MOCKUPS: extra single renders on distinct non-main
-    // templates whose orientation matches each artwork (sets get their set
-    // mockup first, then each image individually in a fitting frame).
-    if (items.length < MIN_MOCKUPS) {
-      const fillCatalog = catalog.filter(t => !isMainTemplate(t));
-      if (fillCatalog.length > 0) {
-        const usedTemplates = new Set<string>(
-          items.map(item => item.template_id).filter((id): id is string => Boolean(id))
-        );
-        const fillArtworks = artworks.slice(0, MAX_SET_ARTWORKS);
-        const orientations = await Promise.all(fillArtworks.map(file => getImageOrientation(file)));
-        let cursor = 0;
-        let guard = 0;
-        while (items.length < Math.min(MIN_MOCKUPS, MAX_ITEMS) && guard < fillCatalog.length * 2) {
-          guard++;
-          const index = cursor % fillArtworks.length;
-          const field = `artwork_${index}`;
-          fileMap[field] = fillArtworks[index];
-          fieldToName[field] = fillArtworks[index].name;
-          const orientation = orientations[index];
-          const pick = fillCatalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation)
-            || fillCatalog.find(t => !usedTemplates.has(t.template_id));
-          if (!pick) break; // distinct templates exhausted
-          usedTemplates.add(pick.template_id);
-          items.push({ id: `fill-${index}-${pick.template_id}`, artworks: field, template_id: pick.template_id });
-          cursor++;
+    // MAIN cover + top-up apply only to fresh plans — a re-render of one
+    // specific mockup (options.append) must not grow into a whole package.
+    let shortfallNote: string | null = null;
+    if (!options?.append) {
+      // MAIN cover: every product leads with exactly ONE thumbnail mockup
+      // from a main-* category (main-horizontal / main-vertical /
+      // main-square), matched to the lead artwork's orientation — it becomes
+      // the Etsy cover. The rest of the plan never touches main templates.
+      const catalog = await getTemplateCatalog();
+      const isMainTemplate = (t: MockupTemplateSummary) => t.product_type.startsWith('main-');
+      const planArtworks = artworks.slice(0, MAX_SET_ARTWORKS);
+      const planOrientations = await Promise.all(planArtworks.map(file => getImageOrientation(file)));
+      const userPickedMain = (templateIds || []).some(id => {
+        const picked = catalog.find(t => t.template_id === id);
+        return picked ? isMainTemplate(picked) : false;
+      });
+      if (!userPickedMain && catalog.length > 0) {
+        const leadOrientation = planOrientations[0];
+        const wantedCategory = leadOrientation === 'landscape' ? 'main-horizontal'
+          : leadOrientation === 'portrait' ? 'main-vertical' : 'main-square';
+        const pool = catalog.filter(t => t.product_type === wantedCategory);
+        if (pool.length > 0) {
+          // Seeded by the artwork file so bulk products get varied covers
+          // while staying deterministic per product
+          const seed = artworks[0].size + artworks[0].lastModified + artworks[0].name.length;
+          const mainTemplate = pool[seed % pool.length];
+          fileMap['artwork_0'] = artworks[0];
+          fieldToName['artwork_0'] = artworks[0].name;
+          items.unshift({ id: `main-${mainTemplate.template_id}`, artworks: 'artwork_0', template_id: mainTemplate.template_id });
         }
       }
-      if (items.length === 0) {
-        // Catalog unreachable — fall back to a single auto-matched render
-        const field = 'artwork_0';
-        fileMap[field] = artworks[0];
-        fieldToName[field] = artworks[0].name;
-        items.push({ id: 'single-auto', artworks: field });
+
+      // Top up towards MIN_MOCKUPS using ONLY orientation-matched, non-main
+      // templates. Never force unsuitable templates just to reach the count —
+      // a shortfall is reported on the listing for the admin instead.
+      if (items.length < MIN_MOCKUPS) {
+        const fillCatalog = catalog.filter(t => !isMainTemplate(t));
+        if (fillCatalog.length > 0) {
+          const usedTemplates = new Set<string>(
+            items.map(item => item.template_id).filter((id): id is string => Boolean(id))
+          );
+          let cursor = 0;
+          let guard = 0;
+          let consecutiveMisses = 0;
+          while (items.length < Math.min(MIN_MOCKUPS, MAX_ITEMS) && guard < fillCatalog.length * 2) {
+            guard++;
+            const index = cursor % planArtworks.length;
+            const field = `artwork_${index}`;
+            const orientation = planOrientations[index];
+            // Strict orientation match only — no "any template" fallback
+            const pick = fillCatalog.find(t => !usedTemplates.has(t.template_id) && t.orientation === orientation);
+            if (!pick) {
+              consecutiveMisses++;
+              if (consecutiveMisses >= planArtworks.length) break; // no artwork has matches left
+              cursor++;
+              continue;
+            }
+            consecutiveMisses = 0;
+            fileMap[field] = planArtworks[index];
+            fieldToName[field] = planArtworks[index].name;
+            usedTemplates.add(pick.template_id);
+            items.push({ id: `fill-${index}-${pick.template_id}`, artworks: field, template_id: pick.template_id });
+            cursor++;
+          }
+        }
+        if (items.length === 0) {
+          // Catalog unreachable — fall back to a single auto-matched render
+          const field = 'artwork_0';
+          fileMap[field] = artworks[0];
+          fieldToName[field] = artworks[0].name;
+          items.push({ id: 'single-auto', artworks: field });
+        }
+      }
+
+      if (items.length < MIN_MOCKUPS) {
+        const neededOrientations = Array.from(new Set(planOrientations)).join(' / ');
+        shortfallNote = `Only ${items.length} of ${MIN_MOCKUPS} suitable mockups — add more ${neededOrientations} templates on the render server.`;
+        toast.info(shortfallNote);
       }
     }
 
@@ -1793,7 +1811,7 @@ export default function Home() {
         return { ...prev, [folderName]: results };
       });
     }
-    return results;
+    return { mockups: results, shortfallNote };
   };
 
   // Drop one rendered mockup from the session results
@@ -1822,7 +1840,7 @@ export default function Home() {
     });
     setIsRenderingMockups(true);
     try {
-      const replacements = await generateListingMockups(
+      const { mockups: replacements } = await generateListingMockups(
         folderName,
         sources,
         mockup.templateId ? [mockup.templateId] : undefined,
@@ -1849,7 +1867,15 @@ export default function Home() {
     assignments?: Record<number, string>
   ): Promise<GeneratedMockup[]> => {
     const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
-    const results = await generateListingMockups(folderName, sessionFiles.images, templateIds, { frameAssignments: assignments });
+    const { mockups: results, shortfallNote } = await generateListingMockups(folderName, sessionFiles.images, templateIds, { frameAssignments: assignments });
+
+    if (user) {
+      // Record (or clear) the admin note about missing suitable templates
+      await setDoc(doc(db, `users/${user.uid}/listings/${listingId}`), {
+        mockupNote: shortfallNote,
+        updatedAt: serverTimestamp()
+      }, { merge: true }).catch(() => { });
+    }
 
     if (results.length > 0 && user) {
       try {
@@ -4699,6 +4725,15 @@ export default function Home() {
                   <span className="text-[9px] text-[#8b8676] font-mono select-none">applies to every render, including bulk runs</span>
                 </div>
 
+                {/* Admin note: the server lacks enough suitable templates */}
+                {activeStudioListing.mockupNote && (
+                  <div className="p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-[10px] leading-relaxed relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#ed6f5c]" />
+                    <span className="font-mono font-bold text-[8.5px] uppercase tracking-wider text-[#ed6f5c] block mb-0.5 select-none">Template Shortage</span>
+                    {activeStudioListing.mockupNote}
+                  </div>
+                )}
+
                 {/* Template browser */}
                 {isBrowsingTemplates && (
                   <div className="space-y-3 border border-[rgba(21,20,15,0.12)] rounded-xl p-4 bg-[#ece4cf]/30">
@@ -5385,6 +5420,11 @@ export default function Home() {
                                     {listingItem.pipelineStepText && (
                                       <span className="block text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
                                         {listingItem.pipelineStepText}
+                                      </span>
+                                    )}
+                                    {listingItem.mockupNote && (
+                                      <span className="block text-[9px] text-[#ed6f5c] mt-1 leading-tight font-bold max-w-[200px] truncate" title={listingItem.mockupNote}>
+                                        {"⚠ "}{listingItem.mockupNote}
                                       </span>
                                     )}
                                   </div>
