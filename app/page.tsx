@@ -4731,541 +4731,541 @@ export default function Home() {
         ) : (
           <>
 
-        {/* Workspace Redirect Alert */}
-        {selectedMode === 'etsy' && (
-          <Card className="bg-[#ece4cf]/30 border-[rgba(21,20,15,0.16)] shadow-none relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 bg-[#ed6f5c] h-full" />
-            <CardHeader className="py-4 px-6">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider text-[#8C6D4F]">Active Redirect Endpoint for Etsy Developer Portal</CardTitle>
-              <CardDescription className="text-[#6B655B] text-xs mt-1">
-                Confirm your callback settings matches this secure host:
-              </CardDescription>
-              <div className="pt-2">
-                <code className="bg-[#FAF8F5] text-[#191919] px-3 py-1 border border-[#E5DEC9] rounded font-mono text-[11px] inline-block shadow-none">
-                  {globalAppUrl}/api/auth/etsy/callback
-                </code>
-              </div>
-            </CardHeader>
-          </Card>
-        )}
-
-        {/* Studio floor: intake rail (left) + production area (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-          {/* ---- Intake rail ---- */}
-          <div className="lg:col-span-4 space-y-6">
-
-          {/* Staging tray: mix sets and singles — each card becomes a product */}
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col">
-            <CardHeader className="pb-3 p-5">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Product Staging Tray</CardTitle>
-                  <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-0.5">
-                    Mix sets and singles freely — every card below becomes its own product.
+            {/* Workspace Redirect Alert */}
+            {selectedMode === 'etsy' && (
+              <Card className="bg-[#ece4cf]/30 border-[rgba(21,20,15,0.16)] shadow-none relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 bg-[#ed6f5c] h-full" />
+                <CardHeader className="py-4 px-6">
+                  <CardTitle className="text-xs font-mono uppercase tracking-wider text-[#8C6D4F]">Active Redirect Endpoint for Etsy Developer Portal</CardTitle>
+                  <CardDescription className="text-[#6B655B] text-xs mt-1">
+                    Confirm your callback settings matches this secure host:
                   </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-5 pt-0 space-y-4">
-
-              {/* Two intake actions: singles vs a set */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <div
-                  className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
-                  onClick={() => rawFileInputRef.current?.click()}
-                >
-                  <ImageIcon className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
-                  <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add Singles</span>
-                  <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">each image → product</span>
-                </div>
-                <div
-                  className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
-                  onClick={() => setFileInputRef.current?.click()}
-                >
-                  <Layers className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
-                  <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add a Set</span>
-                  <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">picked files → one product</span>
-                </div>
-              </div>
-              <input type="file" ref={rawFileInputRef} accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAddSingleProducts} />
-              <input type="file" ref={setFileInputRef} multiple className="hidden" onChange={handleAddSetProduct} />
-
-              {stagedProducts.length > 0 ? (
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf] font-bold">
-                      {"▪ STAGED PRODUCTS"} ({stagedProducts.length})
-                    </span>
-                    <Button type="button" size="xs" variant="ghost" onClick={clearStagedProducts} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
-                      Discard All
-                    </Button>
+                  <div className="pt-2">
+                    <code className="bg-[#FAF8F5] text-[#191919] px-3 py-1 border border-[#E5DEC9] rounded font-mono text-[11px] inline-block shadow-none">
+                      {globalAppUrl}/api/auth/etsy/callback
+                    </code>
                   </div>
+                </CardHeader>
+              </Card>
+            )}
 
-                  <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                    {stagedProducts.map(product => {
-                      const isSelected = stagedSelection.includes(product.id);
-                      return (
-                        <div
-                          key={product.id}
-                          onClick={() => toggleStagedSelect(product.id)}
-                          className={`flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${isSelected
-                            ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c] bg-[#ed6f5c]/5'
-                            : 'border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2]/40 dark:bg-[#12110c]/40 hover:border-[#ed6f5c]/40'
-                            }`}
-                          title={product.name}
-                        >
-                          {/* Collage thumbnail: single image or up-to-4 set grid */}
-                          <div
-                            className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] cursor-zoom-in"
-                            onMouseEnter={(e) => setHoverThumb({
-                              urls: product.images.slice(0, 4).map(img => img.url),
-                              label: product.name,
-                              x: Math.min(e.clientX, window.innerWidth - 320),
-                              y: e.clientY
-                            })}
-                            onMouseLeave={() => setHoverThumb(null)}
-                          >
-                            {product.images.length === 1 ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
-                                {product.images.slice(0, 4).map(img => (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img key={img.id} src={img.url} alt="" className="w-full h-full object-cover" />
-                                ))}
-                              </div>
-                            )}
-                          </div>
+            {/* Studio floor: intake rail (left) + production area (right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[10.5px] font-medium text-[#15140f] dark:text-[#f7f1de] block truncate">{product.name}</span>
-                            <span className={`text-[8px] font-mono font-bold uppercase tracking-wider ${product.kind === 'set' ? 'text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}`}>
-                              {product.kind === 'set' ? `Set · ${product.images.length} images` : 'Single'}
-                              {product.files.length > 0 ? ` · ${product.files.length} file${product.files.length === 1 ? '' : 's'}` : ''}
-                            </span>
-                          </div>
+              {/* ---- Intake rail ---- */}
+              <div className="lg:col-span-4 space-y-6">
 
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            {product.kind === 'set' && product.images.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); ungroupStagedSet(product.id); }}
-                                className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
-                                title="Split back into singles"
+                {/* Staging tray: mix sets and singles — each card becomes a product */}
+                <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col">
+                  <CardHeader className="pb-3 p-5">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Product Staging Tray</CardTitle>
+                        <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-0.5">
+                          Mix sets and singles freely — every card below becomes its own product.
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-5 pt-0 space-y-4">
+
+                    {/* Two intake actions: singles vs a set */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div
+                        className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                        onClick={() => rawFileInputRef.current?.click()}
+                      >
+                        <ImageIcon className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
+                        <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add Singles</span>
+                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">each image → product</span>
+                      </div>
+                      <div
+                        className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                        onClick={() => setFileInputRef.current?.click()}
+                      >
+                        <Layers className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
+                        <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add a Set</span>
+                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">picked files → one product</span>
+                      </div>
+                    </div>
+                    <input type="file" ref={rawFileInputRef} accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAddSingleProducts} />
+                    <input type="file" ref={setFileInputRef} multiple className="hidden" onChange={handleAddSetProduct} />
+
+                    {stagedProducts.length > 0 ? (
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#5a5448] dark:text-[#ece4cf] font-bold">
+                            {"▪ STAGED PRODUCTS"} ({stagedProducts.length})
+                          </span>
+                          <Button type="button" size="xs" variant="ghost" onClick={clearStagedProducts} className="text-[#ed6f5c] hover:text-[#e25e4a] text-[9px] font-mono uppercase h-6 hover:bg-transparent cursor-pointer">
+                            Discard All
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                          {stagedProducts.map(product => {
+                            const isSelected = stagedSelection.includes(product.id);
+                            return (
+                              <div
+                                key={product.id}
+                                onClick={() => toggleStagedSelect(product.id)}
+                                className={`flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${isSelected
+                                  ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c] bg-[#ed6f5c]/5'
+                                  : 'border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2]/40 dark:bg-[#12110c]/40 hover:border-[#ed6f5c]/40'
+                                  }`}
+                                title={product.name}
                               >
-                                <Layers2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                                {/* Collage thumbnail: single image or up-to-4 set grid */}
+                                <div
+                                  className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] cursor-zoom-in"
+                                  onMouseEnter={(e) => setHoverThumb({
+                                    urls: product.images.slice(0, 4).map(img => img.url),
+                                    label: product.name,
+                                    x: Math.min(e.clientX, window.innerWidth - 320),
+                                    y: e.clientY
+                                  })}
+                                  onMouseLeave={() => setHoverThumb(null)}
+                                >
+                                  {product.images.length === 1 ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
+                                      {product.images.slice(0, 4).map(img => (
+                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                        <img key={img.id} src={img.url} alt="" className="w-full h-full object-cover" />
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-[10.5px] font-medium text-[#15140f] dark:text-[#f7f1de] block truncate">{product.name}</span>
+                                  <span className={`text-[8px] font-mono font-bold uppercase tracking-wider ${product.kind === 'set' ? 'text-[#ed6f5c]' : 'text-[#8b8676] dark:text-[#a39e8f]'}`}>
+                                    {product.kind === 'set' ? `Set · ${product.images.length} images` : 'Single'}
+                                    {product.files.length > 0 ? ` · ${product.files.length} file${product.files.length === 1 ? '' : 's'}` : ''}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  {product.kind === 'set' && product.images.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); ungroupStagedSet(product.id); }}
+                                      className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
+                                      title="Split back into singles"
+                                    >
+                                      <Layers2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); removeStagedProduct(product.id); }}
+                                    className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
+                                    title="Remove from tray"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <p className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] font-mono leading-relaxed select-none">
+                          Tip: click cards to select, then merge them into one set.
+                        </p>
+
+                        {stagedSelection.length >= 2 && (
+                          <Button
+                            type="button"
+                            onClick={mergeSelectedIntoSet}
+                            variant="outline"
+                            className="w-full bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] uppercase tracking-wider h-9 rounded-full shadow-none cursor-pointer"
+                          >
+                            <Layers className="w-3.5 h-3.5 mr-1.5" /> Merge {stagedSelection.length} into one set
+                          </Button>
+                        )}
+
+                        {activeProject ? (
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c]">
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] block select-none">Active Project</span>
+                              <span className="text-xs font-serif font-medium text-[#15140f] dark:text-[#f7f1de] block truncate" title={activeProject.name}>{activeProject.name}</span>
+                            </div>
                             <button
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); removeStagedProduct(product.id); }}
-                              className="w-6 h-6 rounded-full text-[#8b8676] hover:text-[#ed6f5c] flex items-center justify-center cursor-pointer transition-colors"
-                              title="Remove from tray"
+                              onClick={() => { setActiveProject(null); toast.info('Next creation will start a new project.'); }}
+                              className="text-[9px] font-mono uppercase tracking-wider text-[#ed6f5c] hover:text-[#e25e4a] font-bold shrink-0 cursor-pointer select-none"
+                              title="Detach — the next creation starts a fresh project"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              Start New
                             </button>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        ) : (
+                          <Input
+                            value={projectNameInput}
+                            onChange={(e) => setProjectNameInput(e.target.value)}
+                            placeholder="Project name (optional) — e.g. June Portraits Batch"
+                            className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-9 text-xs focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
+                          />
+                        )}
 
-                  <p className="text-[9px] text-[#8b8676] dark:text-[#a39e8f] font-mono leading-relaxed select-none">
-                    Tip: click cards to select, then merge them into one set.
-                  </p>
-
-                  {stagedSelection.length >= 2 && (
-                    <Button
-                      type="button"
-                      onClick={mergeSelectedIntoSet}
-                      variant="outline"
-                      className="w-full bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[10px] uppercase tracking-wider h-9 rounded-full shadow-none cursor-pointer"
-                    >
-                      <Layers className="w-3.5 h-3.5 mr-1.5" /> Merge {stagedSelection.length} into one set
-                    </Button>
-                  )}
-
-                  {activeProject ? (
-                    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c]">
-                      <div className="min-w-0">
-                        <span className="text-[8px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] block select-none">Active Project</span>
-                        <span className="text-xs font-serif font-medium text-[#15140f] dark:text-[#f7f1de] block truncate" title={activeProject.name}>{activeProject.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setActiveProject(null); toast.info('Next creation will start a new project.'); }}
-                        className="text-[9px] font-mono uppercase tracking-wider text-[#ed6f5c] hover:text-[#e25e4a] font-bold shrink-0 cursor-pointer select-none"
-                        title="Detach — the next creation starts a fresh project"
-                      >
-                        Start New
-                      </button>
-                    </div>
-                  ) : (
-                    <Input
-                      value={projectNameInput}
-                      onChange={(e) => setProjectNameInput(e.target.value)}
-                      placeholder="Project name (optional) — e.g. June Portraits Batch"
-                      className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#efe7d2] dark:bg-[#12110c] text-[#15140f] dark:text-[#f7f1de] placeholder-[#8b8676]/70 dark:placeholder-[#a39e8f]/70 shadow-none h-9 text-xs focus:border-[#ed6f5c] focus:ring-0 rounded-lg"
-                    />
-                  )}
-
-                  <Button
-                    type="button"
-                    onClick={handleCreateStagedProducts}
-                    disabled={isUploadingRaw}
-                    className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
-                  >
-                    {isUploadingRaw ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Creating Products...
-                      </>
-                    ) : activeProject ? (
-                      <>
-                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add {stagedProducts.length} to Project
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5 mr-1.5" /> Create {stagedProducts.length} Product{stagedProducts.length === 1 ? '' : 's'}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] font-mono block leading-relaxed select-none">
-                    Nothing staged yet. Example: add 3 sets + 10 singles<br />→ 13 products created in one click.
-                  </span>
-                </div>
-              )}
-            </CardContent>
-
-          </Card>
-
-          </div>
-
-          {/* ---- Production area ---- */}
-          <div className="lg:col-span-8 space-y-6">
-
-          {/* Compact portfolio statistics strip */}
-          <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none px-5 py-3.5 font-sans">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#5a5448] dark:text-[#ece4cf] shrink-0">
-                  <FolderOpen className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.total}</h3>
-                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">In Session</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-[#efe7d2] dark:bg-[#12110c] border border-[#ed6f5c]/20 rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-serif font-medium text-[#ed6f5c] leading-none">{sessionCohort.activePipeline + sessionCohort.unprocessedIdle}</h3>
-                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Processing</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.readyDrafts}</h3>
-                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Ready Drafts</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[#6e7448]/20 rounded-lg flex items-center justify-center text-[#6e7448] dark:text-[#9ea671] shrink-0">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.publishedHistory}</h3>
-                  <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Live on Etsy</p>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-        {/* Categories Tab and Database portfolio table list */}
-        <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
-          <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] p-6 font-sans">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle className="text-base font-serif font-medium text-[#15140f]">Active Session Listings</CardTitle>
-                <CardDescription className="text-[#5a5448] text-xs mt-1 leading-relaxed font-sans">
-                  Products you activated in this session. The full archive lives in the Projects Hub.
-                </CardDescription>
-              </div>
-
-              <div className="flex items-center gap-3 self-start sm:self-center flex-wrap">
-                {/* Bulk compile — the primary production action */}
-                <Button
-                  onClick={runAllIdleListings}
-                  disabled={!!bulkProgress || isRunningAutopilot || sessionCohort.unprocessedIdle === 0}
-                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs h-9 flex items-center shadow-none font-serif font-medium px-5 rounded-full cursor-pointer transition-colors"
-                >
-                  {bulkProgress ? (
-                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Compiling {bulkProgress.done}/{bulkProgress.total}...</>
-                  ) : (
-                    <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Compile All ({sessionCohort.unprocessedIdle})</>
-                  )}
-                </Button>
-
-                {/* Status Tabs Category Selection */}
-                <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] overflow-x-auto uppercase tracking-wider">
-                  <button
-                    onClick={() => setFilterTab('all')}
-                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
-                  >
-                    All ({sessionCohort.total})
-                  </button>
-                  <button
-                    onClick={() => setFilterTab('pipeline')}
-                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${filterTab === 'pipeline' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
-                  >
-                    <Loader2 className={`w-3 h-3 ${sessionCohort.activePipeline > 0 ? "animate-spin text-[#ed6f5c]" : ""}`} />
-                    Active ({sessionCohort.activePipeline + sessionCohort.unprocessedIdle})
-                  </button>
-                  <button
-                    onClick={() => setFilterTab('ready')}
-                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
-                  >
-                    Ready ({sessionCohort.readyDrafts})
-                  </button>
-                  <button
-                    onClick={() => setFilterTab('published')}
-                    className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
-                  >
-                    Live ({sessionCohort.publishedHistory})
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </CardHeader>
-
-          <CardContent className="px-0 py-0">
-            {sessionFilteredListings.length === 0 ? (
-              <div className="text-center py-16 px-4 space-y-3">
-                <FileText className="w-10 h-10 text-[#8b8676] mx-auto opacity-60" />
-                <h3 className="text-[#15140f] font-serif font-medium text-sm">No active listings in this session</h3>
-                <p className="text-[#5a5448] text-xs max-w-xs mx-auto font-sans">
-                  Stage products in the tray on the left, or continue an existing one from the Projects Hub.
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/30 hover:bg-transparent">
-                    <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pl-6 h-10">Collection / Folder</TableHead>
-                    <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Class</TableHead>
-                    <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Task Level</TableHead>
-                    <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Live Mockup Thumb</TableHead>
-                    <TableHead className="text-right text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pr-6 h-10">Workflow Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessionFilteredListings.map((listingItem) => {
-                    const sessionItem = localFilesMap[listingItem.folderName];
-                    const activeSessionCount = sessionItem
-                      ? `${sessionItem.images.length} Image(s), ${sessionItem.files.length} Template(s)`
-                      : "Ready to run optimization";
-
-                    // Flag corresponding to progress styles
-                    const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
-
-                    return (
-                      <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] bg-transparent hover:bg-[#ece4cf]/30 transition-colors">
-
-                        {/* Title of Listing / Folder name + source thumbnail */}
-                        <TableCell className="pl-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] cursor-zoom-in"
-                              onMouseEnter={(e) => {
-                                const urls = sourceThumbsMap[listingItem.folderName] || [];
-                                if (urls.length > 0) {
-                                  setHoverThumb({ urls, label: listingItem.folderName, x: Math.min(e.clientX, window.innerWidth - 320), y: e.clientY });
-                                }
-                              }}
-                              onMouseLeave={() => setHoverThumb(null)}
-                            >
-                              {(() => {
-                                const urls = sourceThumbsMap[listingItem.folderName] || [];
-                                if (urls.length === 0) {
-                                  return <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#8b8676]" /></div>;
-                                }
-                                if (urls.length === 1) {
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  return <img src={urls[0]} alt={listingItem.folderName} className="w-full h-full object-cover" />;
-                                }
-                                return (
-                                  <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
-                                    {urls.slice(0, 4).map((url, idx) => (
-                                      /* eslint-disable-next-line @next/next/no-img-element */
-                                      <img key={idx} src={url} alt="" className="w-full h-full object-cover" />
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-serif font-medium text-[#15140f] text-sm leading-tight block max-w-[180px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
-                              <span className="text-[10px] text-[#5a5448] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
-                                <FileCode className="w-3.5 h-3.5 text-[#8b8676]" /> {activeSessionCount}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* Product Class */}
-                        <TableCell className="align-middle">
-                          <span className="text-[#5a5448] font-mono text-[10px] uppercase font-bold bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] px-2 py-0.5 rounded">
-                            {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
-                              listingItem.productType === 'printable_wallart' ? 'Wall Art' :
-                                listingItem.productType === 'presets' ? 'Presets Filters' : 'Journals PDF'}
-                          </span>
-                        </TableCell>
-
-                        {/* Pipelines Process Status with step-by-step progress updates */}
-                        <TableCell className="align-middle">
-                          <div className="flex flex-col">
-
-                            {/* Standard badge indicators */}
-                            <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
-                              ${listingItem.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
-                                isInProgressPipeline ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
-                                  listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                    'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
-                              }`}>
-                              {listingItem.status === 'idle' && 'Waiting to Compile'}
-                              {listingItem.status === 'scanning' && 'Scanning Blueprints'}
-                              {listingItem.status === 'mockups' && 'Framing Canvas'}
-                              {listingItem.status === 'thumbnail' && 'Branding Covers'}
-                              {listingItem.status === 'compiling' && 'Packaging ZIP File'}
-                              {listingItem.status === 'seo' && 'Analyzing SEO Metadata'}
-                              {listingItem.status === 'ready' && 'Ready to Publish'}
-                              {listingItem.status === 'published' && 'Listed live on Etsy'}
-                            </span>
-
-                            {/* Active textual walkthrough updates */}
-                            {listingItem.pipelineStepText && (
-                              <span className="block text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
-                                {listingItem.pipelineStepText}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        {/* Inline visual representation thumbnail mock indicator */}
-                        <TableCell className="align-middle">
-                          {listingItem.mockupImage ? (
-                            <div className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={listingItem.mockupImage}
-                                alt="mockup thumb"
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              />
-                            </div>
+                        <Button
+                          type="button"
+                          onClick={handleCreateStagedProducts}
+                          disabled={isUploadingRaw}
+                          className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
+                        >
+                          {isUploadingRaw ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Creating Products...
+                            </>
+                          ) : activeProject ? (
+                            <>
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add {stagedProducts.length} to Project
+                            </>
                           ) : (
-                            <span className="text-[#8b8676] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
+                            <>
+                              <Plus className="w-3.5 h-3.5 mr-1.5" /> Create {stagedProducts.length} Product{stagedProducts.length === 1 ? '' : 's'}
+                            </>
                           )}
-                        </TableCell>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <span className="text-[10px] text-[#8b8676] dark:text-[#a39e8f] font-mono block leading-relaxed select-none">
+                          Nothing staged yet. Example: add 3 sets + 10 singles<br />→ 13 products created in one click.
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
 
-                        {/* Interactive trigger controls */}
-                        <TableCell className="text-right pr-6 align-middle">
-                          <div className="flex items-center justify-end gap-1.5">
+                </Card>
 
-                            {listingItem.status === 'idle' && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => openStudio(listingItem)}
-                                  className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
-                                  title="Open in Mockup Studio"
-                                >
-                                  <Camera className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => runAutomatedAIPipeline(listingItem)}
-                                  disabled={!!bulkProgress || isRunningAutopilot || !localFilesMap[listingItem.folderName]?.images.length}
-                                  className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
-                                >
-                                  <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
-                                  <span>Run</span>
-                                </Button>
-                              </>
-                            )}
+              </div>
 
-                            {isInProgressPipeline && (
-                              <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30 text-[#5a5448] text-xs max-h-8 rounded-lg select-none">
-                                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin text-[#ed6f5c]" />
-                                <span>Running AI...</span>
-                              </Button>
-                            )}
+              {/* ---- Production area ---- */}
+              <div className="lg:col-span-8 space-y-6">
 
-                            {['ready', 'published'].includes(listingItem.status) && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => openStudio(listingItem)}
-                                  className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
-                                  title="Open in Mockup Studio"
-                                >
-                                  <Camera className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => openPreviewPanel(listingItem)}
-                                  className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
-                                  variant="default"
-                                >
-                                  {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
-                                  <span>{listingItem.status === 'published' ? 'Review Listed' : 'Open Draft'}</span>
-                                </Button>
-                              </>
-                            )}
+                {/* Compact portfolio statistics strip */}
+                <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none px-5 py-3.5 font-sans">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#5a5448] dark:text-[#ece4cf] shrink-0">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.total}</h3>
+                        <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">In Session</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-[#efe7d2] dark:bg-[#12110c] border border-[#ed6f5c]/20 rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
+                        <Cpu className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-serif font-medium text-[#ed6f5c] leading-none">{sessionCohort.activePipeline + sessionCohort.unprocessedIdle}</h3>
+                        <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Processing</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-lg flex items-center justify-center text-[#ed6f5c] shrink-0">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.readyDrafts}</h3>
+                        <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Ready Drafts</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 bg-[#ece4cf]/60 dark:bg-[#22211b] border border-[#6e7448]/20 rounded-lg flex items-center justify-center text-[#6e7448] dark:text-[#9ea671] shrink-0">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">{sessionCohort.publishedHistory}</h3>
+                        <p className="text-[8.5px] font-mono uppercase tracking-wider text-[#8b8676] dark:text-[#a39e8f] mt-0.5 truncate">Live on Etsy</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
 
-                            {/* Discard / Delete element */}
-                            {!isInProgressPipeline && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleDeleteListingDraft(listingItem)}
-                                className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
-                                title="Discard listing task"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
+                {/* Categories Tab and Database portfolio table list */}
+                <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
+                  <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] p-6 font-sans">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-base font-serif font-medium text-[#15140f]">Active Session Listings</CardTitle>
+                        <CardDescription className="text-[#5a5448] text-xs mt-1 leading-relaxed font-sans">
+                          Products you activated in this session. The full archive lives in the Projects Hub.
+                        </CardDescription>
+                      </div>
 
-                          </div>
-                        </TableCell>
+                      <div className="flex items-center gap-3 self-start sm:self-center flex-wrap">
+                        {/* Bulk compile — the primary production action */}
+                        <Button
+                          onClick={runAllIdleListings}
+                          disabled={!!bulkProgress || isRunningAutopilot || sessionCohort.unprocessedIdle === 0}
+                          className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs h-9 flex items-center shadow-none font-serif font-medium px-5 rounded-full cursor-pointer transition-colors"
+                        >
+                          {bulkProgress ? (
+                            <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Compiling {bulkProgress.done}/{bulkProgress.total}...</>
+                          ) : (
+                            <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Compile All ({sessionCohort.unprocessedIdle})</>
+                          )}
+                        </Button>
 
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                        {/* Status Tabs Category Selection */}
+                        <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] overflow-x-auto uppercase tracking-wider">
+                          <button
+                            onClick={() => setFilterTab('all')}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                          >
+                            All ({sessionCohort.total})
+                          </button>
+                          <button
+                            onClick={() => setFilterTab('pipeline')}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${filterTab === 'pipeline' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                          >
+                            <Loader2 className={`w-3 h-3 ${sessionCohort.activePipeline > 0 ? "animate-spin text-[#ed6f5c]" : ""}`} />
+                            Active ({sessionCohort.activePipeline + sessionCohort.unprocessedIdle})
+                          </button>
+                          <button
+                            onClick={() => setFilterTab('ready')}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                          >
+                            Ready ({sessionCohort.readyDrafts})
+                          </button>
+                          <button
+                            onClick={() => setFilterTab('published')}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                          >
+                            Live ({sessionCohort.publishedHistory})
+                          </button>
+                        </div>
+                      </div>
 
-          </div>
+                    </div>
+                  </CardHeader>
 
-        </div>
+                  <CardContent className="px-0 py-0">
+                    {sessionFilteredListings.length === 0 ? (
+                      <div className="text-center py-16 px-4 space-y-3">
+                        <FileText className="w-10 h-10 text-[#8b8676] mx-auto opacity-60" />
+                        <h3 className="text-[#15140f] font-serif font-medium text-sm">No active listings in this session</h3>
+                        <p className="text-[#5a5448] text-xs max-w-xs mx-auto font-sans">
+                          Stage products in the tray on the left, or continue an existing one from the Projects Hub.
+                        </p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/30 hover:bg-transparent">
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pl-6 h-10">Collection / Folder</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Class</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Task Level</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Live Mockup Thumb</TableHead>
+                            <TableHead className="text-right text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pr-6 h-10">Workflow Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sessionFilteredListings.map((listingItem) => {
+                            const sessionItem = localFilesMap[listingItem.folderName];
+                            const activeSessionCount = sessionItem
+                              ? `${sessionItem.images.length} Image(s), ${sessionItem.files.length} Template(s)`
+                              : "Ready to run optimization";
+
+                            // Flag corresponding to progress styles
+                            const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
+
+                            return (
+                              <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] bg-transparent hover:bg-[#ece4cf]/30 transition-colors">
+
+                                {/* Title of Listing / Folder name + source thumbnail */}
+                                <TableCell className="pl-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] cursor-zoom-in"
+                                      onMouseEnter={(e) => {
+                                        const urls = sourceThumbsMap[listingItem.folderName] || [];
+                                        if (urls.length > 0) {
+                                          setHoverThumb({ urls, label: listingItem.folderName, x: Math.min(e.clientX, window.innerWidth - 320), y: e.clientY });
+                                        }
+                                      }}
+                                      onMouseLeave={() => setHoverThumb(null)}
+                                    >
+                                      {(() => {
+                                        const urls = sourceThumbsMap[listingItem.folderName] || [];
+                                        if (urls.length === 0) {
+                                          return <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#8b8676]" /></div>;
+                                        }
+                                        if (urls.length === 1) {
+                                          /* eslint-disable-next-line @next/next/no-img-element */
+                                          return <img src={urls[0]} alt={listingItem.folderName} className="w-full h-full object-cover" />;
+                                        }
+                                        return (
+                                          <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-px">
+                                            {urls.slice(0, 4).map((url, idx) => (
+                                              /* eslint-disable-next-line @next/next/no-img-element */
+                                              <img key={idx} src={url} alt="" className="w-full h-full object-cover" />
+                                            ))}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-serif font-medium text-[#15140f] text-sm leading-tight block max-w-[180px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
+                                      <span className="text-[10px] text-[#5a5448] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
+                                        <FileCode className="w-3.5 h-3.5 text-[#8b8676]" /> {activeSessionCount}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+
+                                {/* Product Class */}
+                                <TableCell className="align-middle">
+                                  <span className="text-[#5a5448] font-mono text-[10px] uppercase font-bold bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] px-2 py-0.5 rounded">
+                                    {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
+                                      listingItem.productType === 'printable_wallart' ? 'Wall Art' :
+                                        listingItem.productType === 'presets' ? 'Presets Filters' : 'Journals PDF'}
+                                  </span>
+                                </TableCell>
+
+                                {/* Pipelines Process Status with step-by-step progress updates */}
+                                <TableCell className="align-middle">
+                                  <div className="flex flex-col">
+
+                                    {/* Standard badge indicators */}
+                                    <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
+                              ${listingItem.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
+                                        isInProgressPipeline ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
+                                          listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
+                                            'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
+                                      }`}>
+                                      {listingItem.status === 'idle' && 'Waiting to Compile'}
+                                      {listingItem.status === 'scanning' && 'Scanning Blueprints'}
+                                      {listingItem.status === 'mockups' && 'Framing Canvas'}
+                                      {listingItem.status === 'thumbnail' && 'Branding Covers'}
+                                      {listingItem.status === 'compiling' && 'Packaging ZIP File'}
+                                      {listingItem.status === 'seo' && 'Analyzing SEO Metadata'}
+                                      {listingItem.status === 'ready' && 'Ready to Publish'}
+                                      {listingItem.status === 'published' && 'Listed live on Etsy'}
+                                    </span>
+
+                                    {/* Active textual walkthrough updates */}
+                                    {listingItem.pipelineStepText && (
+                                      <span className="block text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
+                                        {listingItem.pipelineStepText}
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+
+                                {/* Inline visual representation thumbnail mock indicator */}
+                                <TableCell className="align-middle">
+                                  {listingItem.mockupImage ? (
+                                    <div className="relative w-12 h-9 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={listingItem.mockupImage}
+                                        alt="mockup thumb"
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-[#8b8676] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
+                                  )}
+                                </TableCell>
+
+                                {/* Interactive trigger controls */}
+                                <TableCell className="text-right pr-6 align-middle">
+                                  <div className="flex items-center justify-end gap-1.5">
+
+                                    {listingItem.status === 'idle' && (
+                                      <>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() => openStudio(listingItem)}
+                                          className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                          title="Open in Mockup Studio"
+                                        >
+                                          <Camera className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => runAutomatedAIPipeline(listingItem)}
+                                          disabled={!!bulkProgress || isRunningAutopilot || !localFilesMap[listingItem.folderName]?.images.length}
+                                          className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 text-xs max-h-8 flex items-center shadow-none font-serif font-medium px-4 rounded-full cursor-pointer transition-colors"
+                                        >
+                                          <Wand2 className="w-3.5 h-3.5 mr-1 text-white" />
+                                          <span>Run</span>
+                                        </Button>
+                                      </>
+                                    )}
+
+                                    {isInProgressPipeline && (
+                                      <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30 text-[#5a5448] text-xs max-h-8 rounded-lg select-none">
+                                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin text-[#ed6f5c]" />
+                                        <span>Running AI...</span>
+                                      </Button>
+                                    )}
+
+                                    {['ready', 'published'].includes(listingItem.status) && (
+                                      <>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() => openStudio(listingItem)}
+                                          className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                          title="Open in Mockup Studio"
+                                        >
+                                          <Camera className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => openPreviewPanel(listingItem)}
+                                          className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
+                                          variant="default"
+                                        >
+                                          {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
+                                          <span>{listingItem.status === 'published' ? 'Review Listed' : 'Open Draft'}</span>
+                                        </Button>
+                                      </>
+                                    )}
+
+                                    {/* Discard / Delete element */}
+                                    {!isInProgressPipeline && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteListingDraft(listingItem)}
+                                        className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                        title="Discard listing task"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    )}
+
+                                  </div>
+                                </TableCell>
+
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+
+              </div>
+
+            </div>
 
           </>
         )}
@@ -5335,7 +5335,7 @@ export default function Home() {
                     </div>
 
                     {selectedPreview ? (
-                      <div className="relative h-32 w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
+                      <div className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={selectedPreview.image} alt="mockup" className="w-full h-full object-contain bg-[#efe7d2]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
@@ -5345,7 +5345,7 @@ export default function Home() {
                         </div>
                       </div>
                     ) : activeProduct?.mockupImage ? (
-                      <div className="relative h-32 w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
+                      <div className="relative h-[220px] w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] shadow-sm flex items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={activeProduct.mockupImage} alt="persisted preview" className="w-full h-full object-contain bg-[#efe7d2]" />
                         <div className="absolute left-1.5 top-1.5 flex items-center gap-1.5">
