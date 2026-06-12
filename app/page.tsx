@@ -690,15 +690,9 @@ export default function Home() {
   const setFileInputRef = useRef<HTMLInputElement>(null);
   const studioImageInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    return () => {
-      sourcePreviewImages.forEach(preview => {
-        // Mockup object URLs live in mockupResultsMap and are reused across
-        // dialog opens — they are revoked on regeneration/logout instead.
-        if (!preview.id.startsWith('mockup-')) URL.revokeObjectURL(preview.image);
-      });
-    };
-  }, [sourcePreviewImages]);
+  // Review-dialog source-preview object URLs are revoked only when the dialog
+  // closes (see onOpenChange) — revoking on every gallery change broke the
+  // open dialog's images when the async info-extras append updated the array.
 
   // Branded scroll listener for top menu bar sticky transitions (pure DOM manipulation matching open-design target exactly)
   useEffect(() => {
@@ -5371,7 +5365,12 @@ export default function Home() {
           setIsDialogOpen(open);
           if (!open) {
             setIsGalleryInspectorOpen(false);
-            setSourcePreviewImages([]);
+            setSourcePreviewImages(prev => {
+              // Only the dialog's own upload previews hold fresh object URLs;
+              // mockup URLs are session-owned and extras are static paths.
+              prev.forEach(p => { if (p.id.startsWith('upload')) URL.revokeObjectURL(p.image); });
+              return [];
+            });
             setSelectedPreviewIndex(0);
           }
         }}
