@@ -11,13 +11,13 @@ export function DeleteConfirmDialog({ request, onClose }: {
 }) {
   return (
     <Dialog open={!!request} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="!max-w-md bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] sm:rounded-[24px] text-[#15140f] font-sans">
+      <DialogContent className="!max-w-md bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.14)] sm:rounded-[24px] text-[#15140f] dark:text-[#f7f1de] font-sans">
         {request && (
           <>
             <DialogHeader>
               <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Confirm Deletion</span>
-              <DialogTitle className="text-lg font-serif font-medium text-[#15140f]">{request.title}</DialogTitle>
-              <DialogDescription className="text-[#5a5448] text-xs leading-relaxed">
+              <DialogTitle className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">{request.title}</DialogTitle>
+              <DialogDescription className="text-[#5a5448] dark:text-[#a39e8f] text-xs leading-relaxed">
                 {request.description}
               </DialogDescription>
             </DialogHeader>
@@ -25,7 +25,7 @@ export function DeleteConfirmDialog({ request, onClose }: {
               <Button
                 variant="ghost"
                 onClick={onClose}
-                className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-xs font-mono uppercase tracking-wider cursor-pointer rounded-full px-5"
+                className="text-[#5a5448] dark:text-[#a39e8f] hover:bg-[#ece4cf] dark:hover:bg-[#22211b] hover:text-[#15140f] dark:hover:text-[#f7f1de] text-xs font-mono uppercase tracking-wider cursor-pointer rounded-full px-5"
               >
                 Cancel
               </Button>

@@ -137,7 +137,7 @@ export function ProjectsHubView({
                     setCurrentView('routes');
                   }}
                   size="sm"
-                  className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 flex items-center gap-1.5 shadow-[0_4px_12px_rgba(21,20,15,0.12)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.18)] dark:hover:shadow-[0_6px_16px_rgba(0,0,0,0.4)] active:translate-y-0 active:shadow-[0_4px_12px_rgba(21,20,15,0.12)] transition-all duration-200 cursor-pointer border-0"
+                  className="bg-[#15140f] dark:bg-[#1a1914] hover:bg-[#2a2620] dark:hover:bg-[#22211b] text-[#f7f1de] dark:text-[#f7f1de] font-mono text-[10px] uppercase tracking-wider h-8 rounded-full px-4 flex items-center gap-1.5 shadow-[0_4px_12px_rgba(21,20,15,0.12)] dark:shadow-none hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(21,20,15,0.18)] dark:hover:shadow-[0_8px_20px_rgba(0,0,0,0.25)] active:translate-y-0 active:shadow-[0_4px_12px_rgba(21,20,15,0.12)] dark:active:shadow-none transition-all duration-200 cursor-pointer border border-[#15140f] dark:border-[rgba(247,241,222,0.16)]"
                 >
                   <Plus className="w-3.5 h-3.5" /> Start New Draft
                 </Button>
@@ -375,7 +375,7 @@ export function ProjectsHubView({
                                   <Button
                                     onClick={() => handleContinueProjectGroup(project.name, project.items)}
                                     size="sm"
-                                    className="bg-[#15140f] dark:bg-[#f7f1de] hover:bg-[#2a2620] dark:hover:bg-[#ece4cf] text-[#f7f1de] dark:text-[#15140f] font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer border-0 inline-flex items-center gap-1.5 transition-all"
+                                    className="bg-[#15140f] dark:bg-[#1a1914] hover:bg-[#2a2620] dark:hover:bg-[#22211b] text-[#f7f1de] dark:text-[#f7f1de] font-mono text-[9px] uppercase tracking-wider h-8.5 px-3.5 rounded-full cursor-pointer border border-[#15140f] dark:border-[rgba(247,241,222,0.16)] inline-flex items-center gap-1.5 transition-all"
                                   >
                                     <ChevronRight className="w-3.5 h-3.5 text-[#ed6f5c]" /> {counts.live === project.items.length ? 'Review project' : 'Continue project'}
                                   </Button>

@@ -69,7 +69,7 @@ export function ListingReviewDialog({
           }
         }}
       >
-        <DialogContent className="!flex !flex-col !gap-0 w-[calc(100vw-2rem)] lg:!max-w-[1380px] h-[90vh] overflow-hidden sm:rounded-[24px] p-0 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
+        <DialogContent className="listing-review-dialog !flex !flex-col !gap-0 w-[calc(100vw-2rem)] lg:!max-w-[1380px] h-[90vh] overflow-hidden sm:rounded-[24px] p-0 bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] text-[#15140f] font-sans">
           <DialogHeader className="shrink-0 px-6 sm:px-8 pt-5 pb-4 border-b border-[rgba(21,20,15,0.12)]">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 pr-9">
               <div className="space-y-1">

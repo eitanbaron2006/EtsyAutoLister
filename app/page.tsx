@@ -2201,7 +2201,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
         {activeStudioListing ? (
-          <>
+          <div className="mockup-studio-shell space-y-10">
             {/* ============ MOCKUP STUDIO ============ */}
 
             {/* Studio header bar */}
@@ -2745,7 +2745,7 @@ export default function Home() {
 
             {/* Mockup quality inspection lightbox */}
             <Dialog open={!!studioZoomMockup} onOpenChange={(open) => { if (!open) setStudioZoomMockup(null); }}>
-              <DialogContent className="!max-w-4xl p-0 overflow-hidden bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] sm:rounded-[24px]">
+              <DialogContent className="mockup-studio-shell !max-w-4xl p-0 overflow-hidden bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] sm:rounded-[24px]">
                 {studioZoomMockup && (
                   <>
                     <DialogHeader className="px-6 pt-5 pb-3 border-b border-[rgba(21,20,15,0.12)]">
@@ -2765,21 +2765,21 @@ export default function Home() {
                 )}
               </DialogContent>
             </Dialog>
-          </>
+          </div>
         ) : (
           <>
 
             {/* Workspace Redirect Alert */}
             {selectedMode === 'etsy' && (
-              <Card className="bg-[#ece4cf]/30 border-[rgba(21,20,15,0.16)] shadow-none relative overflow-hidden">
+              <Card className="bg-[#ece4cf]/30 dark:bg-[#22211b]/30 border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] shadow-none relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 bg-[#ed6f5c] h-full" />
                 <CardHeader className="py-4 px-6">
-                  <CardTitle className="text-xs font-mono uppercase tracking-wider text-[#8C6D4F]">Active Redirect Endpoint for Etsy Developer Portal</CardTitle>
-                  <CardDescription className="text-[#6B655B] text-xs mt-1">
+                  <CardTitle className="text-xs font-mono uppercase tracking-wider text-[#8C6D4F] dark:text-[#ece4cf]">Active Redirect Endpoint for Etsy Developer Portal</CardTitle>
+                  <CardDescription className="text-[#6B655B] dark:text-[#a39e8f] text-xs mt-1">
                     Confirm your callback settings matches this secure host:
                   </CardDescription>
                   <div className="pt-2">
-                    <code className="bg-[#FAF8F5] text-[#191919] px-3 py-1 border border-[#E5DEC9] rounded font-mono text-[11px] inline-block shadow-none">
+                    <code className="bg-[#FAF8F5] dark:bg-[#12110c] text-[#191919] dark:text-[#f7f1de] px-3 py-1 border border-[#E5DEC9] dark:border-[rgba(247,241,222,0.14)] rounded font-mono text-[11px] inline-block shadow-none">
                       {globalAppUrl}/api/auth/etsy/callback
                     </code>
                   </div>
@@ -3033,41 +3033,41 @@ export default function Home() {
                 </Card>
 
                 {/* Categories Tab and Database portfolio table list */}
-                <Card className="bg-[#f7f1de] border border-[rgba(21,20,15,0.16)] rounded-[18px] shadow-none overflow-hidden">
-                  <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] p-6 font-sans">
+                <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.14)] rounded-[18px] shadow-none overflow-hidden">
+                  <CardHeader className="pb-4 border-b border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.10)] bg-transparent dark:bg-[#201e18]/20 p-6 font-sans">
                     <div className="flex flex-row items-center justify-between gap-3 flex-nowrap">
                       <div className="min-w-0 shrink">
-                        <CardTitle className="text-base font-serif font-medium text-[#15140f] truncate">Active Session Listings</CardTitle>
-                        <CardDescription className="text-[#5a5448] text-xs mt-1 leading-relaxed font-sans truncate">
+                        <CardTitle className="text-base font-serif font-medium text-[#15140f] dark:text-[#f7f1de] truncate">Active Session Listings</CardTitle>
+                        <CardDescription className="text-[#5a5448] dark:text-[#a39e8f] text-xs mt-1 leading-relaxed font-sans truncate">
                           Products you activated in this session. The full archive lives in the Projects Hub.
                         </CardDescription>
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
                         {/* Status Tabs Category Selection */}
-                        <div className="flex bg-[#ece4cf]/80 p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] overflow-x-auto uppercase tracking-wider">
+                        <div className="flex bg-[#ece4cf]/80 dark:bg-[#12110c] p-1 rounded-lg text-xs font-mono border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] overflow-x-auto uppercase tracking-wider">
                           <button
                             onClick={() => setFilterTab('all')}
-                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'all' ? 'bg-[#f7f1de] dark:bg-[#1a1914] text-[#15140f] dark:text-[#f7f1de] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none font-bold' : 'text-[#5a5448] dark:text-[#a39e8f] hover:text-[#15140f] dark:hover:text-[#f7f1de]'}`}
                           >
                             All ({sessionCohort.total})
                           </button>
                           <button
                             onClick={() => setFilterTab('pipeline')}
-                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${filterTab === 'pipeline' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer flex items-center gap-1.5 ${filterTab === 'pipeline' ? 'bg-[#f7f1de] dark:bg-[#1a1914] text-[#15140f] dark:text-[#f7f1de] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none font-bold' : 'text-[#5a5448] dark:text-[#a39e8f] hover:text-[#15140f] dark:hover:text-[#f7f1de]'}`}
                           >
                             <Loader2 className={`w-3 h-3 ${sessionCohort.activePipeline > 0 ? "animate-spin text-[#ed6f5c]" : ""}`} />
                             Active ({sessionCohort.activePipeline + sessionCohort.unprocessedIdle})
                           </button>
                           <button
                             onClick={() => setFilterTab('ready')}
-                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'ready' ? 'bg-[#f7f1de] dark:bg-[#1a1914] text-[#15140f] dark:text-[#f7f1de] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none font-bold' : 'text-[#5a5448] dark:text-[#a39e8f] hover:text-[#15140f] dark:hover:text-[#f7f1de]'}`}
                           >
                             Ready ({sessionCohort.readyDrafts})
                           </button>
                           <button
                             onClick={() => setFilterTab('published')}
-                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? 'bg-[#f7f1de] text-[#15140f] border border-[rgba(21,20,15,0.16)] shadow-none font-bold' : 'text-[#5a5448] hover:text-[#15140f]'}`}
+                            className={`px-3 py-1.5 rounded-md transition-all duration-150 cursor-pointer ${filterTab === 'published' ? 'bg-[#f7f1de] dark:bg-[#1a1914] text-[#15140f] dark:text-[#f7f1de] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shadow-none font-bold' : 'text-[#5a5448] dark:text-[#a39e8f] hover:text-[#15140f] dark:hover:text-[#f7f1de]'}`}
                           >
                             Live ({sessionCohort.publishedHistory})
                           </button>
@@ -3093,21 +3093,21 @@ export default function Home() {
                   <CardContent className="px-0 py-0">
                     {sessionFilteredListings.length === 0 ? (
                       <div className="text-center py-16 px-4 space-y-3">
-                        <FileText className="w-10 h-10 text-[#8b8676] mx-auto opacity-60" />
-                        <h3 className="text-[#15140f] font-serif font-medium text-sm">No active listings in this session</h3>
-                        <p className="text-[#5a5448] text-xs max-w-xs mx-auto font-sans">
+                        <FileText className="w-10 h-10 text-[#8b8676] dark:text-[#807b6c] mx-auto opacity-60" />
+                        <h3 className="text-[#15140f] dark:text-[#f7f1de] font-serif font-medium text-sm">No active listings in this session</h3>
+                        <p className="text-[#5a5448] dark:text-[#a39e8f] text-xs max-w-xs mx-auto font-sans">
                           Stage products in the tray on the left, or continue an existing one from the Projects Hub.
                         </p>
                       </div>
                     ) : (
                       <Table>
                         <TableHeader>
-                          <TableRow className="border-[rgba(21,20,15,0.14)] bg-[#ece4cf]/30 hover:bg-transparent">
-                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pl-6 h-10">Collection / Folder</TableHead>
-                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Class</TableHead>
-                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Task Level</TableHead>
-                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] h-10">Live Mockup Thumb</TableHead>
-                            <TableHead className="text-right text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] pr-6 h-10">Workflow Action</TableHead>
+                          <TableRow className="border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.12)] bg-[#ece4cf]/30 dark:bg-[#1e1d17]/50 hover:bg-transparent">
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] pl-6 h-10">Collection / Folder</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Class</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Task Level</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Live Mockup Thumb</TableHead>
+                            <TableHead className="text-right text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] pr-6 h-10">Workflow Action</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -3121,13 +3121,13 @@ export default function Home() {
                             const isInProgressPipeline = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'].includes(listingItem.status);
 
                             return (
-                              <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] bg-transparent hover:bg-[#ece4cf]/30 transition-colors">
+                              <TableRow key={listingItem.id} className="border-[rgba(21,20,15,0.12)] dark:border-[rgba(247,241,222,0.10)] bg-transparent hover:bg-[#ece4cf]/30 dark:hover:bg-[#22211b]/30 text-[#15140f] dark:text-[#f7f1de] transition-colors">
 
                                 {/* Title of Listing / Folder name + source thumbnail */}
                                 <TableCell className="pl-6 py-4">
                                   <div className="flex items-center gap-3">
                                     <div
-                                      className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] cursor-zoom-in"
+                                      className="w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] cursor-zoom-in"
                                       onMouseEnter={(e) => {
                                         const urls = sourceThumbsMap[listingItem.folderName] || [];
                                         if (urls.length > 0) {
@@ -3139,7 +3139,7 @@ export default function Home() {
                                       {(() => {
                                         const urls = sourceThumbsMap[listingItem.folderName] || [];
                                         if (urls.length === 0) {
-                                          return <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#8b8676]" /></div>;
+                                          return <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-4 h-4 text-[#8b8676] dark:text-[#807b6c]" /></div>;
                                         }
                                         if (urls.length === 1) {
                                           /* eslint-disable-next-line @next/next/no-img-element */
@@ -3156,9 +3156,9 @@ export default function Home() {
                                       })()}
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-serif font-medium text-[#15140f] text-sm leading-tight block max-w-[180px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
-                                      <span className="text-[10px] text-[#5a5448] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
-                                        <FileCode className="w-3.5 h-3.5 text-[#8b8676]" /> {activeSessionCount}
+                                      <span className="font-serif font-medium text-[#15140f] dark:text-[#f7f1de] text-sm leading-tight block max-w-[180px] truncate" title={listingItem.folderName}>{listingItem.folderName}</span>
+                                      <span className="text-[10px] text-[#5a5448] dark:text-[#a39e8f] font-mono mt-1 flex items-center gap-1.5 select-none" title="Linked files in browser memory">
+                                        <FileCode className="w-3.5 h-3.5 text-[#8b8676] dark:text-[#807b6c]" /> {activeSessionCount}
                                       </span>
                                     </div>
                                   </div>
@@ -3166,7 +3166,7 @@ export default function Home() {
 
                                 {/* Product Class */}
                                 <TableCell className="align-middle">
-                                  <span className="text-[#5a5448] font-mono text-[10px] uppercase font-bold bg-[#efe7d2] border border-[rgba(21,20,15,0.16)] px-2 py-0.5 rounded">
+                                  <span className="text-[#5a5448] dark:text-[#ece4cf] font-mono text-[10px] uppercase font-bold bg-[#efe7d2] dark:bg-[#22211b] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] px-2 py-0.5 rounded">
                                     {listingItem.productType === 'png_graphics' ? 'PNG Graphics' :
                                       listingItem.productType === 'printable_wallart' ? 'Wall Art' :
                                         listingItem.productType === 'presets' ? 'Presets Filters' : 'Journals PDF'}
@@ -3179,10 +3179,10 @@ export default function Home() {
 
                                     {/* Standard badge indicators */}
                                     <span className={`inline-flex items-center self-start px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase tracking-wider border
-                              ${listingItem.status === 'idle' ? 'bg-[#efe7d2] border-[rgba(21,20,15,0.16)] text-[#5a5448]' :
-                                        isInProgressPipeline ? 'bg-[#efe7d2] border-[#ed6f5c]/40 text-[#ed6f5c]' :
+                              ${listingItem.status === 'idle' ? 'bg-[#efe7d2] dark:bg-[#22211b] border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] text-[#5a5448] dark:text-[#a39e8f]' :
+                                        isInProgressPipeline ? 'bg-[#efe7d2] dark:bg-[#12110c] border-[#ed6f5c]/40 text-[#ed6f5c]' :
                                           listingItem.status === 'ready' ? 'bg-[#ed6f5c]/10 border-[#ed6f5c]/30 text-[#ed6f5c] font-bold' :
-                                            'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448]'
+                                            'bg-[#6e7448]/10 border-[#6e7448]/30 text-[#6e7448] dark:text-[#9ea671]'
                                       }`}>
                                       {listingItem.status === 'idle' && 'Waiting to Compile'}
                                       {listingItem.status === 'scanning' && 'Scanning Blueprints'}
@@ -3196,7 +3196,7 @@ export default function Home() {
 
                                     {/* Active textual walkthrough updates */}
                                     {listingItem.pipelineStepText && (
-                                      <span className="block text-[10px] text-[#5a5448]/80 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
+                                      <span className="block text-[10px] text-[#5a5448]/80 dark:text-[#a39e8f]/90 mt-1 leading-tight font-medium max-w-[200px] truncate" title={listingItem.pipelineStepText}>
                                         {listingItem.pipelineStepText}
                                       </span>
                                     )}
@@ -3214,7 +3214,7 @@ export default function Home() {
                                     <button
                                       type="button"
                                       onClick={() => setMockupViewerListing(listingItem)}
-                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] group cursor-zoom-in"
+                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded overflow-hidden shadow-none bg-[#efe7d2] dark:bg-[#12110c] group cursor-zoom-in"
                                       title="View all generated mockups"
                                     >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -3230,7 +3230,7 @@ export default function Home() {
                                       )}
                                     </button>
                                   ) : (
-                                    <span className="text-[#8b8676] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
+                                    <span className="text-[#8b8676] dark:text-[#807b6c] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
                                   )}
                                 </TableCell>
 
@@ -3244,7 +3244,7 @@ export default function Home() {
                                           size="icon"
                                           variant="ghost"
                                           onClick={() => openStudio(listingItem)}
-                                          className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                          className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
                                           title="Open in Mockup Studio"
                                         >
                                           <Camera className="w-4 h-4" />
@@ -3262,7 +3262,7 @@ export default function Home() {
                                     )}
 
                                     {isInProgressPipeline && (
-                                      <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] bg-[#ece4cf]/30 text-[#5a5448] text-xs max-h-8 rounded-lg select-none">
+                                      <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#ece4cf]/30 dark:bg-[#22211b]/40 text-[#5a5448] dark:text-[#a39e8f] text-xs max-h-8 rounded-lg select-none">
                                         <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin text-[#ed6f5c]" />
                                         <span>Running AI...</span>
                                       </Button>
@@ -3274,7 +3274,7 @@ export default function Home() {
                                           size="icon"
                                           variant="ghost"
                                           onClick={() => openStudio(listingItem)}
-                                          className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                          className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
                                           title="Open in Mockup Studio"
                                         >
                                           <Camera className="w-4 h-4" />
@@ -3282,10 +3282,10 @@ export default function Home() {
                                         <Button
                                           size="sm"
                                           onClick={() => openPreviewPanel(listingItem)}
-                                          className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] text-[#5a5448] hover:bg-[#ece4cf] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
+                                          className={`text-xs max-h-8 font-serif font-medium rounded-full cursor-pointer transition-colors ${listingItem.status === 'published' ? 'border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] text-[#5a5448] dark:text-[#ece4cf] hover:bg-[#ece4cf] dark:hover:bg-[#22211b] bg-transparent' : 'bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0'}`}
                                           variant="default"
                                         >
-                                          {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
+                                          {listingItem.status === 'published' ? <Eye className="w-3.5 h-3.5 mr-1 text-[#8b8676] dark:text-[#a39e8f]" /> : <ChevronRight className="w-3.5 h-3.5 mr-1 text-white" />}
                                           <span>{listingItem.status === 'published' ? 'Review Listed' : 'Open Draft'}</span>
                                         </Button>
                                       </>
@@ -3301,7 +3301,7 @@ export default function Home() {
                                           description: `"${listingItem.folderName}" will be permanently removed, including its saved draft, cover and browser assets. This cannot be undone.`,
                                           action: () => handleDeleteListingDraft(listingItem)
                                         })}
-                                        className="text-[#8b8676] hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                        className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
                                         title="Discard listing task"
                                       >
                                         <Trash2 className="w-4 h-4" />
@@ -3335,19 +3335,19 @@ export default function Home() {
           className="fixed z-[120] pointer-events-none"
           style={{ left: hoverThumb.x + 18, top: Math.max(12, hoverThumb.y - 150) }}
         >
-          <div className="w-[280px] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.2)] bg-[#f7f1de] shadow-lg p-1.5">
+          <div className="w-[280px] rounded-xl overflow-hidden border border-[rgba(21,20,15,0.2)] dark:border-[rgba(247,241,222,0.18)] bg-[#f7f1de] dark:bg-[#1a1914] shadow-lg p-1.5">
             {hoverThumb.urls.length === 1 ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={hoverThumb.urls[0]} alt={hoverThumb.label} className="w-full h-auto max-h-[300px] object-contain rounded-lg bg-[#efe7d2]" />
+              <img src={hoverThumb.urls[0]} alt={hoverThumb.label} className="w-full h-auto max-h-[300px] object-contain rounded-lg bg-[#efe7d2] dark:bg-[#12110c]" />
             ) : (
               <div className="grid grid-cols-2 gap-1">
                 {hoverThumb.urls.slice(0, 4).map((url, idx) => (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={idx} src={url} alt="" className="w-full aspect-square object-cover rounded-md bg-[#efe7d2]" />
+                  <img key={idx} src={url} alt="" className="w-full aspect-square object-cover rounded-md bg-[#efe7d2] dark:bg-[#12110c]" />
                 ))}
               </div>
             )}
-            <span className="block text-[9px] font-mono text-[#5a5448] px-1 pt-1.5 truncate select-none">{hoverThumb.label}</span>
+            <span className="block text-[9px] font-mono text-[#5a5448] dark:text-[#a39e8f] px-1 pt-1.5 truncate select-none">{hoverThumb.label}</span>
           </div>
         </div>
       )}

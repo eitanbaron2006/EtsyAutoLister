@@ -30,7 +30,7 @@ function TipSaveButton({ tip, savedTips, onToggleSave, size = 'sm' }: TipSavePro
       onClick={() => onToggleSave(tip)}
       className={`${box} rounded-full border flex items-center justify-center cursor-pointer transition-colors ${isSaved
         ? 'bg-[#ed6f5c] border-[#ed6f5c] text-white hover:bg-[#e25e4a]'
-        : 'bg-[#f7f1de] border-[rgba(21,20,15,0.14)] text-[#5a5448] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40'}`}
+        : 'bg-[#f7f1de] dark:bg-[#12110c] border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] text-[#5a5448] dark:text-[#ece4cf] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40'}`}
       title={isSaved ? 'Remove from your account page' : 'Save to your account page'}
     >
       <Bookmark className={`${icon} ${isSaved ? 'fill-current' : ''}`} />
@@ -60,7 +60,7 @@ export function TipFillerCard({ offset = 0, savedTips, onToggleSave }: TipSavePr
         <button
           type="button"
           onClick={() => setTick(prev => prev + 1)}
-          className="w-6 h-6 rounded-full bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] text-[#5a5448] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
+          className="w-6 h-6 rounded-full bg-[#f7f1de] dark:bg-[#12110c] border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] text-[#5a5448] dark:text-[#ece4cf] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
           title="Next tip"
         >
           <ChevronRight className="w-3 h-3" />
@@ -94,7 +94,7 @@ export function TipPanel({ savedTips, onToggleSave }: TipSaveProps) {
           <button
             type="button"
             onClick={() => setTipIndex(prev => (prev + 1) % STUDIO_TIPS.length)}
-            className="w-7 h-7 rounded-full bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] text-[#5a5448] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
+            className="w-7 h-7 rounded-full bg-[#f7f1de] dark:bg-[#12110c] border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] text-[#5a5448] dark:text-[#ece4cf] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
             title="Next tip"
           >
             <ChevronRight className="w-3.5 h-3.5" />

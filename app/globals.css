@@ -1033,6 +1033,11 @@ h1 em {
   overflow: hidden;
 }
 
+.dark .studio-tip-filler {
+  border-color: rgba(247, 241, 222, 0.16);
+  background: rgba(34, 33, 27, 0.35);
+}
+
 .studio-tip-filler__sparkle {
   width: 20px;
   height: 20px;
@@ -1093,6 +1098,11 @@ h1 em {
   user-select: none;
   container-type: size;
   overflow: hidden;
+}
+
+.dark .studio-tip-panel-shell {
+  border-color: rgba(247, 241, 222, 0.1);
+  background: rgba(34, 33, 27, 0.35);
 }
 
 .studio-tip-panel {
@@ -1269,6 +1279,122 @@ h1 em {
   .studio-tip-filler__text {
     -webkit-line-clamp: 2;
   }
+}
+
+/* Scoped dark-mode normalization for dense studio surfaces that use
+   fixed paper/ink utility colors inside their JSX. */
+.dark .mockup-studio-shell[class~="bg-[#f7f1de]"],
+.dark .listing-review-dialog,
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#f7f1de]"] {
+  background-color: #1a1914 !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#f7f1de]/95"] {
+  background-color: rgba(24, 23, 18, 0.95) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#f5efdc]"] {
+  background-color: #181712 !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#efe7d2]"] {
+  background-color: #12110c !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#efe7d2]/55"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#efe7d2]/40"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#efe7d2]/35"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#efe7d2]/20"] {
+  background-color: rgba(18, 17, 12, 0.72) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]"] {
+  background-color: #22211b !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/80"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/60"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/50"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/40"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/30"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="bg-[#ece4cf]/20"] {
+  background-color: rgba(34, 33, 27, 0.76) !important;
+}
+
+.dark .mockup-studio-shell[class~="border-[rgba(21,20,15,0.16)]"],
+.dark .listing-review-dialog,
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.16)]"] {
+  border-color: rgba(247, 241, 222, 0.16) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.24)]"] {
+  border-color: rgba(247, 241, 222, 0.24) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.2)]"],
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.20)]"] {
+  border-color: rgba(247, 241, 222, 0.20) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.14)]"] {
+  border-color: rgba(247, 241, 222, 0.14) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.12)]"] {
+  border-color: rgba(247, 241, 222, 0.12) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.10)]"] {
+  border-color: rgba(247, 241, 222, 0.10) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="border-[rgba(21,20,15,0.08)]"] {
+  border-color: rgba(247, 241, 222, 0.08) !important;
+}
+
+.dark .listing-review-dialog,
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="text-[#15140f]"] {
+  color: #f7f1de !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="text-[#5a5448]"] {
+  color: #ece4cf !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="text-[#5a5448]/80"] {
+  color: rgba(236, 228, 207, 0.8) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="text-[#8b8676]"] {
+  color: #a39e8f !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) :is(input:not([type="checkbox"]):not([type="file"]), textarea, select) {
+  background-color: #12110c !important;
+  border-color: rgba(247, 241, 222, 0.16) !important;
+  color: #f7f1de !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) :is(input, textarea)::placeholder {
+  color: rgba(163, 158, 143, 0.72) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) select option {
+  background-color: #12110c;
+  color: #f7f1de;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="hover:bg-[#ece4cf]"]:hover {
+  background-color: #22211b !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="hover:bg-[#ece4cf]/60"]:hover,
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="hover:bg-[#ece4cf]/50"]:hover {
+  background-color: rgba(34, 33, 27, 0.7) !important;
+}
+
+.dark :is(.mockup-studio-shell, .listing-review-dialog) [class~="hover:text-[#15140f]"]:hover {
+  color: #f7f1de !important;
 }
 
 /* Layout overrides to match EtsyStudio width aesthetics */
