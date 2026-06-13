@@ -38,6 +38,9 @@ export function MockupViewerDialog({
   const viewerCols = balancedGridColumns(Math.max(1, mockups.length));
   const viewerRows = Math.ceil(Math.max(1, mockups.length) / viewerCols);
   const viewerEmptyCells = mockups.length > 0 ? viewerCols * viewerRows - mockups.length : 0;
+  // Up to 2 rows leave vertical room: pin them to the top (no centering gaps)
+  // and fill the space that remains below with a tips panel.
+  const tipsBelow = viewerRows <= 2;
 
   return (
     <Dialog open={!!listing} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -77,13 +80,10 @@ export function MockupViewerDialog({
               {mockups.length > 0 ? (
                 <>
                   <div
-                    className={viewerRows === 1
-                      ? 'shrink-0 grid gap-3 items-center justify-items-center'
-                      : 'flex-1 min-h-0 grid gap-3 items-center'}
+                    className={`grid gap-3 content-start ${tipsBelow ? 'shrink-0' : 'flex-1 min-h-0 overflow-y-auto'}`}
                     style={{
                       gridTemplateColumns: `repeat(${viewerCols}, minmax(0, 1fr))`,
-                      gridAutoRows: '1fr',
-                      ...(viewerRows === 1 ? { height: '52%' } : {})
+                      gridAutoRows: 'max-content'
                     }}
                   >
                     {mockups.map((mockup, index) => (
@@ -98,10 +98,9 @@ export function MockupViewerDialog({
                           })),
                           index
                         })}
-                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0 w-full"
-                        // Cards stay near-square: in tall cells they stop
-                        // growing and center instead of stretching
-                        style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
+                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col w-full"
+                        // Height follows the column width (near-square)
+                        style={{ aspectRatio: '1 / 1.08' }}
                         title="Open fullscreen view"
                       >
                         <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
@@ -130,12 +129,13 @@ export function MockupViewerDialog({
                         </div>
                       </button>
                     ))}
+                    {/* Fill holes in the last row so it never has a gap */}
                     {Array.from({ length: viewerEmptyCells }).map((_, fillerIndex) => (
                       <TipFillerCard key={`tip-filler-${fillerIndex}`} offset={fillerIndex * 3} savedTips={savedTips} onToggleSave={onToggleSaveTip} />
                     ))}
                   </div>
-                  {/* A single photo row frees the lower half — tips zone */}
-                  {viewerRows === 1 && <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />}
+                  {/* Fill the vertical space left below the rows with a tips panel */}
+                  {tipsBelow && <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />}
                 </>
               ) : listing.mockupImage ? (
                 <div className="text-center space-y-3 py-6">

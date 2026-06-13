@@ -36,6 +36,8 @@ export function GalleryInspectorDialog({
   const cols = balancedGridColumns(Math.max(1, photos.length));
   const rows = Math.ceil(Math.max(1, photos.length) / cols);
   const emptyCells = photos.length > 0 ? cols * rows - photos.length : 0;
+  // Up to 2 rows leave vertical room: pin them to the top and fill the rest
+  const tipsBelow = rows <= 2;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,13 +61,10 @@ export function GalleryInspectorDialog({
           ) : (
             <>
               <div
-                className={rows === 1
-                  ? 'shrink-0 grid gap-3 items-center justify-items-center'
-                  : 'flex-1 min-h-0 grid gap-3 items-center'}
+                className={`grid gap-3 content-start ${tipsBelow ? 'shrink-0' : 'flex-1 min-h-0 overflow-y-auto'}`}
                 style={{
                   gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                  gridAutoRows: '1fr',
-                  ...(rows === 1 ? { height: '52%' } : {})
+                  gridAutoRows: 'max-content'
                 }}
               >
                 {photos.map((preview, index) => {
@@ -78,10 +77,9 @@ export function GalleryInspectorDialog({
                         items: photos.map(p => ({ url: p.image, label: p.label, sub: kindOf(p.id) })),
                         index
                       })}
-                      className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col min-h-0 w-full"
-                      // Cards stay near-square: in tall cells they stop
-                      // growing and center instead of stretching
-                      style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
+                      className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] bg-[#efe7d2] hover:border-[#ed6f5c]/50 transition-colors cursor-zoom-in group flex flex-col w-full"
+                      // Height follows the column width (near-square)
+                      style={{ aspectRatio: '1 / 1.08' }}
                       title="Open fullscreen view"
                     >
                       <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 p-2 relative">
@@ -97,12 +95,13 @@ export function GalleryInspectorDialog({
                     </button>
                   );
                 })}
+                {/* Fill holes in the last row so it never has a gap */}
                 {Array.from({ length: emptyCells }).map((_, fillerIndex) => (
                   <TipFillerCard key={`tip-filler-${fillerIndex}`} offset={fillerIndex * 3 + 1} savedTips={savedTips} onToggleSave={onToggleSaveTip} />
                 ))}
               </div>
-              {/* A single photo row frees the lower half — tips zone */}
-              {rows === 1 && <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />}
+              {/* Fill the vertical space left below the rows with a tips panel */}
+              {tipsBelow && <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />}
             </>
           )}
         </div>

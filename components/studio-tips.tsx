@@ -48,14 +48,14 @@ export function TipFillerCard({ offset = 0, savedTips, onToggleSave }: TipSavePr
   const tipIndex = (offset + tick) % STUDIO_TIPS.length;
   return (
     <div
-      className="w-full rounded-xl border border-dashed border-[rgba(21,20,15,0.18)] bg-[#ece4cf]/25 flex flex-col items-center justify-center text-center p-5 gap-2 select-none"
+      className="studio-tip-filler"
       style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
     >
-      <Sparkles className="w-5 h-5 text-[#ed6f5c]/70" />
-      <span className="text-[8.5px] font-mono uppercase tracking-widest text-[#ed6f5c] font-bold">{"▪ Studio Tip"}</span>
-      <span className="text-[11px] text-[#5a5448] leading-relaxed max-w-[260px]">{STUDIO_TIPS[tipIndex]}</span>
-      <div className="flex items-center gap-2 pt-0.5">
-        <span className="text-[8.5px] font-mono text-[#8b8676]">{tipIndex + 1}/{STUDIO_TIPS.length}</span>
+      <Sparkles className="studio-tip-filler__sparkle" />
+      <span className="studio-tip-filler__label">{"▪ Studio Tip"}</span>
+      <span className="studio-tip-filler__text">{STUDIO_TIPS[tipIndex]}</span>
+      <div className="studio-tip-filler__actions">
+        <span className="studio-tip-filler__count">{tipIndex + 1}/{STUDIO_TIPS.length}</span>
         <TipSaveButton tip={STUDIO_TIPS[tipIndex]} savedTips={savedTips} onToggleSave={onToggleSave} />
         <button
           type="button"
@@ -70,8 +70,8 @@ export function TipFillerCard({ offset = 0, savedTips, onToggleSave }: TipSavePr
   );
 }
 
-// Large enclosed tips zone — fills the lower half of a dialog when a single
-// row of photos leaves it free; the tip sits dead-center, rotating gently.
+// Large enclosed tips zone — its CSS adapts between a spacious panel and a
+// compact strip when the gallery leaves only a shallow area below.
 export function TipPanel({ savedTips, onToggleSave }: TipSaveProps) {
   const [tipIndex, setTipIndex] = useState(0);
   useEffect(() => {
@@ -81,21 +81,25 @@ export function TipPanel({ savedTips, onToggleSave }: TipSaveProps) {
     return () => clearInterval(timer);
   }, []);
   return (
-    <div className="flex-1 min-h-0 rounded-xl border border-[rgba(21,20,15,0.10)] bg-[#ece4cf]/30 flex flex-col items-center justify-center text-center gap-3 p-8 select-none">
-      <Sparkles className="w-6 h-6 text-[#ed6f5c]/70" />
-      <span className="text-[9px] font-mono uppercase tracking-widest text-[#ed6f5c] font-bold">{"▪ Studio Tip"}</span>
-      <span className="text-sm text-[#5a5448] leading-relaxed max-w-xl font-medium">{STUDIO_TIPS[tipIndex]}</span>
-      <div className="flex items-center gap-2.5 pt-1">
-        <span className="text-[9px] font-mono text-[#8b8676]">{tipIndex + 1}/{STUDIO_TIPS.length}</span>
-        <TipSaveButton tip={STUDIO_TIPS[tipIndex]} savedTips={savedTips} onToggleSave={onToggleSave} size="md" />
-        <button
-          type="button"
-          onClick={() => setTipIndex(prev => (prev + 1) % STUDIO_TIPS.length)}
-          className="w-7 h-7 rounded-full bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] text-[#5a5448] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
-          title="Next tip"
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+    <div className="studio-tip-panel-shell">
+      <div className="studio-tip-panel">
+        <div className="studio-tip-panel__label">
+          <Sparkles className="studio-tip-panel__sparkle" />
+          <span>{"▪ Studio Tip"}</span>
+        </div>
+        <p className="studio-tip-panel__text">{STUDIO_TIPS[tipIndex]}</p>
+        <div className="studio-tip-panel__actions">
+          <span className="studio-tip-panel__count">{tipIndex + 1}/{STUDIO_TIPS.length}</span>
+          <TipSaveButton tip={STUDIO_TIPS[tipIndex]} savedTips={savedTips} onToggleSave={onToggleSave} size="md" />
+          <button
+            type="button"
+            onClick={() => setTipIndex(prev => (prev + 1) % STUDIO_TIPS.length)}
+            className="w-7 h-7 rounded-full bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] text-[#5a5448] hover:text-[#ed6f5c] hover:border-[#ed6f5c]/40 flex items-center justify-center cursor-pointer transition-colors"
+            title="Next tip"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
