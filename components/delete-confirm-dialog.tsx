@@ -4,9 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Trash2 } from 'lucide-react';
 
+export type ConfirmRequest = {
+  title: string;
+  description: string;
+  action: () => void;
+  // Header eyebrow + primary-button label, overridable per use
+  eyebrow?: string;
+  confirmLabel?: string;
+};
+
 // Confirmation dialog for destructive actions (shared across views)
 export function DeleteConfirmDialog({ request, onClose }: {
-  request: { title: string; description: string; action: () => void } | null;
+  request: ConfirmRequest | null;
   onClose: () => void;
 }) {
   return (
@@ -15,7 +24,7 @@ export function DeleteConfirmDialog({ request, onClose }: {
         {request && (
           <>
             <DialogHeader>
-              <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">Confirm Deletion</span>
+              <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-[#ed6f5c] font-bold">{request.eyebrow || 'Confirm Deletion'}</span>
               <DialogTitle className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">{request.title}</DialogTitle>
               <DialogDescription className="text-[#5a5448] dark:text-[#a39e8f] text-xs leading-relaxed">
                 {request.description}
@@ -33,7 +42,7 @@ export function DeleteConfirmDialog({ request, onClose }: {
                 onClick={() => { request.action(); onClose(); }}
                 className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-6 uppercase tracking-wider cursor-pointer border-0"
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Yes, Discard
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> {request.confirmLabel || 'Yes, Discard'}
               </Button>
             </DialogFooter>
           </>

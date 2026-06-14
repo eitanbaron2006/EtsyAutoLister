@@ -98,7 +98,7 @@ import { SandboxPlayground } from '@/components/sandbox-playground';
 import { ScrollToTop } from '@/components/scroll-to-top';
 import { PhotoLightbox, type LightboxState } from '@/components/photo-lightbox';
 import { TipFillerCard, TipPanel } from '@/components/studio-tips';
-import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog';
+import { DeleteConfirmDialog, type ConfirmRequest } from '@/components/delete-confirm-dialog';
 import { MockupViewerDialog } from '@/components/mockup-viewer-dialog';
 import { GalleryInspectorDialog } from '@/components/gallery-inspector-dialog';
 import { ListingReviewDialog } from '@/components/listing-review-dialog';
@@ -180,7 +180,7 @@ export default function Home() {
   // Saved tips + subscription plan (Firestore-synced)
   const { savedTips, setSavedTips, accountPlan, setAccountPlan, handleToggleSavedTip } = useSavedTips(user);
   // Pending destructive action awaiting user confirmation
-  const [deleteRequest, setDeleteRequest] = useState<{ title: string; description: string; action: () => void } | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<ConfirmRequest | null>(null);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(0);
   const [sourcePreviewImages, setSourcePreviewImages] = useState<UploadedPreview[]>([]);
   const [filterTab, setFilterTab] = useState<'all' | 'pipeline' | 'ready' | 'published'>('all');
@@ -1255,6 +1255,137 @@ export default function Home() {
     }
   };
 
+  // A mockup is the Etsy "cover" when its template is a main-* category
+  const isMainTemplate = (templateId: string) =>
+    studioTemplates.find(t => t.template_id === templateId)?.product_type?.startsWith('main-') ?? false;
+
+  // Signature of the mockup the Add flow WOULD produce for a template:
+  // `templateId::sorted(actual source artworks)`. A set is trimmed to the
+  // template's frame_count (mirrors generateListingMockups' slice), so this
+  // predicts the real variation — two renders only collide when the template
+  // AND the exact image variation match (same image in different variations is
+  // a distinct, allowed mockup).
+  const MAX_SET_ARTWORKS = 12;
+  const mockupSignatureForAdd = (templateId: string, images: File[], catalog: MockupTemplateSummary[]) => {
+    const names = images.filter(isMockupGenSupportedImage).map(f => f.name);
+    if (names.length <= 1) return `${templateId}::${names.join('|')}`;
+    const frameCount = catalog.find(t => t.template_id === templateId)?.frame_count ?? names.length;
+    const used = names.slice(0, Math.min(frameCount, names.length, MAX_SET_ARTWORKS));
+    return `${templateId}::${[...used].sort().join('|')}`;
+  };
+
+  // Etsy photo caps: exactly 1 MAIN cover + up to 19 regular = 20 total
+  const MAX_REGULAR_MOCKUPS = 19;
+
+  // Safety net run after every commit: enforce 1 MAIN + ≤19 regular,
+  // deterministically dropping extras (and revoking their object URLs).
+  const clampPool = (folderName: string) => {
+    setMockupResultsMap(prev => {
+      const pool = prev[folderName] || [];
+      const mains = pool.filter(m => isMainTemplate(m.templateId));
+      const regulars = pool.filter(m => !isMainTemplate(m.templateId));
+      const keptMain = mains.slice(0, 1);
+      const keptRegular = regulars.slice(0, MAX_REGULAR_MOCKUPS);
+      const dropped = [...mains.slice(1), ...regulars.slice(MAX_REGULAR_MOCKUPS)];
+      if (dropped.length === 0) return prev;
+      dropped.forEach(m => URL.revokeObjectURL(m.url));
+      pendingPersistRef.current.mockups.add(folderName);
+      // Cover (MAIN) stays first
+      return { ...prev, [folderName]: [...keptMain, ...keptRegular] };
+    });
+  };
+
+  // Manual "Add" path (Studio, pool non-empty + templates selected): render the
+  // selected templates and append them, enforcing the caps with a confirm
+  // dialog when the add would overwrite existing mockups.
+  const handleAddMockups = async (
+    listing: ListingMetadata,
+    requestedTemplateIds: string[],
+    assignments?: Record<number, string>
+  ) => {
+    const catalog = await getTemplateCatalog();
+    const isMain = (id: string) => catalog.find(t => t.template_id === id)?.product_type?.startsWith('main-') ?? false;
+
+    const pool = mockupResultsMap[listing.folderName] || [];
+
+    // Prevent duplicates: skip a template only if it already holds this EXACT
+    // image variation (frame-trimmed). The same template with a different
+    // variation (e.g. set images 1+2 vs 2+3) is a valid distinct mockup.
+    const sessionImages = localFilesMap[listing.folderName]?.images || [];
+    const existingSigs = new Set(pool.map(m => `${m.templateId}::${[...m.sourceFileNames].sort().join('|')}`));
+    const templateIds = requestedTemplateIds.filter(id => !existingSigs.has(mockupSignatureForAdd(id, sessionImages, catalog)));
+    const skipped = requestedTemplateIds.length - templateIds.length;
+    if (templateIds.length === 0) {
+      toast.info(skipped === 1
+        ? 'That template is already in this product\'s mockups.'
+        : 'Those templates are already in this product\'s mockups.');
+      return;
+    }
+    if (skipped > 0) {
+      toast.info(`${skipped} template${skipped === 1 ? '' : 's'} already in the pool ${skipped === 1 ? 'was' : 'were'} skipped.`);
+    }
+
+    const newMain = templateIds.filter(isMain).length;
+    const newRegular = templateIds.length - newMain;
+    const existingMains = pool.filter(m => isMainTemplate(m.templateId));
+    const existingRegulars = pool.filter(m => !isMainTemplate(m.templateId));
+
+    // Decide which existing mockups must be overwritten to honour the caps
+    const doomedIds: string[] = [];
+    const warnings: string[] = [];
+    if (newMain > 0 && existingMains.length > 0) {
+      existingMains.forEach(m => doomedIds.push(m.id));
+      warnings.push('your current MAIN cover will be replaced');
+    }
+    const regularOverflow = Math.max(0, existingRegulars.length + newRegular - MAX_REGULAR_MOCKUPS);
+    if (regularOverflow > 0) {
+      // Overwrite the oldest existing regulars to make room
+      existingRegulars.slice(0, regularOverflow).forEach(m => doomedIds.push(m.id));
+      warnings.push(`${regularOverflow} existing mockup${regularOverflow === 1 ? '' : 's'} will be overwritten`);
+    }
+
+    const commit = async () => {
+      // Remove the doomed existing mockups first, then append the new renders
+      if (doomedIds.length > 0) {
+        setMockupResultsMap(prev => {
+          const existing = prev[listing.folderName] || [];
+          existing.filter(m => doomedIds.includes(m.id)).forEach(m => URL.revokeObjectURL(m.url));
+          return { ...prev, [listing.folderName]: existing.filter(m => !doomedIds.includes(m.id)) };
+        });
+      }
+      setIsRenderingMockups(true);
+      try {
+        const sessionFiles = localFilesMap[listing.folderName] || { images: [], files: [] };
+        const { mockups: added } = await generateListingMockups(
+          listing.folderName,
+          sessionFiles.images,
+          templateIds,
+          { append: true, frameAssignments: assignments }
+        );
+        if (added.length > 0) {
+          clampPool(listing.folderName); // final safety: 1 MAIN + ≤19 regular
+          toast.success(`Added ${added.length} mockup${added.length === 1 ? '' : 's'}.`);
+        }
+      } catch (err: any) {
+        toast.error('Add failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        setIsRenderingMockups(false);
+      }
+    };
+
+    if (warnings.length > 0) {
+      setDeleteRequest({
+        eyebrow: 'Confirm Overwrite',
+        title: 'This exceeds the 20-photo limit',
+        description: `Adding these mockups means ${warnings.join(' and ')}. Consider deleting some mockups first if you want to keep them. Continue?`,
+        confirmLabel: 'Yes, Overwrite',
+        action: () => { void commit(); }
+      });
+    } else {
+      await commit();
+    }
+  };
+
   // --- Studio pipeline stages ---------------------------------------------
 
   // Render mockups and persist the dashboard thumbnail (no status changes)
@@ -1266,6 +1397,9 @@ export default function Home() {
   ): Promise<GeneratedMockup[]> => {
     const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
     const { mockups: results, shortfallNote } = await generateListingMockups(folderName, sessionFiles.images, templateIds, { frameAssignments: assignments });
+
+    // Fresh builds can over-produce if many templates were picked — enforce the cap
+    if (results.length > 0) clampPool(folderName);
 
     if (user) {
       // Record (or clear) the admin note about missing suitable templates
@@ -1641,6 +1775,14 @@ export default function Home() {
   const studioMockups = activeStudioListing
     ? (mockupResultsMap[activeStudioListing.folderName] || [])
     : [];
+  // A template is "in pool" only if it already holds the EXACT image variation
+  // the Add flow would create — same template with a different variation stays
+  // selectable. Compared against the real (frame-trimmed) signature.
+  const studioPoolSignatures = new Set(
+    studioMockups.map(m => `${m.templateId}::${[...m.sourceFileNames].sort().join('|')}`)
+  );
+  const isTemplateInPool = (templateId: string) =>
+    studioPoolSignatures.has(mockupSignatureForAdd(templateId, studioSessionFiles.images, studioTemplates));
   const filteredStudioTemplates = studioTemplateFilter === 'all'
     ? studioTemplates
     : studioTemplates.filter(t => t.product_type === studioTemplateFilter);
@@ -2391,12 +2533,22 @@ export default function Home() {
                   ) : (
                     <>
                       <Button
-                        onClick={() => runMockupStage(activeStudioListing, selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined, selectedTemplateIds.length === 1 ? frameAssignments : undefined)}
+                        onClick={() => {
+                          // Pool non-empty + templates picked → ADD to the pool (cap-aware);
+                          // otherwise fresh build / rebuild via the stage pipeline.
+                          if (studioMockups.length > 0 && selectedTemplateIds.length > 0) {
+                            handleAddMockups(activeStudioListing, selectedTemplateIds, selectedTemplateIds.length === 1 ? frameAssignments : undefined);
+                          } else {
+                            runMockupStage(activeStudioListing, selectedTemplateIds.length > 0 ? selectedTemplateIds : undefined, selectedTemplateIds.length === 1 ? frameAssignments : undefined);
+                          }
+                        }}
                         disabled={studioBusy || studioSessionFiles.images.length === 0}
                         className="w-full bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-serif font-medium h-10 text-xs shadow-none rounded-full transition-colors cursor-pointer border-0"
                       >
                         {isRenderingMockups ? (
                           <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Rendering Mockups...</>
+                        ) : studioMockups.length > 0 && selectedTemplateIds.length > 0 ? (
+                          <><Camera className="w-3.5 h-3.5 mr-1.5" /> Add {selectedTemplateIds.length} Mockup{selectedTemplateIds.length === 1 ? '' : 's'}</>
                         ) : (
                           <><Camera className="w-3.5 h-3.5 mr-1.5" /> {studioMockups.length > 0 ? 'Re-render Mockups' : 'Render Mockups'}</>
                         )}
@@ -2532,13 +2684,21 @@ export default function Home() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
                         {filteredStudioTemplates.map(template => {
                           const isSelected = selectedTemplateIds.includes(template.template_id);
+                          // Already rendered with this exact source set → can't add again.
+                          // (Same template with DIFFERENT artwork stays allowed.)
+                          const inPool = isTemplateInPool(template.template_id);
                           return (
                             <button
                               key={template.template_id}
                               type="button"
-                              onClick={() => toggleTemplateSelection(template.template_id)}
-                              className={`relative text-left rounded-lg overflow-hidden border transition-all cursor-pointer group ${isSelected ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c]' : 'border-[rgba(21,20,15,0.14)] hover:border-[#ed6f5c]/45'}`}
-                              title={template.name}
+                              disabled={inPool}
+                              onClick={() => { if (!inPool) toggleTemplateSelection(template.template_id); }}
+                              className={`relative text-left rounded-lg overflow-hidden border transition-all group ${inPool
+                                ? 'border-[rgba(21,20,15,0.14)] opacity-50 cursor-not-allowed'
+                                : isSelected
+                                  ? 'border-[#ed6f5c] ring-1 ring-[#ed6f5c] cursor-pointer'
+                                  : 'border-[rgba(21,20,15,0.14)] hover:border-[#ed6f5c]/45 cursor-pointer'}`}
+                              title={inPool ? `${template.name} — already in this product's mockups` : template.name}
                             >
                               <div className="aspect-square bg-[#efe7d2] overflow-hidden flex items-center justify-center p-1">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2553,11 +2713,15 @@ export default function Home() {
                                   )}
                                 </span>
                               </div>
-                              {isSelected && (
+                              {inPool ? (
+                                <span className="absolute top-1.5 right-1.5 text-[7px] font-mono uppercase tracking-wider font-bold bg-[#6e7448] text-white px-1.5 py-0.5 rounded-full shadow-sm select-none">
+                                  In pool
+                                </span>
+                              ) : isSelected ? (
                                 <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#ed6f5c] text-white flex items-center justify-center shadow-sm">
                                   <Check className="w-3 h-3" />
                                 </span>
-                              )}
+                              ) : null}
                             </button>
                           );
                         })}
