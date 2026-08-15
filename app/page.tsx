@@ -825,7 +825,12 @@ export default function Home() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      // Rejecting with the raw ProgressEvent hides the failure reason (it has
+      // no .message/.code), which later surfaces as an empty "{}" error log.
+      reader.onerror = () => reject(new Error(
+        `Failed to read "${file.name}" (${file.type || 'unknown type'}, ${Math.round(file.size / 1024)} KB). ` +
+        'The file may have been moved, deleted or locked since it was staged.'
+      ));
       reader.readAsDataURL(file);
     });
   };
@@ -869,7 +874,9 @@ export default function Home() {
       };
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        reject(new Error('Failed to decode rendered mockup'));
+        reject(new Error(
+          `Failed to decode image (${blob.type || 'unknown type'}, ${Math.round(blob.size / 1024)} KB) — the browser can't render this file`
+        ));
       };
       img.src = objectUrl;
     });
@@ -1459,16 +1466,51 @@ export default function Home() {
     }
   };
 
+  // Parse the server error response to extract structured error info
+  const parseServerError = async (res: Response): Promise<{ message: string; code?: string; retryable?: boolean }> => {
+    try {
+      const body = await res.json();
+      return {
+        message: body.error || `Server error (${res.status})`,
+        code: body.code,
+        retryable: body.retryable,
+      };
+    } catch {
+      return { message: `Server error (${res.status})` };
+    }
+  };
+
+  // Describe any thrown value — including non-Error rejections such as
+  // FileReader ProgressEvents, which carry no .message/.code and would
+  // otherwise collapse into an empty "{}" in logs, toasts and Firestore.
+  const describeCaughtError = (err: any): string => {
+    if (err == null) return 'Unknown error (empty rejection)';
+    if (err instanceof Error) return `${err.name}: ${err.message}`;
+    if (typeof err === 'string') return err;
+    const bits: string[] = [];
+    if (err.constructor?.name && err.constructor.name !== 'Object') bits.push(err.constructor.name);
+    if (err.type) bits.push(`(${err.type})`);
+    if (err.message) bits.push(String(err.message));
+    if (err.code !== undefined && err.code !== '') bits.push(`code=${err.code}`);
+    if (err.status !== undefined) bits.push(`status=${err.status}`);
+    return bits.join(' ') || JSON.stringify(err) || String(err);
+  };
+
   // Guided Studio stage: Gemini SEO copywriting
   const runCopyStage = async (listingId: string, folderName: string) => {
     if (!user) return;
     const docPath = `users/${user.uid}/listings/${listingId}`;
     const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
     setIsRunningCopy(true);
+
+    // Show the user that we're starting the AI process
+    toast.info('Connecting to Gemini AI to generate SEO-optimized listing copy...', { duration: 3000 });
+
     try {
+      // Update Firestore with initial status
       await setDoc(doc(db, docPath), {
         status: 'seo',
-        pipelineStepText: 'Optimizing high-converting titles and metadata with Gemini 3.5...',
+        pipelineStepText: 'Connecting to Gemini AI — generating SEO title, description & tags...',
         updatedAt: serverTimestamp()
       }, { merge: true });
 
@@ -1480,6 +1522,12 @@ export default function Home() {
           .map(file => blobToScaledJpegDataUrl(file, 1024, 0.85).catch(() => convertFileToBase64(file)))
       );
 
+      // Update status to show we're sending data to AI
+      await setDoc(doc(db, docPath), {
+        pipelineStepText: 'Sending images to Gemini AI for analysis (each attempt has an 8s timeout, up to 3 retries)...',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
       const res = await fetch('/api/gemini/generate-listing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1487,7 +1535,8 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        const errorInfo = await parseServerError(res);
+        throw { ...errorInfo, status: res.status };
       }
 
       const listingData = await res.json();
@@ -1518,10 +1567,50 @@ export default function Home() {
 
       toast.success(`Listing copy compiled for "${folderName}"!`);
     } catch (err: any) {
-      toast.error('AI copy stage failed: ' + (err.message || 'Unknown error'));
+      // Determine the right user-facing message based on error type
+      const code = err.code || '';
+      const isTimeout = code === 'AI_TIMEOUT' || err.message?.includes('timeout');
+      const isQuota = code === 'QUOTA_EXCEEDED' || err.message?.includes('quota');
+
+      let userMessage: string;
+      let detailMessage: string;
+
+      if (isTimeout) {
+        userMessage = 'The AI server took too long to respond';
+        detailMessage = 'Gemini AI did not respond after multiple attempts. The server may be overloaded. Try again later or use fewer/smaller images.';
+        toast.error(userMessage, { duration: 6000, description: 'Retried 3 times with no response.' });
+      } else if (isQuota) {
+        userMessage = 'AI API quota exceeded';
+        detailMessage = 'Your Gemini AI usage limit has been reached. Please try again later or check your billing plan.';
+        toast.error(userMessage, { duration: 6000, description: 'API quota limit reached.' });
+      } else if (err.message?.includes('empty response')) {
+        userMessage = 'AI returned an empty response';
+        detailMessage = 'Gemini could not generate the listing with the provided images. Try with fewer or smaller images.';
+        toast.error(userMessage, { duration: 6000, description: 'Empty response from AI.' });
+      } else {
+        // Generic error — include the raw message for debugging
+        userMessage = 'AI copy stage failed';
+        detailMessage = err.message || describeCaughtError(err);
+        toast.error(`${userMessage}: ${detailMessage}`, { duration: 6000 });
+      }
+
+      // Log losslessly: non-Error rejections (e.g. FileReader ProgressEvents)
+      // used to stringify as an empty "{}", hiding the real failure cause.
+      console.error('AI copy stage failed:', describeCaughtError(err), {
+        code,
+        message: err.message,
+        status: err.status,
+        error: err,
+      });
+
+      // Update Firestore with helpful status text
       await setDoc(doc(db, docPath), {
         status: 'idle',
-        pipelineStepText: 'Copy generation failed — run it again from the Studio.',
+        pipelineStepText: isTimeout
+          ? 'Copy generation timed out — Gemini did not respond. Try again, or use fewer/smaller images.'
+          : isQuota
+            ? 'Copy generation failed — API quota exceeded. Try again later.'
+            : `Copy generation failed — ${detailMessage}.`,
         updatedAt: serverTimestamp()
       }, { merge: true }).catch(() => { });
     } finally {
