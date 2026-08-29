@@ -101,10 +101,15 @@ export const IN_FLIGHT_STATUSES = ['scanning', 'mockups', 'thumbnail', 'compilin
 
 /**
  * How long a row may sit in an in-flight status before it is considered
- * orphaned. A legitimate AI copy stage tops out around 27s (3 attempts x 8s
- * timeout + retry delays), so three minutes is far beyond any real run.
+ * orphaned.
+ *
+ * This MUST stay comfortably above the longest legitimate run, otherwise the
+ * sweep would kill work that is still in progress. The AI copy stage is the
+ * slowest link: 2 attempts x 75s + a 2s retry delay ~= 152s worst case (see
+ * app/api/gemini/generate-listing/route.ts), on top of mockup rendering. Ten
+ * minutes clears that several times over.
  */
-export const STALE_PIPELINE_MS = 3 * 60 * 1000;
+export const STALE_PIPELINE_MS = 10 * 60 * 1000;
 
 type Row = Record<string, unknown>;
 

@@ -48,8 +48,9 @@ export function TipFillerCard({ offset = 0, savedTips, onToggleSave }: TipSavePr
   const tipIndex = (offset + tick) % STUDIO_TIPS.length;
   return (
     <div
-      className="studio-tip-filler"
-      style={{ aspectRatio: '1 / 1.08', maxHeight: '100%' }}
+      // Sits inside the viewer's fixed-row grid, so it takes the row's height
+      // like a mockup card rather than imposing an aspect ratio of its own.
+      className="studio-tip-filler h-full min-h-0"
     >
       <Sparkles className="studio-tip-filler__sparkle" />
       <span className="studio-tip-filler__label">{"▪ Studio Tip"}</span>

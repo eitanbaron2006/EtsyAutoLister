@@ -79,11 +79,17 @@ export function MockupViewerDialog({
 
               {mockups.length > 0 ? (
                 <>
+                  {/* Every render must be on screen at once — no scrolling.
+                      The grid takes exactly the space left over and divides it
+                      into `viewerRows` equal rows, so the cards shrink to fit
+                      however many there are. Cards therefore cannot carry a
+                      fixed aspect ratio: their height comes from the row, and
+                      each image letterboxes inside via object-contain. */}
                   <div
-                    className={`grid gap-3 content-start ${tipsBelow ? 'shrink-0' : 'flex-1 min-h-0 overflow-y-auto'}`}
+                    className="grid gap-3 flex-1 min-h-0 overflow-hidden"
                     style={{
                       gridTemplateColumns: `repeat(${viewerCols}, minmax(0, 1fr))`,
-                      gridAutoRows: 'max-content'
+                      gridTemplateRows: `repeat(${viewerRows}, minmax(0, 1fr))`
                     }}
                   >
                     {mockups.map((mockup, index) => (
@@ -98,9 +104,7 @@ export function MockupViewerDialog({
                           })),
                           index
                         })}
-                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/60 transition-colors cursor-zoom-in group flex flex-col w-full"
-                        // Height follows the column width (near-square)
-                        style={{ aspectRatio: '1 / 1.08' }}
+                        className="text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/60 transition-colors cursor-zoom-in group flex flex-col w-full h-full min-h-0"
                         title="Open fullscreen view"
                       >
                         <div className="flex-1 min-h-0 flex items-center justify-center bg-[#ece4cf]/60 dark:bg-[#22211b]/60 p-2 relative">
@@ -134,8 +138,13 @@ export function MockupViewerDialog({
                       <TipFillerCard key={`tip-filler-${fillerIndex}`} offset={fillerIndex * 3} savedTips={savedTips} onToggleSave={onToggleSaveTip} />
                     ))}
                   </div>
-                  {/* Fill the vertical space left below the rows with a tips panel */}
-                  {tipsBelow && <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />}
+                  {/* Fill the vertical space left below the rows with a tips panel.
+                      shrink-0 so it keeps its height when the grid above scrolls. */}
+                  {tipsBelow && (
+                    <div className="shrink-0">
+                      <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />
+                    </div>
+                  )}
                 </>
               ) : listing.mockupImage ? (
                 <div className="text-center space-y-3 py-6">

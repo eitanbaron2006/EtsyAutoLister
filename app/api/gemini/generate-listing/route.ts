@@ -3,10 +3,22 @@ import { Type } from '@google/genai';
 import { createListingAiClient } from './ai-config';
 import { buildListingContents } from './listing-contents';
 
-// Constants for retry & timeout policy
-const AI_TIMEOUT_MS = 8_000;        // 8 seconds per attempt
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1_500;       // 1.5 seconds between retries
+// Retry & timeout policy.
+//
+// Measured: a single 48KB image through Vertex (gemini-3.1-pro-preview) takes
+// ~15.6s end to end. A real run sends several 1024px images, so the old 8s
+// budget expired before the model could ever answer — every attempt timed out
+// and the stage always failed with "the AI server took too long".
+//
+// 75s per attempt leaves generous headroom over the measured latency. With a
+// real budget, timeouts are exceptional rather than routine, so two attempts
+// are enough: worst case is ~152s instead of an endless wait.
+//
+// NOTE: keep STALE_PIPELINE_MS in lib/listings-repo.ts comfortably above this
+// worst case, or the stalled-run sweep could release a run still in flight.
+const AI_TIMEOUT_MS = 75_000;       // 75 seconds per attempt
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2_000;       // 2 seconds between retries
 
 interface AiGenerationResult {
   title: string;
