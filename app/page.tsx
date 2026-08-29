@@ -39,7 +39,8 @@ import {
   FolderOpen,
   Cpu,
   Sun,
-  Moon
+  Moon,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -58,6 +59,8 @@ import {
   createProfile,
   deleteListing,
   getProfile,
+  recoverStalledListings,
+  resetListingToIdle,
   subscribeToListings,
   updateListing,
   updateProfile
@@ -496,6 +499,19 @@ export default function Home() {
   // Listen to the User's Saved Listings in real time
   useEffect(() => {
     if (!user) return;
+
+    // A pipeline run only advances while a tab is driving it, so anything still
+    // marked in-flight on load was orphaned by a refresh or a crash. Release it
+    // before subscribing, otherwise the row renders a dead "Running AI..." button.
+    void recoverStalledListings(user.uid).then(released => {
+      if (released.length > 0) {
+        toast.info(
+          released.length === 1
+            ? 'Released 1 listing left mid-run. You can start it again.'
+            : `Released ${released.length} listings left mid-run. You can start them again.`,
+        );
+      }
+    });
 
     const unsubSnap = subscribeToListings(
       user.uid,
@@ -3512,10 +3528,31 @@ export default function Home() {
                                     )}
 
                                     {isInProgressPipeline && (
-                                      <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#ece4cf]/30 dark:bg-[#22211b]/40 text-[#5a5448] dark:text-[#a39e8f] text-xs max-h-8 rounded-lg select-none">
-                                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin text-[#ed6f5c]" />
-                                        <span>Running AI...</span>
-                                      </Button>
+                                      <>
+                                        <Button size="sm" disabled variant="outline" className="border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] bg-[#ece4cf]/30 dark:bg-[#22211b]/40 text-[#5a5448] dark:text-[#a39e8f] text-xs max-h-8 rounded-lg select-none">
+                                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin text-[#ed6f5c]" />
+                                          <span>Running AI...</span>
+                                        </Button>
+                                        {/* Escape hatch: a run whose tab died leaves the row stuck here
+                                            until the staleness sweep catches it. This releases it now. */}
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={async () => {
+                                            if (!user) return;
+                                            try {
+                                              await resetListingToIdle(user.uid, listingItem.id);
+                                              toast.success('Run cancelled — you can start it again.');
+                                            } catch {
+                                              toast.error('Could not cancel the run.');
+                                            }
+                                          }}
+                                          className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
+                                          title="Cancel this run and make the listing runnable again"
+                                        >
+                                          <RotateCcw className="w-4 h-4" />
+                                        </Button>
+                                      </>
                                     )}
 
                                     {['ready', 'published'].includes(listingItem.status) && (

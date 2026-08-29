@@ -85,9 +85,26 @@ const LISTING_TO_COLUMN: Record<string, string> = {
   productionPartners: 'production_partners',
 };
 
-const COLUMN_TO_LISTING: Record<string, string> = Object.fromEntries(
-  Object.entries(LISTING_TO_COLUMN).map(([field, column]) => [column, field]),
-);
+const COLUMN_TO_LISTING: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(LISTING_TO_COLUMN).map(([field, column]) => [column, field])),
+  // Read-only: the DB trigger owns updated_at, so it is deliberately absent
+  // from LISTING_TO_COLUMN and can never be written by a caller.
+  updated_at: 'updatedAt',
+};
+
+/**
+ * Pipeline stages that only ever advance while the browser tab is driving
+ * them. A row sitting in one of these is only meaningful if something is
+ * actively working on it.
+ */
+export const IN_FLIGHT_STATUSES = ['scanning', 'mockups', 'thumbnail', 'compiling', 'seo'] as const;
+
+/**
+ * How long a row may sit in an in-flight status before it is considered
+ * orphaned. A legitimate AI copy stage tops out around 27s (3 attempts x 8s
+ * timeout + retry delays), so three minutes is far beyond any real run.
+ */
+export const STALE_PIPELINE_MS = 3 * 60 * 1000;
 
 type Row = Record<string, unknown>;
 
@@ -258,6 +275,49 @@ export async function updateListing(
     .eq('id', listingId);
 
   if (error) handleDbError(error, OperationType.UPDATE, `listings/${listingId}`);
+}
+
+/**
+ * Releases listings orphaned mid-pipeline.
+ *
+ * The whole pipeline runs in the browser, so a refresh, a closed tab or a
+ * crashed run leaves the row frozen in its in-flight status: the catch block
+ * that would have reset it never executes. The UI then renders a permanently
+ * disabled "Running AI..." button and the listing can never be retried.
+ *
+ * Anything untouched for longer than STALE_PIPELINE_MS has no live owner, so
+ * it is returned to 'idle' and becomes runnable again.
+ *
+ * @returns the ids that were released
+ */
+export async function recoverStalledListings(uid: string): Promise<string[]> {
+  const cutoff = new Date(Date.now() - STALE_PIPELINE_MS).toISOString();
+
+  const { data, error } = await supabase
+    .from('listings')
+    .update({
+      status: 'idle',
+      pipeline_step_text: 'The previous run was interrupted before it finished. Press Run to try again.',
+    })
+    .eq('user_id', uid)
+    .in('status', IN_FLIGHT_STATUSES as unknown as string[])
+    .lt('updated_at', cutoff)
+    .select('id');
+
+  if (error) {
+    // Never block sign-in over this — the manual reset is still available.
+    console.error('Failed to recover stalled listings', error);
+    return [];
+  }
+  return (data ?? []).map(row => row.id as string);
+}
+
+/** Manual escape hatch for a run the user can see is stuck. */
+export async function resetListingToIdle(uid: string, listingId: string): Promise<void> {
+  await updateListing(uid, listingId, {
+    status: 'idle',
+    pipelineStepText: 'Run cancelled. Press Run to start again.',
+  });
 }
 
 export async function deleteListing(uid: string, listingId: string): Promise<void> {

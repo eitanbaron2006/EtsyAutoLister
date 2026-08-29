@@ -16,6 +16,7 @@ export type ListingMetadata = {
   pipelineStepText?: string;
   mockupImage?: string; // Legacy saved preview from older drafts.
   mockupNote?: string | null; // admin note: not enough suitable templates on the render server
+  updatedAt?: string; // ISO timestamp, maintained by the DB trigger; used to detect stalled pipeline runs
   quantity?: number;
   listingType?: string;
   renewalOption?: string;
