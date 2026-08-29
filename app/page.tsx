@@ -43,30 +43,27 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Firebase Imports
+// Supabase auth + data access. The UI never touches the SDK directly:
+// auth goes through lib/auth, all reads/writes through lib/listings-repo.
 import {
-  auth,
-  db,
-  googleAuthProvider,
-  handleFirestoreError,
-  OperationType
-} from '@/lib/firebase';
-import {
-  signInWithPopup,
+  onAuthStateChange,
+  signInWithGoogle,
+  ProviderNotEnabledError,
+  signInWithPassword,
   signOut,
-  onAuthStateChanged,
-  User as FirebaseUser
-} from 'firebase/auth';
+  type AppUser
+} from '@/lib/auth';
 import {
-  doc,
-  setDoc,
-  getDoc,
-  deleteDoc,
-  collection,
-  onSnapshot,
-  serverTimestamp
-} from 'firebase/firestore';
+  createListing,
+  createProfile,
+  deleteListing,
+  getProfile,
+  subscribeToListings,
+  updateListing,
+  updateProfile
+} from '@/lib/listings-repo';
 import JSZip from 'jszip';
+import { DevSignInDialog } from '@/components/dev-signin-dialog';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
 import {
   deleteListingAssets,
@@ -116,7 +113,8 @@ import type { GeneratedMockup, ListingMetadata, ProductData, StagedImage, Staged
 
 export default function Home() {
   // Authentication & Configuration States
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [showDevSignIn, setShowDevSignIn] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   // Selection Pathways variables
@@ -384,43 +382,44 @@ export default function Home() {
     }
   };
 
-  // Monitor Authentication and Firebase sync
+  // Monitor Authentication and profile sync
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (currentUser) => {
+    // The OAuth message handler below lives in this same effect (deps: []), so
+    // it cannot read `user` state without going stale. Track the id here.
+    let signedInUid: string | null = null;
+
+    const unsub = onAuthStateChange(async (currentUser) => {
+      signedInUid = currentUser?.uid ?? null;
       setUser(currentUser);
       setLoadingAuth(false);
 
       if (currentUser) {
-        // Logged in: Sync User Profile or create if missing
-        const userDocRef = doc(db, 'users', currentUser.uid);
+        // Logged in: load the profile. The on_auth_user_created trigger creates
+        // the row at signup, so createProfile here is only a legacy safety net.
         try {
-          const userSnap = await getDoc(userDocRef);
-          if (!userSnap.exists()) {
-            await setDoc(userDocRef, {
-              uid: currentUser.uid,
-              email: currentUser.email,
-              etsyConnected: false,
-              createdAt: serverTimestamp()
-            });
+          let profile = await getProfile(currentUser.uid);
+          if (!profile) {
+            await createProfile(currentUser.uid, currentUser.email);
+            profile = await getProfile(currentUser.uid);
             toast.info("Created your cloud database account.");
-          } else {
-            const data = userSnap.data();
-            if (data?.etsyConnected && data?.etsyToken) {
-              setEtsyToken(data.etsyToken);
+          }
+          if (profile) {
+            if (profile.etsyConnected && profile.etsyToken) {
+              setEtsyToken(profile.etsyToken);
               setSelectedMode('etsy');
             }
-            if (data?.lastProductType) {
-              setSelectedProductType(data.lastProductType);
+            if (profile.lastProductType) {
+              setSelectedProductType(profile.lastProductType);
             }
-            if (Array.isArray(data?.savedTips)) {
-              setSavedTips(data.savedTips.filter((tip: unknown): tip is string => typeof tip === 'string'));
+            if (profile.savedTips) {
+              setSavedTips(profile.savedTips);
             }
-            if (typeof data?.plan === 'string') {
-              setAccountPlan(data.plan);
+            if (profile.plan) {
+              setAccountPlan(profile.plan);
             }
           }
         } catch (err) {
-          console.error("User collection sync error", err);
+          console.error("User profile sync error", err);
         }
       } else {
         // Logged out reset
@@ -460,18 +459,17 @@ export default function Home() {
     // Listen for OAuth messages from popup window
     const handleMessage = (event: MessageEvent) => {
       if (typeof event.data !== 'object' || !event.data) return;
-      if (event.data.type === 'OAUTH_AUTH_SUCCESS' && auth.currentUser) {
+      if (event.data.type === 'OAUTH_AUTH_SUCCESS' && signedInUid) {
         const token = event.data.token;
         setEtsyToken(token);
         setIsConnecting(false);
         setSelectedMode('etsy');
 
-        // Save connection back to Firestore user profile
-        setDoc(doc(db, 'users', auth.currentUser.uid), {
+        // Save connection back to the user profile
+        updateProfile(signedInUid, {
           etsyConnected: true,
           etsyToken: token,
-          updatedAt: serverTimestamp()
-        }, { merge: true }).catch(err => {
+        }).catch(err => {
           console.error("Error saving Etsy credentials to DB", err);
         });
 
@@ -495,40 +493,52 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listen to the User's Saved Listings in Firestore in Real-Time
+  // Listen to the User's Saved Listings in real time
   useEffect(() => {
     if (!user) return;
 
-    const path = `users/${user.uid}/listings`;
-    const unsubSnap = onSnapshot(collection(db, path), (snapshot) => {
-      const items: ListingMetadata[] = [];
-      snapshot.forEach((doc) => {
-        items.push(doc.data() as ListingMetadata);
-      });
-      // Sort in-place by timestamp or status
-      setDbListings(items);
-    }, (error) => {
-      // Mandated handler for Firestore security failures
-      handleFirestoreError(error, OperationType.LIST, path);
-    });
+    const unsubSnap = subscribeToListings(
+      user.uid,
+      setDbListings,
+      (error) => {
+        console.error('Listing subscription failed', error);
+        toast.error('Lost sync with your saved listings.');
+      },
+    );
 
     return () => unsubSnap();
   }, [user]);
 
-  // Handle Google Login Flow
+  // Handle Google Login Flow. When the Supabase stack has no Google provider
+  // configured, fall back to the local email/password dialog rather than
+  // dead-ending on "provider is not enabled".
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithPopup(auth, googleAuthProvider);
+      await signInWithGoogle();
       toast.success("Welcome aboard!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to log in with Google.");
+      if (err instanceof ProviderNotEnabledError) {
+        setShowDevSignIn(true);
+        return;
+      }
+      toast.error(err?.message || "Failed to log in with Google.");
+    }
+  };
+
+  const handleDevSignIn = async (email: string, password: string) => {
+    try {
+      await signInWithPassword(email, password);
+      setShowDevSignIn(false);
+      toast.success("Welcome aboard!");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sign in.");
     }
   };
 
   // Handle Log Out
   const handleLogOut = async () => {
     try {
-      await signOut(auth);
+      await signOut();
       setSelectedMode(null);
       setSelectedProductType(null);
       toast.success("Logged out successfully.");
@@ -555,10 +565,10 @@ export default function Home() {
         setSelectedMode('etsy');
 
         // Persist demo credentials
-        await setDoc(doc(db, 'users', user.uid), {
+        await updateProfile(user.uid, {
           etsyConnected: true,
           etsyToken: 'DEMO_TOKEN'
-        }, { merge: true });
+        });
 
         toast.success("Connected in DEMO MODE (Placeholder API keys detected).");
         return;
@@ -588,10 +598,10 @@ export default function Home() {
   const handleDisconnectEtsy = async () => {
     if (!user) return;
     try {
-      await setDoc(doc(db, 'users', user.uid), {
+      await updateProfile(user.uid, {
         etsyConnected: false,
         etsyToken: null
-      }, { merge: true });
+      });
       setEtsyToken(null);
       setSelectedMode(null);
       toast.success("Etsy shop disconnected.");
@@ -620,10 +630,9 @@ export default function Home() {
     setSelectedProductType(type);
     if (user) {
       try {
-        await setDoc(doc(db, 'users', user.uid), {
+        await updateProfile(user.uid, {
           lastProductType: type,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+        });
         toast.success(`Configured Workspace: Ready to design listings.`);
       } catch (err) {
         console.error(err);
@@ -786,23 +795,20 @@ export default function Home() {
         };
 
         const listingId = productName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase() + `_${stamp}_${index}`;
-        const docPath = `users/${user.uid}/listings/${listingId}`;
         try {
-          await setDoc(doc(db, docPath), {
+          await createListing(user.uid, {
             id: listingId,
-            userId: user.uid,
             folderName: productName,
-            projectId,
-            projectName,
+            projectId: projectId,
+            projectName: projectName,
             status: 'idle',
-            productType: selectedProductType,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
+            productType: selectedProductType
           });
           created++;
           createdIds.push(listingId);
         } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, docPath);
+          // createListing already logged the structured error before throwing
+          console.error('Failed to create listing', listingId, err);
         }
       }
 
@@ -1410,19 +1416,17 @@ export default function Home() {
 
     if (user) {
       // Record (or clear) the admin note about missing suitable templates
-      await setDoc(doc(db, `users/${user.uid}/listings/${listingId}`), {
+      await updateListing(user.uid, listingId, {
         mockupNote: shortfallNote,
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => { });
+      }).catch(() => { });
     }
 
     if (results.length > 0 && user) {
       try {
         const thumbnail = await blobToScaledJpegDataUrl(results[0].file, 480, 0.8);
-        await setDoc(doc(db, `users/${user.uid}/listings/${listingId}`), {
+        await updateListing(user.uid, listingId, {
           mockupImage: thumbnail,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+        });
       } catch {
         // Thumbnail persistence is cosmetic — ignore failures
       }
@@ -1434,33 +1438,30 @@ export default function Home() {
   // Guided Studio stage: render mockups as an isolated, reviewable step
   const runMockupStage = async (listing: ListingMetadata, templateIds?: string[], assignments?: Record<number, string>) => {
     if (!user) return;
-    const docPath = `users/${user.uid}/listings/${listing.id}`;
+    const targetId = listing.id;
     // Re-rendering mockups must not demote an already compiled draft
     const restoreStatus = ['ready', 'published'].includes(listing.status) ? listing.status : 'idle';
     setIsRenderingMockups(true);
     try {
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'mockups',
         pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       const results = await renderMockupsForListing(listing.id, listing.folderName, templateIds, assignments);
 
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: restoreStatus,
         pipelineStepText: results.length > 0
           ? 'Mockups rendered — review them in the Studio.'
           : 'Mockup render returned no results.',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
     } catch (err: any) {
       toast.error('Mockup stage failed: ' + (err.message || 'Unknown error'));
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: restoreStatus,
         pipelineStepText: 'Mockup rendering failed — retry from the Studio.',
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => { });
+      }).catch(() => { });
     } finally {
       setIsRenderingMockups(false);
     }
@@ -1499,7 +1500,7 @@ export default function Home() {
   // Guided Studio stage: Gemini SEO copywriting
   const runCopyStage = async (listingId: string, folderName: string) => {
     if (!user) return;
-    const docPath = `users/${user.uid}/listings/${listingId}`;
+    const targetId = listingId;
     const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
     setIsRunningCopy(true);
 
@@ -1508,11 +1509,10 @@ export default function Home() {
 
     try {
       // Update Firestore with initial status
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'seo',
         pipelineStepText: 'Connecting to Gemini AI — generating SEO title, description & tags...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       // Downscale before sending to Gemini — full-resolution uploads can
       // blow past model limits and come back as an empty response.
@@ -1523,10 +1523,9 @@ export default function Home() {
       );
 
       // Update status to show we're sending data to AI
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         pipelineStepText: 'Sending images to Gemini AI for analysis (each attempt has an 8s timeout, up to 3 retries)...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       const res = await fetch('/api/gemini/generate-listing', {
         method: 'POST',
@@ -1555,15 +1554,14 @@ export default function Home() {
         : 5.00;
 
       // Master complete! Sync the compiled listing result to Firestore.
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'ready',
         pipelineStepText: 'Optimization complete. Ready to publish!',
         title: safeTitle,
         description: getFormattedPlainTextDescription(safeDescription),
         tags: safeTags,
         price: safePrice,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       toast.success(`Listing copy compiled for "${folderName}"!`);
     } catch (err: any) {
@@ -1604,15 +1602,14 @@ export default function Home() {
       });
 
       // Update Firestore with helpful status text
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'idle',
         pipelineStepText: isTimeout
           ? 'Copy generation timed out — Gemini did not respond. Try again, or use fewer/smaller images.'
           : isQuota
             ? 'Copy generation failed — API quota exceeded. Try again later.'
             : `Copy generation failed — ${detailMessage}.`,
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => { });
+      }).catch(() => { });
     } finally {
       setIsRunningCopy(false);
     }
@@ -1621,23 +1618,21 @@ export default function Home() {
   // Autopilot: the full chained pipeline with step-by-step status updates
   const runAutomatedAIPipeline = async (listing: ListingMetadata, templateIds?: string[], assignments?: Record<number, string>) => {
     if (!user) return;
-    const docPath = `users/${user.uid}/listings/${listing.id}`;
+    const targetId = listing.id;
     setIsRunningAutopilot(true);
     try {
       // Step 1: Scanning Assets
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'scanning',
         pipelineStepText: 'Reading digital deliverable blueprints & structures...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 2: Render real mockups on the local MockupGen server
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'mockups',
         pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       try {
         await renderMockupsForListing(listing.id, listing.folderName, templateIds, assignments);
@@ -1647,30 +1642,27 @@ export default function Home() {
       }
 
       // Step 3: Promotional thumbnail texts overlays
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'thumbnail',
         pipelineStepText: 'Configuring Etsy 300DPI promotional cover layout badges...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 4: Zip Packing
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'compiling',
         pipelineStepText: 'Assembling safe high-fidelity deliverable zip packs layers...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 5: SEO and copy generation with Gemini (manages its own statuses)
       await runCopyStage(listing.id, listing.folderName);
     } catch (err: any) {
       toast.error('Pipeline failed: ' + (err.message || 'Unknown error'));
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'idle',
         pipelineStepText: 'Failed during automation process. Reloading...',
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => { });
+      }).catch(() => { });
     } finally {
       setIsRunningAutopilot(false);
     }
@@ -1933,12 +1925,11 @@ export default function Home() {
 
     // Sync to Firestore in the background
     if (user) {
-      const docPath = `users/${user.uid}/listings/${activeProduct.id}`;
+      const targetId = activeProduct.id;
       try {
-        await setDoc(doc(db, docPath), {
+        await updateListing(user.uid, targetId, {
           [key]: value,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+        });
       } catch (err) {
         console.error("Firestore sync error:", err);
       }
@@ -1959,13 +1950,12 @@ export default function Home() {
       return;
     }
 
-    const docPath = `users/${user.uid}/listings/${item.id}`;
+    const targetId = item.id;
     try {
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'publishing',
         pipelineStepText: 'Exporting digital listing data straight to Connected Etsy Shop...',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       const formData = new FormData();
       formData.append('token', etsyToken);
@@ -2022,32 +2012,30 @@ export default function Home() {
       if (result.error) throw new Error(result.error);
 
       // Successfully published: Sync to Firestore
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'published',
         listingId: result.listingId,
         listingUrl: result.url,
         pipelineStepText: 'Finished layout. Successfully listed!',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      });
 
       toast.success('Successfully uploaded files and published draft to Etsy!');
       setIsDialogOpen(false);
     } catch (err: any) {
       toast.error('Failed to publish to store: ' + (err.message || 'Unknown error'));
-      await setDoc(doc(db, docPath), {
+      await updateListing(user.uid, targetId, {
         status: 'ready',
         pipelineStepText: 'Published aborted. Review your draft metadata settings.',
-        updatedAt: serverTimestamp()
-      }, { merge: true }).catch(() => { });
+      }).catch(() => { });
     }
   };
 
   // Delete Listing from cloud collection and local states
   const handleDeleteListingDraft = async (item: ListingMetadata) => {
     if (!user) return;
-    const docPath = `users/${user.uid}/listings/${item.id}`;
+    const targetId = item.id;
     try {
-      await deleteDoc(doc(db, docPath));
+      await deleteListing(user.uid, targetId);
       deleteListingAssets(user.uid, item.folderName).catch(() => { });
       setSourceThumbsMap(prev => {
         (prev[item.folderName] || []).forEach(url => URL.revokeObjectURL(url));
@@ -2103,9 +2091,9 @@ export default function Home() {
   const handleDeleteProjectGroup = async (items: ListingMetadata[]) => {
     if (!user) return;
     for (const item of items) {
-      const docPath = `users/${user.uid}/listings/${item.id}`;
+      const targetId = item.id;
       try {
-        await deleteDoc(doc(db, docPath));
+        await deleteListing(user.uid, targetId);
         deleteListingAssets(user.uid, item.folderName).catch(() => { });
       } catch (err: any) {
         toast.error(`Failed to discard "${item.folderName}": ${err.message}`);
@@ -2212,13 +2200,22 @@ export default function Home() {
   // Option 1: Render Introductory Landing Page if Client is NOT Authenticated
   if (!user) {
     return (
-      <LandingPage
-        darkMode={darkMode}
-        toggleDarkMode={toggleDarkMode}
-        handleGoogleSignIn={handleGoogleSignIn}
-        activeLabFilter={activeLabFilter}
-        setActiveLabFilter={setActiveLabFilter}
-      />
+      <>
+        <LandingPage
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+          handleGoogleSignIn={handleGoogleSignIn}
+          activeLabFilter={activeLabFilter}
+          setActiveLabFilter={setActiveLabFilter}
+        />
+        {/* Signed-out branch returns early, so the sign-in dialog has to live
+            here as well as at the bottom of the authenticated tree. */}
+        <DevSignInDialog
+          open={showDevSignIn}
+          onClose={() => setShowDevSignIn(false)}
+          onSubmit={handleDevSignIn}
+        />
+      </>
     );
   }
 
@@ -3655,6 +3652,12 @@ export default function Home() {
 
       {/* Destructive action confirmation */}
       <DeleteConfirmDialog request={deleteRequest} onClose={() => setDeleteRequest(null)} />
+
+      <DevSignInDialog
+        open={showDevSignIn}
+        onClose={() => setShowDevSignIn(false)}
+        onSubmit={handleDevSignIn}
+      />
 
     </div>
   );

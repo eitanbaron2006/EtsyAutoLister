@@ -2,7 +2,7 @@
 
 // Projects Hub — the project registry dashboard. Extracted mechanically from
 // Home; prop names mirror the original state/handler names.
-import type { User as FirebaseUser } from 'firebase/auth';
+import type { AppUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -57,7 +57,7 @@ export function ProjectsHubView({
   setSelectedProductType,
   handleLogOut
 }: {
-  user: FirebaseUser;
+  user: AppUser;
   darkMode: boolean;
   toggleDarkMode: () => void;
   dbListings: ListingMetadata[];

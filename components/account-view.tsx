@@ -2,7 +2,7 @@
 
 // Account & settings page. Extracted mechanically from Home — prop names
 // mirror the original state/handler names.
-import type { User as FirebaseUser } from 'firebase/auth';
+import type { AppUser } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -37,7 +37,7 @@ export function AccountView({
   setCurrentView,
   handleLogOut
 }: {
-  user: FirebaseUser;
+  user: AppUser;
   darkMode: boolean;
   toggleDarkMode: () => void;
   accountPlan: string;
@@ -102,7 +102,9 @@ export function AccountView({
                   <h2 className={`text-base font-serif font-medium leading-tight truncate ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>{user.displayName || 'Studio Creator'}</h2>
                   <p className={`text-xs truncate ${darkMode ? 'text-[#a39e8f]' : 'text-[#5a5448]'}`}>{user.email}</p>
                   <p className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] mt-1">
-                    Member since {user.metadata?.creationTime ? user.metadata.creationTime.split(' ').slice(1, 4).join(' ') : '—'}
+                    Member since {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—'}
                   </p>
                 </div>
               </div>
