@@ -40,7 +40,8 @@ import {
   Cpu,
   Sun,
   Moon,
-  RotateCcw
+  RotateCcw,
+  Square
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -114,6 +115,16 @@ import { balancedGridColumns } from '@/lib/grid';
 import { getFormattedPlainTextDescription, renderFormattedDescription } from '@/lib/listing-format';
 import type { GeneratedMockup, ListingMetadata, ProductData, StagedImage, StagedProduct } from '@/lib/listing-types';
 
+// Thrown at each pipeline checkpoint so a stopped run unwinds in one place.
+// Declared at module scope: the React Compiler skips any component containing
+// an inline class declaration.
+class RunCancelled extends Error {
+  constructor() {
+    super('cancelled');
+    this.name = 'RunCancelled';
+  }
+}
+
 export default function Home() {
   // Authentication & Configuration States
   const [user, setUser] = useState<AppUser | null>(null);
@@ -168,6 +179,21 @@ export default function Home() {
   const [isRenderingMockups, setIsRenderingMockups] = useState(false);
   const [isRunningCopy, setIsRunningCopy] = useState(false);
   const [isRunningAutopilot, setIsRunningAutopilot] = useState(false);
+
+  // Stop support for a run in flight. `cancelledRuns` is what the pipeline
+  // checks between stages; `runAborts` aborts the request that is actually
+  // open right now, so a stuck Gemini call ends immediately instead of after
+  // its full 75s timeout. Refs, not state: the running async pipeline closes
+  // over these and must observe writes made after it started.
+  const cancelledRunsRef = useRef<Set<string>>(new Set());
+  const runAbortsRef = useRef<Map<string, AbortController>>(new Map());
+
+  const stopRun = async (listingId: string) => {
+    cancelledRunsRef.current.add(listingId);
+    runAbortsRef.current.get(listingId)?.abort();
+    runAbortsRef.current.delete(listingId);
+    if (user) await resetListingToIdle(user.uid, listingId).catch(() => { });
+  };
   const [studioZoomMockup, setStudioZoomMockup] = useState<GeneratedMockup | null>(null);
   const [activeProduct, setActiveProduct] = useState<ProductData | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -1543,11 +1569,19 @@ export default function Home() {
         pipelineStepText: 'Sending images to Gemini AI for analysis (each attempt has an 8s timeout, up to 3 retries)...',
       });
 
-      const res = await fetch('/api/gemini/generate-listing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderName, images: uploadedImageDataUrls })
-      });
+      const controller = new AbortController();
+      runAbortsRef.current.set(targetId, controller);
+      let res: Response;
+      try {
+        res = await fetch('/api/gemini/generate-listing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderName, images: uploadedImageDataUrls }),
+          signal: controller.signal
+        });
+      } finally {
+        runAbortsRef.current.delete(targetId);
+      }
 
       if (!res.ok) {
         const errorInfo = await parseServerError(res);
@@ -1581,6 +1615,10 @@ export default function Home() {
 
       toast.success(`Listing copy compiled for "${folderName}"!`);
     } catch (err: any) {
+      // A user-requested stop is not a failure: stopRun already reset the row.
+      if (err?.name === 'AbortError' || cancelledRunsRef.current.has(targetId)) {
+        throw Object.assign(new Error('cancelled'), { name: 'RunCancelled' });
+      }
       // Determine the right user-facing message based on error type
       const code = err.code || '';
       const isTimeout = code === 'AI_TIMEOUT' || err.message?.includes('timeout');
@@ -1635,6 +1673,13 @@ export default function Home() {
   const runAutomatedAIPipeline = async (listing: ListingMetadata, templateIds?: string[], assignments?: Record<number, string>) => {
     if (!user) return;
     const targetId = listing.id;
+
+    // A fresh run clears any stop left over from a previous one.
+    cancelledRunsRef.current.delete(targetId);
+    const checkpoint = () => {
+      if (cancelledRunsRef.current.has(targetId)) throw new RunCancelled();
+    };
+
     setIsRunningAutopilot(true);
     try {
       // Step 1: Scanning Assets
@@ -1644,7 +1689,10 @@ export default function Home() {
       });
       await new Promise(r => setTimeout(r, 1200));
 
-      // Step 2: Render real mockups on the local MockupGen server
+      // Step 2: Render real mockups on the local MockupGen server.
+      // Every run renders fresh, including a re-run: the mockups are part of
+      // what is being regenerated, not a cached artefact to carry over.
+      checkpoint();
       await updateListing(user.uid, targetId, {
         status: 'mockups',
         pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
@@ -1657,6 +1705,7 @@ export default function Home() {
         toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
       }
 
+      checkpoint();
       // Step 3: Promotional thumbnail texts overlays
       await updateListing(user.uid, targetId, {
         status: 'thumbnail',
@@ -1664,6 +1713,7 @@ export default function Home() {
       });
       await new Promise(r => setTimeout(r, 1200));
 
+      checkpoint();
       // Step 4: Zip Packing
       await updateListing(user.uid, targetId, {
         status: 'compiling',
@@ -1671,15 +1721,23 @@ export default function Home() {
       });
       await new Promise(r => setTimeout(r, 1200));
 
+      checkpoint();
       // Step 5: SEO and copy generation with Gemini (manages its own statuses)
       await runCopyStage(listing.id, listing.folderName);
     } catch (err: any) {
+      if (err?.name === 'RunCancelled' || err?.name === 'AbortError') {
+        // stopRun already reset the row; nothing here should overwrite it.
+        toast.info(`Run stopped for "${listing.folderName}".`);
+        return;
+      }
       toast.error('Pipeline failed: ' + (err.message || 'Unknown error'));
       await updateListing(user.uid, targetId, {
         status: 'idle',
         pipelineStepText: 'Failed during automation process. Reloading...',
       }).catch(() => { });
     } finally {
+      cancelledRunsRef.current.delete(targetId);
+      runAbortsRef.current.delete(targetId);
       setIsRunningAutopilot(false);
     }
   };
@@ -3539,18 +3597,17 @@ export default function Home() {
                                           size="icon"
                                           variant="ghost"
                                           onClick={async () => {
-                                            if (!user) return;
                                             try {
-                                              await resetListingToIdle(user.uid, listingItem.id);
-                                              toast.success('Run cancelled — you can start it again.');
+                                              await stopRun(listingItem.id);
+                                              toast.success('Run stopped — you can start it again.');
                                             } catch {
-                                              toast.error('Could not cancel the run.');
+                                              toast.error('Could not stop the run.');
                                             }
                                           }}
                                           className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors"
-                                          title="Cancel this run and make the listing runnable again"
+                                          title="Stop this run and make the listing runnable again"
                                         >
-                                          <RotateCcw className="w-4 h-4" />
+                                          <Square className="w-4 h-4" />
                                         </Button>
                                       </>
                                     )}
@@ -3565,6 +3622,35 @@ export default function Home() {
                                           title="Open in Mockup Studio"
                                         >
                                           <Camera className="w-4 h-4" />
+                                        </Button>
+                                        {/* Re-run. A finished listing had no way back into the
+                                            pipeline, so a bad AI result meant discarding it.
+                                            Re-runs the full pipeline, mockups included. Publishing
+                                            is irreversible on Etsy's side, so a published row asks
+                                            first. */}
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          disabled={!!bulkProgress || isRunningAutopilot || !localFilesMap[listingItem.folderName]?.images.length}
+                                          onClick={() => {
+                                            if (listingItem.status === 'published') {
+                                              setDeleteRequest({
+                                                eyebrow: 'Confirm Re-run',
+                                                title: 'Re-run this published listing?',
+                                                description: `"${listingItem.folderName}" is already live on Etsy. Re-running regenerates its title, description, tags and price locally. The live listing is not touched until you publish again.`,
+                                                confirmLabel: 'Yes, Re-run',
+                                                action: () => runAutomatedAIPipeline(listingItem)
+                                              });
+                                            } else {
+                                              runAutomatedAIPipeline(listingItem);
+                                            }
+                                          }}
+                                          className="text-[#8b8676] dark:text-[#807b6c] hover:text-[#ed6f5c] dark:hover:text-[#ed6f5c] hover:bg-transparent max-h-8 max-w-8 cursor-pointer transition-colors disabled:opacity-40"
+                                          title={localFilesMap[listingItem.folderName]?.images.length
+                                            ? 'Re-run the whole pipeline, including fresh mockups'
+                                            : 'Source files are no longer in this browser session — re-stage them to run again'}
+                                        >
+                                          <RotateCcw className="w-4 h-4" />
                                         </Button>
                                         <Button
                                           size="sm"
