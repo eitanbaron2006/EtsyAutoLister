@@ -138,10 +138,18 @@ export function MockupViewerDialog({
                       <TipFillerCard key={`tip-filler-${fillerIndex}`} offset={fillerIndex * 3} savedTips={savedTips} onToggleSave={onToggleSaveTip} />
                     ))}
                   </div>
-                  {/* Fill the vertical space left below the rows with a tips panel.
-                      shrink-0 so it keeps its height when the grid above scrolls. */}
+                  {/* A tips strip under the gallery. The wrapper must be a flex
+                      container with a definite height: .studio-tip-panel-shell
+                      is `flex: 1 1 0%` with `container-type: size`, so in a
+                      plain block parent it has no height to resolve against and
+                      collapses to a bare 1px border.
+                      56px is measured, not guessed: under the 6.5rem container
+                      query the text is clamped to 2 lines at 11px (~30px), and
+                      the tallest row element is the 28px action button, so the
+                      content needs ~50px including padding. Anything taller is
+                      dead space, and the extra height belongs to the mockups. */}
                   {tipsBelow && (
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex h-14">
                       <TipPanel savedTips={savedTips} onToggleSave={onToggleSaveTip} />
                     </div>
                   )}
