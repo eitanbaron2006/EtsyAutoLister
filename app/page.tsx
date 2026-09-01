@@ -1136,9 +1136,14 @@ export default function Home() {
     let shortfallNote: string | null = null;
     if (!options?.append) {
       // MAIN cover: every product leads with exactly ONE thumbnail mockup
-      // from a main-* category (main-horizontal / main-vertical /
-      // main-square), matched to the lead artwork's orientation — it becomes
-      // the Etsy cover. The rest of the plan never touches main templates.
+      // from a main-* category, matched to the lead artwork's orientation —
+      // it becomes the Etsy cover. The rest of the plan never touches main
+      // templates.
+      //
+      // Matched on the template's own orientation rather than on a category
+      // slug: the studio renamed its shelves (main-vertical -> main-portrait,
+      // main-horizontal -> main-wide) and the hardcoded names silently matched
+      // nothing, which cost every portrait and landscape listing its cover.
       const catalog = await getTemplateCatalog();
       const isMainTemplate = (t: MockupTemplateSummary) => t.product_type.startsWith('main-');
       const planArtworks = artworks.slice(0, MAX_SET_ARTWORKS);
@@ -1149,10 +1154,10 @@ export default function Home() {
       });
       if (!userPickedMain && catalog.length > 0) {
         const leadOrientation = planOrientations[0];
-        const wantedCategory = leadOrientation === 'landscape' ? 'main-horizontal'
-          : leadOrientation === 'portrait' ? 'main-vertical' : 'main-square';
         // The cover is always a single-frame scene of the lead artwork
-        const pool = catalog.filter(t => t.product_type === wantedCategory && (t.frame_count ?? 1) === 1);
+        const pool = catalog.filter(t =>
+          isMainTemplate(t) && t.orientation === leadOrientation && (t.frame_count ?? 1) === 1
+        );
         if (pool.length > 0) {
           // Seeded by the artwork file so bulk products get varied covers
           // while staying deterministic per product
