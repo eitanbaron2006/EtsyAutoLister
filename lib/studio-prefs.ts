@@ -12,9 +12,12 @@
 export interface StudioPrefs {
   templateIds: string[];
   assignments: Record<number, string>;
+  /** Which print package this listing produces. Null means the shop's own
+      choice for the shape the artwork arrives at. */
+  printSetId: number | null;
 }
 
-const EMPTY: StudioPrefs = { templateIds: [], assignments: {} };
+const EMPTY: StudioPrefs = { templateIds: [], assignments: {}, printSetId: null };
 
 export function readStudioPrefs(raw: unknown): StudioPrefs {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return EMPTY;
@@ -35,5 +38,9 @@ export function readStudioPrefs(raw: unknown): StudioPrefs {
     }
   }
 
-  return { templateIds, assignments };
+  const printSetId = typeof record.printSetId === 'number' && Number.isInteger(record.printSetId)
+    ? record.printSetId
+    : null;
+
+  return { templateIds, assignments, printSetId };
 }

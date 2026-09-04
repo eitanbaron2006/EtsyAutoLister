@@ -342,3 +342,36 @@ export async function downloadPrintDeliverable(url: string): Promise<Blob> {
   if (!res.ok) throw new Error(`Failed to download a print file (HTTP ${res.status})`);
   return res.blob();
 }
+
+export interface PrintExportRecord {
+  id: number;
+  artwork_name: string;
+  output_mode: string;
+  quality: string;
+  created_at: string;
+  files: { ratio_key: string; file_name: string; width: number; height: number; bytes: number; ms: number }[];
+  guide_file: string;
+}
+
+/**
+ * The print files already made for one listing.
+ *
+ * They are not downloaded here and not stored here. The render server keeps
+ * them with its own history and its own retention, and answers for them by
+ * the reference the listing was exported under -- so the browser holds a list,
+ * not twenty megabytes an image.
+ */
+export async function listPrintExports(reference: string): Promise<PrintExportRecord[]> {
+  const res = await fetch(`${getMockupGenBaseUrl()}/api/print/exports?reference=${encodeURIComponent(reference)}`);
+  if (!res.ok) return [];
+  const payload = await res.json().catch(() => ({}));
+  return (payload.exports ?? []) as PrintExportRecord[];
+}
+
+/** The print sets a shop has configured, for choosing one before a run. */
+export async function listPrintSets(): Promise<{ id: number; name: string; mode: string; ratio_keys: string[] }[]> {
+  const res = await fetch(`${getMockupGenBaseUrl()}/api/print/sets`);
+  if (!res.ok) return [];
+  const payload = await res.json().catch(() => ({}));
+  return payload.sets ?? [];
+}

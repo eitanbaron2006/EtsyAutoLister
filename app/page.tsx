@@ -80,8 +80,6 @@ import {
   persistSources,
   syncFromCloud,
   backfillToCloud,
-  loadDeliverableRecords,
-  persistDeliverables,
   clearStagingTray,
   loadStagingTray,
   saveStagingTray,
@@ -97,7 +95,8 @@ import {
   listMockupTemplates,
   renderMockupBatch,
   requestPrintDeliverables,
-  downloadPrintDeliverable,
+  listPrintExports,
+  listPrintSets,
   resolveMockupUrl,
   type MockupArtworkRef,
   type MockupBatchItemSpec,
@@ -195,7 +194,7 @@ export default function Home() {
   const [frameTemplate, setFrameTemplate] = useState<MockupTemplateDetails | null>(null);
   const [frameAssignments, setFrameAssignments] = useState<Record<number, string>>({});
   // Per-listing studio choices (templates + frame layout), kept for the session
-  const [studioPrefsMap, setStudioPrefsMap] = useState<Record<string, { templateIds: string[]; assignments: Record<number, string> }>>({});
+  const [studioPrefsMap, setStudioPrefsMap] = useState<Record<string, { templateIds: string[]; assignments: Record<number, string>; printSetId?: number | null }>>({});
   const [isBrowsingTemplates, setIsBrowsingTemplates] = useState(false);
   const [isRenderingMockups, setIsRenderingMockups] = useState(false);
   const [isRunningCopy, setIsRunningCopy] = useState(false);
@@ -241,6 +240,8 @@ export default function Home() {
   // Saving must not start before the restore has had its say, or an empty
   // first render would wipe the tray it is about to bring back.
   const stagingRestoredRef = useRef(false);
+  // The print packages the render server offers, for choosing one before a run.
+  const [printSets, setPrintSets] = useState<{ id: number; name: string; mode: string; ratio_keys: string[] }[]>([]);
   // The print files each listing has: what the buyer downloads, as opposed to
   // the mockups, which are what the shop shows. Metadata only -- the files
   // themselves stay in the bucket until they are needed.
@@ -383,23 +384,6 @@ export default function Home() {
         );
       })
       .then(async () => {
-        if (cancelled || !user) return;
-        // Which listings already have print files. Metadata only: the files
-        // stay in the bucket until something actually needs them.
-        const known = await loadDeliverableRecords(user.uid).catch(() => ({}));
-        if (cancelled) return;
-        setPrintFilesMap(Object.fromEntries(
-          Object.entries(known).map(([folderName, records]) => [
-            folderName,
-            records.map(record => ({
-              fileName: record.fileName,
-              url: `/print-outputs/${record.fileName}`,
-              bytes: record.bytes,
-            })),
-          ]),
-        ));
-      })
-      .then(async () => {
         if (cancelled) return;
         // The cache is not the record any more, so a full browser store is no
         // longer a threat to the work -- but it is still worth knowing, since
@@ -515,6 +499,37 @@ export default function Home() {
     window.addEventListener('pagehide', send);
     return () => window.removeEventListener('pagehide', send);
   }, [user]);
+
+  // Which listings already have print files. Asked of the render server,
+  // which is where they live: a list, not twenty megabytes an image. Keyed on
+  // the listings themselves, so it runs when they arrive rather than before.
+  const listingKey = dbListings.map(listing => listing.id).join(',');
+  useEffect(() => {
+    if (!user || dbListings.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const known: Record<string, { fileName: string; url: string; bytes: number }[]> = {};
+      for (const listing of dbListings) {
+        const runs = await listPrintExports(listing.id).catch(() => []);
+        const latest = runs[0];
+        if (!latest?.files?.length) continue;
+        known[listing.folderName] = latest.files.map(file => ({
+          fileName: file.file_name,
+          url: `/print-outputs/${file.file_name}`,
+          bytes: file.bytes,
+        }));
+      }
+      if (!cancelled && Object.keys(known).length > 0) setPrintFilesMap(prev => ({ ...known, ...prev }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, listingKey]);
+
+  // What print packages the shop has configured. Read once: the list is
+  // short, and it is what the picker below offers.
+  useEffect(() => {
+    listPrintSets().then(setPrintSets).catch(() => setPrintSets([]));
+  }, []);
 
   // Probe the configured MockupGen server availability on load
   useEffect(() => {
@@ -1884,35 +1899,31 @@ export default function Home() {
     }
 
     try {
-      const answer = await requestPrintDeliverables(artwork, { reference: listingId });
+      const answer = await requestPrintDeliverables(artwork, {
+        reference: listingId,
+        // Whatever was chosen for this listing before the run; without one the
+        // render server falls back to the package configured for the shape the
+        // artwork arrives at.
+        setId: studioPrefsMap[listingId]?.printSetId ?? undefined,
+      });
       if (!answer.deliverables?.length) return;
 
-      const downloaded: { file: Blob; fileName: string; ratios?: string[] }[] = [];
-      for (const item of answer.deliverables) {
-        try {
-          downloaded.push({
-            file: await downloadPrintDeliverable(item.url),
-            fileName: item.name,
-            ratios: item.ratios ?? (item.ratio ? [item.ratio] : undefined),
-          });
-        } catch {
-          // The rest of the pack is still worth having.
-        }
-      }
-      if (downloaded.length === 0) return;
-
-      const stored = await persistDeliverables(user.uid, folderName, listingId, downloaded);
+      // Deliberately not downloaded. A print file is 15 to 20 megabytes and
+      // there can be five of them; pulling them through the browser to push
+      // them back up would cost the bandwidth twice and fill the local store
+      // with files nobody opens here. The render server keeps them, with its
+      // own history and retention, and answers for them by this reference.
       setPrintFilesMap(prev => ({
         ...prev,
-        [folderName]: stored.map(record => ({
-          fileName: record.fileName,
-          url: `/print-outputs/${record.fileName}`,
-          bytes: record.bytes,
+        [folderName]: answer.deliverables.map(item => ({
+          fileName: item.name,
+          url: item.url,
+          bytes: item.bytes,
         })),
       }));
 
       const shape = answer.delivery === 'files' ? 'ready to upload as they are' : 'packed into archives';
-      toast.success(`${downloaded.length} print file${downloaded.length === 1 ? '' : 's'} ${shape}.`);
+      toast.success(`${answer.deliverables.length} print file${answer.deliverables.length === 1 ? '' : 's'} ${shape}.`);
       if (answer.guide_dropped) {
         // Said out loud: five images the buyer can open beat four and a note,
         // but the shop should know the note was the thing left out.
@@ -3101,6 +3112,48 @@ export default function Home() {
                     ))}
                   </div>
                   <span className="text-[9px] text-[#8b8676] font-mono select-none">applies to every render, including bulk runs</span>
+                </div>
+
+                {/* Which print files the buyer gets. Chosen before the run, or
+                    left to the shop's own answer for this artwork's shape. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold select-none">{"\u25aa PRINT PACKAGE"}</span>
+                  <select
+                    value={studioPrefsMap[activeStudioListing.id]?.printSetId ?? ''}
+                    onChange={event => {
+                      const chosen = event.target.value ? Number(event.target.value) : null;
+                      setStudioPrefsMap(prev => ({
+                        ...prev,
+                        [activeStudioListing.id]: {
+                          templateIds: prev[activeStudioListing.id]?.templateIds ?? selectedTemplateIds,
+                          assignments: prev[activeStudioListing.id]?.assignments ?? frameAssignments,
+                          printSetId: chosen,
+                        },
+                      }));
+                      if (user) {
+                        void updateListing(user.uid, activeStudioListing.id, {
+                          studioPrefs: {
+                            templateIds: studioPrefsMap[activeStudioListing.id]?.templateIds ?? selectedTemplateIds,
+                            assignments: studioPrefsMap[activeStudioListing.id]?.assignments ?? frameAssignments,
+                            printSetId: chosen,
+                          },
+                        }).catch(() => { });
+                      }
+                    }}
+                    className="text-[10px] font-mono bg-[#ece4cf]/80 border border-[rgba(21,20,15,0.16)] rounded-lg px-2 py-1.5 text-[#15140f] cursor-pointer"
+                  >
+                    <option value="">Automatic — by the artwork&apos;s shape</option>
+                    {printSets.map(set => (
+                      <option key={set.id} value={set.id}>
+                        {set.name}{set.mode === 'chosen' ? ` (${set.ratio_keys.length})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[9px] text-[#8b8676] font-mono select-none">
+                    {printSets.length === 0
+                      ? 'no packages configured on the render server'
+                      : 'what the buyer downloads, prepared during Compile'}
+                  </span>
                 </div>
 
                 {/* Admin note: the server lacks enough suitable templates */}
