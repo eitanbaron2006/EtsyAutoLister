@@ -75,8 +75,10 @@ import {
   loadAllSources,
   persistMockups,
   persistSources,
+  syncFromCloud,
   type StoredMockup
 } from '@/lib/asset-store';
+import { askForDurableStorage } from '@/lib/asset-cloud';
 import {
   checkMockupGenHealth,
   downloadMockupOutput,
@@ -294,7 +296,57 @@ export default function Home() {
       })
       .catch(() => {
         // IndexedDB unavailable — assets stay in-memory only for this session
+      })
+      .then(async () => {
+        if (cancelled || !user) return;
+        // Whatever this browser is missing comes down from the bucket. On a
+        // machine that already has the files this downloads nothing; on one
+        // that has never seen them it is the difference between the session
+        // working and "assets missing in this browser".
+        const filled = await syncFromCloud(user.uid).catch(() => null);
+        if (cancelled || !filled || filled.files === 0) return;
+
+        const [sources, storedMockups] = await Promise.all([
+          loadAllSources(user.uid),
+          loadAllMockups(user.uid),
+        ]);
+        if (cancelled) return;
+        setLocalFilesMap(prev => ({ ...sources, ...prev }));
+        setSourceThumbsMap(prev => {
+          const restored: Record<string, string[]> = {};
+          for (const [folderName, bundle] of Object.entries(sources)) {
+            if (prev[folderName]) continue;
+            restored[folderName] = bundle.images.slice(0, 4).map(file => URL.createObjectURL(file));
+          }
+          return { ...restored, ...prev };
+        });
+        setMockupResultsMap(prev => {
+          const restored: Record<string, GeneratedMockup[]> = {};
+          for (const [folderName, mockups] of Object.entries(storedMockups)) {
+            if (prev[folderName]) continue;
+            restored[folderName] = mockups.map(stored => {
+              const file = new File([stored.blob], stored.fileName, { type: stored.fileType });
+              return {
+                id: stored.id,
+                templateId: stored.templateId,
+                sourceFileNames: stored.sourceFileNames,
+                frameAssignment: stored.frameAssignment,
+                file,
+                url: URL.createObjectURL(file)
+              };
+            });
+          }
+          return { ...restored, ...prev };
+        });
+        toast.success(
+          filled.folders.length === 1
+            ? `Restored ${filled.files} file${filled.files === 1 ? '' : 's'} for 1 listing from your account.`
+            : `Restored ${filled.files} files across ${filled.folders.length} listings from your account.`,
+        );
       });
+    // A browser evicts storage under disk pressure without asking. The bucket
+    // survives that, but asking to be spared saves a re-download.
+    void askForDurableStorage();
     return () => { cancelled = true; };
   }, [user]);
 
@@ -1782,7 +1834,8 @@ export default function Home() {
     setStudioSourcePreviews(createSourcePreviewImages(sessionFiles.images));
 
     // Restore this listing's previous template/frame choices from the session
-    const prefs = studioPrefsMap[listing.id];
+    // This session's choice first, then what was stored with the listing.
+    const prefs = studioPrefsMap[listing.id] ?? listing.studioPrefs;
     setSelectedTemplateIds(prefs?.templateIds || []);
     setFrameAssignments(prefs?.assignments || {});
     if (prefs?.templateIds.length === 1) {
@@ -1887,6 +1940,13 @@ export default function Home() {
   const saveStudioPrefs = (templateIds: string[], assignments: Record<number, string>) => {
     if (!studioListingId) return;
     setStudioPrefsMap(prev => ({ ...prev, [studioListingId]: { templateIds, assignments } }));
+    // ...and to the listing, so the choice survives a refresh. Not awaited:
+    // picking a template should never wait on the network.
+    if (user) {
+      void updateListing(user.uid, studioListingId, {
+        studioPrefs: { templateIds, assignments },
+      }).catch(() => { });
+    }
   };
 
   const toggleTemplateSelection = (templateId: string) => {

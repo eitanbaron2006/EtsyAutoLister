@@ -16,6 +16,10 @@ export type ListingMetadata = {
   pipelineStepText?: string;
   mockupImage?: string; // Legacy saved preview from older drafts.
   mockupNote?: string | null; // admin note: not enough suitable templates on the render server
+  // Which templates were picked by hand for this listing, and which source
+  // sits in which frame of a multi-frame mockup. Session state until now, so a
+  // refresh threw away work that had been done listing by listing.
+  studioPrefs?: { templateIds: string[]; assignments: Record<number, string> };
   updatedAt?: string; // ISO timestamp, maintained by the DB trigger; used to detect stalled pipeline runs
   quantity?: number;
   listingType?: string;
