@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { currentUserId, storeEtsyToken } from '@/lib/etsy-token';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -47,16 +48,32 @@ export async function GET(request: Request) {
 
     const data = await response.json();
     
-    // In a real app we'd save this to a DB. For this stateless tool, 
-    // we'll pass the token back via postMessage to the client for temporary usage.
-    const accessToken = data.access_token;
+    // The token is stored server-side and never reaches the page. It used to be
+    // posted to `window.opener` with '*' as the target origin -- to whatever
+    // window happened to be listening -- and the page then kept it in state and
+    // sent it back with every publish.
+    const userId = await currentUserId();
+    if (!userId) {
+      return new NextResponse('Sign in before connecting Etsy.', { status: 401 });
+    }
+    try {
+      await storeEtsyToken(userId, {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresInSeconds: data.expires_in,
+      });
+    } catch (storeError) {
+      console.error('Could not store the Etsy token', storeError);
+      return new NextResponse('Connected to Etsy, but the token could not be saved.', { status: 500 });
+    }
+    const appOrigin = new URL(envAppUrl).origin;
     
     const html = `
       <html>
         <body>
           <script>
             if (window.opener) {
-              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${accessToken}' }, '*');
+              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, ${JSON.stringify(appOrigin)});
               window.close();
             } else {
               window.location.href = '/';

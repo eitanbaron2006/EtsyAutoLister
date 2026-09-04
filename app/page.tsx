@@ -76,6 +76,9 @@ import {
   persistMockups,
   persistSources,
   syncFromCloud,
+  clearStagingTray,
+  loadStagingTray,
+  saveStagingTray,
   type StoredMockup
 } from '@/lib/asset-store';
 import { askForDurableStorage } from '@/lib/asset-cloud';
@@ -127,6 +130,8 @@ class RunCancelled extends Error {
   }
 }
 
+const ETSY_CONNECTED = 'connected';
+
 export default function Home() {
   // Authentication & Configuration States
   const [user, setUser] = useState<AppUser | null>(null);
@@ -137,6 +142,9 @@ export default function Home() {
   const [selectedMode, setSelectedMode] = useState<'etsy' | 'manual' | null>(null);
   const [selectedProductType, setSelectedProductType] = useState<string | null>(null); // e.g. 'png_graphics' | 'printable_wallart' | 'presets' | 'planners'
 
+  // Not a token. The page needs to know an Etsy account is connected -- every
+  // check here is `!etsyToken` -- and the secret itself now stays on the
+  // server, so this stands in for it.
   const [etsyToken, setEtsyToken] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [globalAppUrl, setGlobalAppUrl] = useState('');
@@ -219,6 +227,9 @@ export default function Home() {
   const [isUploadingRaw, setIsUploadingRaw] = useState(false);
   const [stagedProducts, setStagedProducts] = useState<StagedProduct[]>([]);
   const [stagedSelection, setStagedSelection] = useState<string[]>([]);
+  // Saving must not start before the restore has had its say, or an empty
+  // first render would wipe the tray it is about to bring back.
+  const stagingRestoredRef = useRef(false);
   const [projectNameInput, setProjectNameInput] = useState('');
   // The project this session works inside — set by the first creation or by
   // continuing a project from the hub; later creations join it.
@@ -384,6 +395,62 @@ export default function Home() {
     }
   }, [mockupResultsMap, user]);
 
+  // The staging tray, kept as it is worked on.
+  //
+  // Files chosen, sets merged, groups split, names typed -- all before
+  // "Create Listings" writes anything anywhere. It was React state and nothing
+  // else, so a refresh at that moment threw the lot away. Debounced, because
+  // renaming a product should not write a folder of images per keystroke.
+  useEffect(() => {
+    if (!user || !stagingRestoredRef.current) return;
+    const timer = window.setTimeout(() => {
+      if (stagedProducts.length === 0) {
+        void clearStagingTray(user.uid).catch(() => { });
+        return;
+      }
+      void saveStagingTray(
+        user.uid,
+        stagedProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          kind: product.kind,
+          images: product.images.map(image => ({ id: image.id, file: image.file })),
+          files: product.files,
+        })),
+      ).catch(() => { });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [stagedProducts, user]);
+
+  // ...and offered back on the next visit.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    loadStagingTray(user.uid)
+      .then(restored => {
+        if (cancelled) return;
+        stagingRestoredRef.current = true;
+        if (restored.length === 0) return;
+        setStagedProducts(prev => {
+          // Anything already staged in this session is the newer truth.
+          if (prev.length > 0) {
+            restored.forEach(product => product.images.forEach(image => URL.revokeObjectURL(image.url)));
+            return prev;
+          }
+          return restored as StagedProduct[];
+        });
+        toast.info(
+          restored.length === 1
+            ? 'Restored 1 product you had staged but not created yet.'
+            : `Restored ${restored.length} products you had staged but not created yet.`,
+        );
+      })
+      .catch(() => {
+        stagingRestoredRef.current = true;
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
   // Probe the configured MockupGen server availability on load
   useEffect(() => {
     let cancelled = false;
@@ -485,8 +552,8 @@ export default function Home() {
             toast.info("Created your cloud database account.");
           }
           if (profile) {
-            if (profile.etsyConnected && profile.etsyToken) {
-              setEtsyToken(profile.etsyToken);
+            if (profile.etsyConnected) {
+              setEtsyToken(ETSY_CONNECTED);
               setSelectedMode('etsy');
             }
             if (profile.lastProductType) {
@@ -541,15 +608,17 @@ export default function Home() {
     const handleMessage = (event: MessageEvent) => {
       if (typeof event.data !== 'object' || !event.data) return;
       if (event.data.type === 'OAUTH_AUTH_SUCCESS' && signedInUid) {
-        const token = event.data.token;
-        setEtsyToken(token);
+        // The real token never arrives here any more: the callback stored it
+        // server-side and the publish route reads it from there. What the page
+        // holds is the fact of being connected, which is all it ever used the
+        // token for.
+        setEtsyToken(ETSY_CONNECTED);
         setIsConnecting(false);
         setSelectedMode('etsy');
 
         // Save connection back to the user profile
         updateProfile(signedInUid, {
           etsyConnected: true,
-          etsyToken: token,
         }).catch(err => {
           console.error("Error saving Etsy credentials to DB", err);
         });
@@ -694,8 +763,9 @@ export default function Home() {
     try {
       await updateProfile(user.uid, {
         etsyConnected: false,
-        etsyToken: null
       });
+      // The stored token goes too, not just the flag.
+      await fetch('/api/etsy/disconnect', { method: 'POST' }).catch(() => { });
       setEtsyToken(null);
       setSelectedMode(null);
       toast.success("Etsy shop disconnected.");
@@ -856,6 +926,9 @@ export default function Home() {
       return [];
     });
     setStagedSelection([]);
+    // The saved copy goes with it, or the next load would offer back a tray
+    // whose products are already listings.
+    if (user) void clearStagingTray(user.uid).catch(() => { });
   };
 
   // Create one listing per staged product — sets and singles alike
@@ -2097,7 +2170,8 @@ export default function Home() {
       });
 
       const formData = new FormData();
-      formData.append('token', etsyToken);
+      // Only the demo path names a token; the real one is read on the server.
+      if (etsyToken === 'DEMO_TOKEN') formData.append('token', etsyToken);
       formData.append('title', item.title || '');
       formData.append('description', item.description || '');
       formData.append('price', (item.price || 5.00).toString());

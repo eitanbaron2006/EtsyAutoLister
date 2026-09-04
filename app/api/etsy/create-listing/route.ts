@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { currentUserId, readEtsyToken } from '@/lib/etsy-token';
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const token = formData.get('token') as string;
+    // The demo path is the only one the page still names a token on. The real
+    // one is read here, from a table no client role can reach, for whoever the
+    // session cookies say is asking.
+    const declared = formData.get('token') as string | null;
+    const token = declared === 'DEMO_TOKEN'
+      ? declared
+      : await (async () => {
+          const userId = await currentUserId();
+          return userId ? await readEtsyToken(userId) : null;
+        })();
     
     if (!token) {
       return NextResponse.json({ error: 'Missing Etsy access token. Connect your account first.' }, { status: 401 });

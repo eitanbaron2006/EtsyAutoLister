@@ -20,9 +20,10 @@ import {
 } from '@/lib/asset-cloud';
 
 const DB_NAME = 'autolister-assets';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SOURCES_STORE = 'sources';
 const MOCKUPS_STORE = 'mockups';
+const STAGING_STORE = 'staging';
 
 export interface StoredMockup {
   id: string;
@@ -63,6 +64,9 @@ function openAssetDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(MOCKUPS_STORE)) {
         db.createObjectStore(MOCKUPS_STORE, { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains(STAGING_STORE)) {
+        db.createObjectStore(STAGING_STORE, { keyPath: 'key' });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -336,6 +340,123 @@ async function writeMockupsRecord(uid: string, folderName: string, mockups: Stor
     const record: MockupsRecord = { key: recordKey(uid, folderName), uid, folderName, mockups };
     const tx = db.transaction(MOCKUPS_STORE, 'readwrite');
     await requestToPromise(tx.objectStore(MOCKUPS_STORE).put(record));
+  } finally {
+    db.close();
+  }
+}
+
+/* --------------------------------------------------------- the staging tray
+
+   Files chosen, sets merged, groups split, names typed -- all of it before
+   "Create Listings" writes anything anywhere. It was React state, so a refresh
+   at that moment threw the lot away.
+
+   It goes here rather than into sessionStorage for the plain reason that it
+   holds File objects, and sessionStorage holds strings. It also does not go to
+   the bucket: this is work in progress that has no listing to belong to yet,
+   and uploading files the user may be about to discard would be the wrong
+   trade. One tab, one refresh, one recovery. */
+
+interface StagedFile {
+  name: string;
+  type: string;
+  blob: Blob;
+}
+
+interface StagingRecord {
+  key: string; // the uid on its own: one tray per person
+  savedAt: number;
+  products: {
+    id: string;
+    name: string;
+    kind: 'single' | 'set';
+    images: (StagedFile & { id: string })[];
+    files: StagedFile[];
+  }[];
+}
+
+export interface StagedProductInput {
+  id: string;
+  name: string;
+  kind: 'single' | 'set';
+  images: { id: string; file: File }[];
+  files: File[];
+}
+
+export interface RestoredStagedProduct {
+  id: string;
+  name: string;
+  kind: 'single' | 'set';
+  images: { id: string; file: File; url: string }[];
+  files: File[];
+}
+
+/** How long an abandoned tray is worth offering back. */
+export const STAGING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export async function saveStagingTray(uid: string, products: StagedProductInput[]): Promise<void> {
+  const db = await openAssetDb();
+  try {
+    const record: StagingRecord = {
+      key: uid,
+      savedAt: Date.now(),
+      products: products.map(product => ({
+        id: product.id,
+        name: product.name,
+        kind: product.kind,
+        images: product.images.map(image => ({
+          id: image.id,
+          name: image.file.name,
+          type: image.file.type,
+          blob: image.file,
+        })),
+        files: product.files.map(file => ({ name: file.name, type: file.type, blob: file })),
+      })),
+    };
+    const tx = db.transaction(STAGING_STORE, 'readwrite');
+    await requestToPromise(tx.objectStore(STAGING_STORE).put(record));
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * The tray as it was left, with fresh object URLs.
+ *
+ * The URLs are not stored: an object URL belongs to the document that made it
+ * and means nothing after a reload.
+ */
+export async function loadStagingTray(uid: string): Promise<RestoredStagedProduct[]> {
+  const db = await openAssetDb();
+  try {
+    const tx = db.transaction(STAGING_STORE, 'readonly');
+    const record = await requestToPromise(tx.objectStore(STAGING_STORE).get(uid)) as StagingRecord | undefined;
+    if (!record) return [];
+    if (Date.now() - record.savedAt > STAGING_MAX_AGE_MS) return [];
+    return record.products.map(product => ({
+      id: product.id,
+      name: product.name,
+      kind: product.kind,
+      images: product.images.map(image => {
+        const file = new File([image.blob], image.name, { type: image.type });
+        return { id: image.id, file, url: URL.createObjectURL(file) };
+      }),
+      files: product.files.map(file => new File([file.blob], file.name, { type: file.type })),
+    }));
+  } catch {
+    return [];
+  } finally {
+    db.close();
+  }
+}
+
+export async function clearStagingTray(uid: string): Promise<void> {
+  const db = await openAssetDb();
+  try {
+    const tx = db.transaction(STAGING_STORE, 'readwrite');
+    await requestToPromise(tx.objectStore(STAGING_STORE).delete(uid));
+  } catch {
+    // Nothing to clear is the same outcome as clearing it.
   } finally {
     db.close();
   }

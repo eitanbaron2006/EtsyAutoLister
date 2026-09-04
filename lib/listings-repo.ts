@@ -297,28 +297,67 @@ export async function updateListing(
  * Anything untouched for longer than STALE_PIPELINE_MS has no live owner, so
  * it is returned to 'idle' and becomes runnable again.
  *
+ * It says where the run stopped. The old message -- "the previous run was
+ * interrupted before it finished" -- was true of every case and useful in
+ * none: a listing that died while writing copy and one that died before it
+ * started read exactly alike, and the step it reached was overwritten in the
+ * same statement that reported the failure.
+ *
+ * Note that a re-run starts over rather than continuing. That is deliberate
+ * elsewhere in the app -- mockups are treated as part of what a run
+ * regenerates, not a cached artefact -- so this reports the interruption
+ * rather than quietly resuming past it.
+ *
  * @returns the ids that were released
  */
+const STEP_NAMES: Record<string, string> = {
+  scanning: 'while reading the files',
+  mockups: 'while rendering mockups',
+  thumbnail: 'while preparing the thumbnail',
+  compiling: 'while compiling the deliverables',
+  seo: 'while writing the title, tags and description',
+};
+
 export async function recoverStalledListings(uid: string): Promise<string[]> {
   const cutoff = new Date(Date.now() - STALE_PIPELINE_MS).toISOString();
 
-  const { data, error } = await supabase
+  // Read first, so the step each one reached is known before it is replaced.
+  const { data: stalled, error: readError } = await supabase
     .from('listings')
-    .update({
-      status: 'idle',
-      pipeline_step_text: 'The previous run was interrupted before it finished. Press Run to try again.',
-    })
+    .select('id, status')
     .eq('user_id', uid)
     .in('status', IN_FLIGHT_STATUSES as unknown as string[])
-    .lt('updated_at', cutoff)
-    .select('id');
+    .lt('updated_at', cutoff);
 
-  if (error) {
+  if (readError) {
     // Never block sign-in over this — the manual reset is still available.
-    console.error('Failed to recover stalled listings', error);
+    console.error('Failed to find stalled listings', readError);
     return [];
   }
-  return (data ?? []).map(row => row.id as string);
+  if (!stalled || stalled.length === 0) return [];
+
+  const released: string[] = [];
+  for (const row of stalled) {
+    const where = STEP_NAMES[row.status as string] ?? 'partway through';
+    const { error } = await supabase
+      .from('listings')
+      .update({
+        status: 'idle',
+        pipeline_step_text: `The previous run stopped ${where}. Press Run to start it again.`,
+      })
+      .eq('user_id', uid)
+      .eq('id', row.id)
+      // Only if nothing has touched it since it was read: a run that came back
+      // to life in the meantime must not be reset out from under itself.
+      .in('status', IN_FLIGHT_STATUSES as unknown as string[])
+      .lt('updated_at', cutoff);
+    if (error) {
+      console.error('Failed to release stalled listing', row.id, error);
+      continue;
+    }
+    released.push(row.id as string);
+  }
+  return released;
 }
 
 /** Manual escape hatch for a run the user can see is stuck. */

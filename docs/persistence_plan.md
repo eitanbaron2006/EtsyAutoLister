@@ -129,7 +129,7 @@ The whole point. Nothing else matters as much.
 
 **Done when:** signing in on a second machine shows the mockups and can publish.
 
-### Phase 2 — a run survives the tab (closes gap 2)
+### Phase 2 — a run survives the tab (closes gap 2) — **partly done; see the note below**
 
 1. Persist what each step produced as it completes, not only the step name:
    the mockup rows from phase 1 already do most of this.
@@ -141,7 +141,7 @@ The whole point. Nothing else matters as much.
 **Done when:** closing the tab during mockup rendering and reopening continues
 from the mockups already made.
 
-### Phase 3 — the studio and the tray survive a refresh (gaps 3, 4) — **studio done; tray outstanding**
+### Phase 3 — the studio and the tray survive a refresh (gaps 3, 4) — **DONE**
 
 1. `selectedTemplateIds` and `frameAssignments` become a `jsonb studio_prefs`
    column on `listings`, written when they change (debounced, as MockupGen
@@ -150,7 +150,7 @@ from the mockups already made.
    `sessionStorage` under one key, cleared when "Create Listings" runs. It costs
    almost nothing and removes the worst surprise in the flow.
 
-### Phase 4 — the token moves server-side (gap 5)
+### Phase 4 — the token moves server-side (gap 5) — **DONE, verified**
 
 Move `etsy_token` to a table no client role can select, reachable only through
 the API routes that already hold `ETSY_API_KEY`. Do this before a second person
@@ -205,8 +205,49 @@ studio_prefs column: present
 `frameAssignments` are written to `listings.studio_prefs` when they change and
 read back when the studio opens. The staging tray still lives in React state.
 
-**Outstanding:** the staging tray (phase 3), resume-instead-of-reset (phase 2),
-the Etsy token move (phase 4), content history (phase 5).
+**Phase 3 — done.** The studio's template and frame choices go to
+`listings.studio_prefs`. The staging tray is kept in a third IndexedDB store
+and offered back on the next visit; my note above suggested `sessionStorage`
+and that was wrong — the tray holds `File` objects and sessionStorage holds
+strings.
+
+**Phase 4 — done and verified.**
+`20260904010000_etsy_token_server_side.sql` moves the token to
+`public.etsy_tokens`, a table with RLS on and **no policies at all**, so no
+client role reaches it; the existing tokens are carried across and
+`profiles.etsy_token` is emptied. The OAuth callback stores it through
+`lib/etsy-token.ts` (service role, `server-only`), and its `postMessage` now
+carries no token and is aimed at this app's origin instead of `'*'`. The page
+keeps a `'connected'` marker in place of the secret, and the publish route
+reads the real token itself.
+
+Proved against the running database:
+
+```
+server stores it: ok
+signed-in user selecting it: refused (42501)
+...even their own row: refused (42501)
+...writing to it: refused (42501)
+profiles.etsy_token now holds: null
+server reads it back: ok
+```
+
+**Phase 2 — a finding rather than a feature.** Resuming mid-pipeline runs
+against a decision already taken in `runAutomatedAIPipeline`:
+
+> `// Every run renders fresh, including a re-run: the mockups are part of`
+> `// what is being regenerated, not a cached artefact to carry over.`
+
+Silently resuming past that would be overriding a deliberate choice, so what
+was done instead is the part that was plainly wrong: the recovery message said
+"the previous run was interrupted" for every case, and overwrote the step it
+had reached in the same statement that reported it. It now names the step --
+"stopped while rendering mockups" -- and only resets a row that has not been
+touched since it was read. **Whether a re-run should reuse existing mockups is
+a product decision, and it is yours.**
+
+**Outstanding:** content history (phase 5), and the three localStorage
+preferences, which are still per-device.
 
 **Operational note:** the migration has been applied to the **local** stack
 only. `supabase status` reports `linked_project: null`, so when a hosted project
