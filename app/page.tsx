@@ -96,6 +96,7 @@ import {
   listMockupTemplates,
   renderMockupBatch,
   requestPrintDeliverables,
+  downloadPrintDeliverable,
   listPrintExports,
   listPrintSets,
   resolveMockupUrl,
@@ -1109,13 +1110,29 @@ export default function Home() {
   };
 
   // Combine MockupGen renders (first, so they lead the gallery) with the raw uploads
-  const buildPreviewGallery = (folderName: string, images: File[]): UploadedPreview[] => {
+  // Every photo that ships with a listing: the mockups that sell it, then the
+  // print sizes that are the product.
+  //
+  // The original artwork is deliberately absent. It is what is being sold, not
+  // a picture of it, and putting the full-resolution file on the listing hands
+  // it to anyone who right-clicks. The sizes stand in its place, shown from
+  // previews the render server keeps rather than the twenty-megabyte files.
+  const buildPreviewGallery = (folderName: string, _images: File[]): UploadedPreview[] => {
     const mockupPreviews: UploadedPreview[] = (mockupResultsMap[folderName] || []).map(mockup => ({
       id: mockup.id,
       label: mockup.file.name,
       image: mockup.url
     }));
-    return [...mockupPreviews, ...createSourcePreviewImages(images)];
+    const printPreviews: UploadedPreview[] = (printFilesMap[folderName] || [])
+      .filter(file => /\.(jpe?g|png|webp)$/i.test(file.fileName))
+      .map((file, index) => ({
+        id: `print-${index}`,
+        label: file.fileName,
+        // Big enough to fill a screen, a few hundred kilobytes rather than
+        // twenty megabytes. The file itself is fetched only at publish time.
+        image: `${resolveMockupUrl(file.url)}?preview=1600`
+      }));
+    return [...mockupPreviews, ...printPreviews];
   };
 
   // Downscaled JPEG data URL — used for Firestore thumbnails and to keep
@@ -2369,20 +2386,44 @@ export default function Home() {
       if (item.materials) formData.append('materials', item.materials);
       if (item.productionPartners) formData.append('productionPartners', item.productionPartners);
 
-      // Photo package, in cover order: mockups → per-type info extras →
-      // original source images. Etsy allows up to 20 photos per listing.
+      // Photo package, in cover order: mockups → per-type info extras. Etsy
+      // allows up to 20 photos per listing.
+      //
+      // The original artwork is deliberately not among them. It is the thing
+      // being sold, not a picture of it: putting the full-resolution file on
+      // the listing as a photo hands it to anyone who right-clicks.
       const ETSY_MAX_PHOTOS = 20;
       const extras = await fetchListingExtras(item.productType);
       const photoFiles: File[] = [
         ...(mockupResultsMap[item.folderName] || []).map(mockup => mockup.file),
         ...extras.map(extra => extra.file),
-        ...sessionFiles.images
       ];
       if (photoFiles.length > ETSY_MAX_PHOTOS) {
         toast.info(`Etsy allows ${ETSY_MAX_PHOTOS} photos — ${photoFiles.length - ETSY_MAX_PHOTOS} trimmed from the end of the package.`);
       }
       photoFiles.slice(0, ETSY_MAX_PHOTOS).forEach(file => formData.append('image', file));
+
+      // The digital files the buyer downloads: the print sizes made during
+      // Compile, plus anything the shop attached by hand. This is the one
+      // moment the bytes are genuinely needed, so it is the one moment they
+      // are fetched -- displaying them uses previews a few hundred times
+      // smaller.
+      const printFiles = printFilesMap[item.folderName] || [];
+      for (const printFile of printFiles) {
+        try {
+          const blob = await downloadPrintDeliverable(printFile.url);
+          formData.append('file', new File([blob], printFile.fileName, { type: blob.type }));
+        } catch {
+          toast.warning(`Could not attach "${printFile.fileName}" — publishing without it.`);
+        }
+      }
       sessionFiles.files.forEach(file => formData.append('file', file));
+
+      if (printFiles.length === 0 && sessionFiles.files.length === 0) {
+        // A digital listing with no file is a listing that cannot be
+        // fulfilled, so it is worth saying before it goes up.
+        toast.warning('This listing has no downloadable file attached. Run Compile to prepare the print sizes.');
+      }
 
       const res = await fetch('/api/etsy/create-listing', {
         method: 'POST',

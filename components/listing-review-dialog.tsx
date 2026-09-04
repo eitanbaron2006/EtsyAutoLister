@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Check, Copy, Download, ExternalLink, FileCode, Grid, Loader2 } from 'lucide-react';
+
 import { renderFormattedDescription } from '@/lib/listing-format';
 import type { ListingMetadata, ProductData } from '@/lib/listing-types';
 import type { LightboxState } from '@/components/photo-lightbox';
@@ -164,7 +165,7 @@ export function ListingReviewDialog({
                       const groups = [
                         { label: 'Mockups', items: indexed.filter(e => e.preview.id.startsWith('mockup-')) },
                         { label: 'Info Images', items: indexed.filter(e => e.preview.id.startsWith('extra-')) },
-                        { label: 'Product Images', items: indexed.filter(e => !e.preview.id.startsWith('mockup-') && !e.preview.id.startsWith('extra-')) }
+                        { label: 'Art Sizes', items: indexed.filter(e => e.preview.id.startsWith('print-')) },
                       ];
                       return (
                         <div className="space-y-3 w-full max-w-[220px] mx-auto">
