@@ -461,3 +461,84 @@ export async function clearStagingTray(uid: string): Promise<void> {
     db.close();
   }
 }
+
+/**
+ * Send up whatever this browser has and the bucket does not.
+ *
+ * Everything stored before the buckets existed is in IndexedDB and nowhere
+ * else. Without this the change protects new uploads only, and the listings
+ * that already exist -- the ones with real work in them -- stay exactly as
+ * fragile as they were.
+ *
+ * It runs once per sign-in, after the download pass, and compares by file
+ * name, so a second sign-in sends nothing. Slow and in the background on
+ * purpose: this is catching up, not something anyone is waiting for.
+ */
+export async function backfillToCloud(uid: string): Promise<{ uploaded: number; folders: number }> {
+  const outcome = { uploaded: 0, folders: 0 };
+
+  let recorded: AssetRecord[];
+  try {
+    recorded = await listAssets(uid);
+  } catch {
+    return outcome; // Offline. There will be another sign-in.
+  }
+
+  const [localSources, localMockups] = await Promise.all([loadAllSources(uid), loadAllMockups(uid)]);
+  const alreadyUp = new Map<string, Set<string>>();
+  for (const record of recorded) {
+    const names = alreadyUp.get(record.folderName) ?? new Set<string>();
+    names.add(record.fileName);
+    alreadyUp.set(record.folderName, names);
+  }
+
+  const folders = new Set([...Object.keys(localSources), ...Object.keys(localMockups)]);
+  for (const folderName of folders) {
+    const up = alreadyUp.get(folderName) ?? new Set<string>();
+    const sources = localSources[folderName];
+    const missingSources = [
+      ...(sources?.images ?? []),
+      ...(sources?.files ?? []),
+    ].filter(file => !up.has(file.name));
+    const missingMockups = (localMockups[folderName] ?? []).filter(mockup => !up.has(mockup.fileName));
+    if (missingSources.length === 0 && missingMockups.length === 0) continue;
+
+    let sent = 0;
+    for (const file of missingSources) {
+      try {
+        await uploadAsset(uid, {
+          listingId: folderName,
+          folderName,
+          kind: 'source',
+          file,
+          fileName: file.name,
+        });
+        sent += 1;
+      } catch {
+        // One file that will not go is not a reason to abandon the rest.
+      }
+    }
+    for (const mockup of missingMockups) {
+      try {
+        await uploadAsset(uid, {
+          listingId: folderName,
+          folderName,
+          kind: 'mockup',
+          file: mockup.blob,
+          fileName: mockup.fileName,
+          templateId: mockup.templateId,
+          sourceFiles: mockup.sourceFileNames,
+        });
+        sent += 1;
+      } catch {
+        // As above.
+      }
+    }
+    if (sent > 0) {
+      outcome.uploaded += sent;
+      outcome.folders += 1;
+    }
+  }
+
+  return outcome;
+}

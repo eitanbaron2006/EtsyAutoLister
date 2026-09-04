@@ -100,7 +100,7 @@ charged. Leave it until there is a product decision.
 | | Why |
 |---|---|
 | **Blobs in IndexedDB** | After the fix below they become a **cache** in front of the bucket: same speed, no round trip, and no longer the only copy. |
-| **theme, autopilot, fit-mode** | Per-device preferences. They should follow MockupGen's pattern — stored in `profiles`, cached in `localStorage`, the server winning — but they are three small keys and nothing breaks while they wait. |
+| **theme, autopilot, fit-mode** | ~~Per-device preferences.~~ **Moved, 2026-09-04.** They now follow MockupGen's pattern: stored in `profiles.ui_prefs`, cached in `localStorage`, the stored copy winning. |
 | **`ETSY_API_KEY`, Supabase secrets** | Already server-side only, read in `app/api/**/route.ts` from `process.env`. Correct as is. |
 | **Live pipeline progress** | The per-second step text is a live view. What has to survive is the **completed work**, not the animation. |
 
@@ -125,7 +125,9 @@ The whole point. Nothing else matters as much.
    print files answerable for, and it is what makes cleanup and re-delivery
    possible.
 5. Backfill: on sign-in, any listing whose assets are in this browser but not in
-   the bucket gets uploaded once, in the background.
+   the bucket gets uploaded once, in the background. **This is the half that
+   protects the listings that already exist** — without it the change covers
+   new uploads only.
 
 **Done when:** signing in on a second machine shows the mockups and can publish.
 
@@ -156,7 +158,7 @@ Move `etsy_token` to a table no client role can select, reachable only through
 the API routes that already hold `ETSY_API_KEY`. Do this before a second person
 has an account.
 
-### Phase 5 — content history (gap 6)
+### Phase 5 — content history (gap 6) — **DONE, verified**
 
 A `listing_revisions` table: listing, field, old value, when, and what produced
 it (Gemini or a person). Cheap to add, and it is the only way to recover a
@@ -232,22 +234,82 @@ profiles.etsy_token now holds: null
 server reads it back: ok
 ```
 
-**Phase 2 — a finding rather than a feature.** Resuming mid-pipeline runs
-against a decision already taken in `runAutomatedAIPipeline`:
+**Phase 2 — decided and done.** The owner's call, 2026-09-04: **do not
+re-render mockups that already exist.** The pipeline now reuses them when the
+folder has mockups covering the templates the run asked for; a newly picked
+template still renders, and pressing Render in the studio always renders,
+because that is an instruction rather than a step in a chain. The rule is
+`lib/mockup-reuse.ts`, tested on its own — reuse too eagerly and a template the
+user just chose would silently never be made.
+
+The recovery message was fixed alongside it: it said "the previous run was
+interrupted" for every case and overwrote the step it had reached in the same
+statement that reported it. It now names the step, and resets only a row
+nothing has touched since it was read.
+
+This reverses a decision that was in the code:
 
 > `// Every run renders fresh, including a re-run: the mockups are part of`
 > `// what is being regenerated, not a cached artefact to carry over.`
 
-Silently resuming past that would be overriding a deliberate choice, so what
-was done instead is the part that was plainly wrong: the recovery message said
-"the previous run was interrupted" for every case, and overwrote the step it
-had reached in the same statement that reported it. It now names the step --
-"stopped while rendering mockups" -- and only resets a row that has not been
-touched since it was read. **Whether a re-run should reuse existing mockups is
-a product decision, and it is yours.**
+It was raised rather than overridden, and the owner reversed it: rendering is
+the slowest step by far, and a re-run after an interruption or a copy retry was
+paying for images already sitting there unchanged.
 
-**Outstanding:** content history (phase 5), and the three localStorage
-preferences, which are still per-device.
+**Phase 5 — done and verified.** `listing_revisions` keeps what the title,
+tags and description said before each change, with what produced it. Only those
+three fields, only when the value actually differs, and never at the cost of
+the write itself. Proved against the running database:
+
+```
+revisions kept: 3
+  title       was First title    (gemini)
+  tags        was ["a","b"]      (manual)
+  title       was Second title   (manual)
+an unchanged rewrite recorded nothing: ok
+another user reading them: sees nothing
+```
+
+**The three preferences — done and verified.** `profiles.ui_prefs` holds the
+theme, Autopilot-vs-Guided and the fit mode. `lib/ui-prefs.ts` reads the cache
+for the first frame, adopts the stored copy when the profile lands, and writes
+to both — the cache at once, the profile after a 700ms pause, merged so one
+control cannot wipe another, and flushed if the tab closes first.
+
+`useStudioPrefs` derives its value rather than copying the stored one into more
+state: this session's choice, then the profile, then the cache, then the
+default. Writing it into state would fight the person changing the control, and
+the lint rule that forbids `setState` in an effect was right to say so.
+
+Proved against the running database:
+
+```
+a second browser reads: {"theme":"dark","fitMode":"contain","autopilot":false}
+autopilot off survived: ok
+all three present: ok
+another user reading them: sees nothing
+```
+
+**The backfill and the storage warning — added last, after a check against
+this document caught them missing.** `backfillToCloud` sends up whatever this
+browser holds and the account does not, once per sign-in, comparing by file
+name so a second sign-in sends nothing. Without it phase 1 would have covered
+new uploads only and left every existing listing exactly as fragile as before.
+`browserStorageUse` had been written and never called; it now warns when the
+browser store passes 80% of its quota — the files are safe either way, but
+eviction means downloading them all again.
+
+Proved against the running database:
+
+```
+recorded already: already-there.png
+the browser holds: already-there.png, never-uploaded.png
+backfill would send: never-uploaded.png
+sends only the missing one: ok
+a second sign-in would send: nothing
+```
+
+**Outstanding: nothing from this review.**
 
 **Operational note:** the migration has been applied to the **local** stack
 only. `supabase status` reports `linked_project: null`, so when a hosted project

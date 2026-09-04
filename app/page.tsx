@@ -69,6 +69,9 @@ import {
 import JSZip from 'jszip';
 import { DevSignInDialog } from '@/components/dev-signin-dialog';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
+import { mockupsAlreadyCover } from '@/lib/mockup-reuse';
+import { readStudioPrefs } from '@/lib/studio-prefs';
+import { PREF_KEYS, flushPrefs, readCached, readStoredPrefs, rememberStoredPrefs, savePref, type UiPrefs } from '@/lib/ui-prefs';
 import {
   deleteListingAssets,
   loadAllMockups,
@@ -76,12 +79,13 @@ import {
   persistMockups,
   persistSources,
   syncFromCloud,
+  backfillToCloud,
   clearStagingTray,
   loadStagingTray,
   saveStagingTray,
   type StoredMockup
 } from '@/lib/asset-store';
-import { askForDurableStorage } from '@/lib/asset-cloud';
+import { askForDurableStorage, browserStorageUse } from '@/lib/asset-cloud';
 import {
   checkMockupGenHealth,
   downloadMockupOutput,
@@ -150,12 +154,15 @@ export default function Home() {
   const [globalAppUrl, setGlobalAppUrl] = useState('');
 
   // Brand New Dark Mode & Projects view states represent user's workspace preferences:
+  // The cache paints the first frame; the stored preference wins when the
+  // profile lands a moment later.
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('autolister-theme') === 'dark';
+      return readCached(PREF_KEYS.theme) === 'dark';
     }
     return false;
   });
+  const [storedPrefs, setStoredPrefs] = useState<UiPrefs | undefined>(undefined);
   const [currentView, setCurrentView] = useState<'projects' | 'routes' | 'category' | 'workspace' | 'account'>('projects');
 
   // Listings Datastore & Filter states
@@ -174,7 +181,7 @@ export default function Home() {
   // Mockup Studio states (guided per-listing creation workspace)
   const [studioListingId, setStudioListingId] = useState<string | null>(null);
   // Pipeline mode + default fit mode (persisted per browser)
-  const { studioAutopilot, toggleStudioAutopilot, studioFitMode, changeStudioFitMode } = useStudioPrefs();
+  const { studioAutopilot, toggleStudioAutopilot, studioFitMode, changeStudioFitMode } = useStudioPrefs(user?.uid, storedPrefs);
   const [studioSourcePreviews, setStudioSourcePreviews] = useState<UploadedPreview[]>([]);
   const [studioTemplates, setStudioTemplates] = useState<MockupTemplateSummary[]>([]);
   const [studioCategories, setStudioCategories] = useState<MockupCategory[]>([]);
@@ -354,6 +361,32 @@ export default function Home() {
             ? `Restored ${filled.files} file${filled.files === 1 ? '' : 's'} for 1 listing from your account.`
             : `Restored ${filled.files} files across ${filled.folders.length} listings from your account.`,
         );
+      })
+      .then(async () => {
+        if (cancelled || !user) return;
+        // Then the other direction: anything this browser holds that the
+        // account does not. Everything stored before the buckets existed is
+        // in IndexedDB and nowhere else, and without this pass those listings
+        // -- the ones with real work in them -- stay as fragile as they were.
+        const sent = await backfillToCloud(user.uid).catch(() => null);
+        if (cancelled || !sent || sent.uploaded === 0) return;
+        toast.success(
+          `Backed up ${sent.uploaded} file${sent.uploaded === 1 ? '' : 's'} from this browser to your account.`,
+        );
+      })
+      .then(async () => {
+        if (cancelled) return;
+        // The cache is not the record any more, so a full browser store is no
+        // longer a threat to the work -- but it is still worth knowing, since
+        // eviction means re-downloading everything.
+        const room = await browserStorageUse();
+        if (room.quotaBytes > 0 && room.usedBytes / room.quotaBytes > 0.8) {
+          const used = Math.round(room.usedBytes / 1024 / 1024);
+          const quota = Math.round(room.quotaBytes / 1024 / 1024);
+          toast.warning(
+            `This browser is holding ${used}MB of ${quota}MB. Your files are safe in your account; the local copy may be cleared.`,
+          );
+        }
       });
     // A browser evicts storage under disk pressure without asking. The bucket
     // survives that, but asking to be spared saves a re-download.
@@ -451,6 +484,13 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // A preference changed a moment before the tab closes is still worth keeping.
+  useEffect(() => {
+    const send = () => flushPrefs(user?.uid);
+    window.addEventListener('pagehide', send);
+    return () => window.removeEventListener('pagehide', send);
+  }, [user]);
+
   // Probe the configured MockupGen server availability on load
   useEffect(() => {
     let cancelled = false;
@@ -462,7 +502,7 @@ export default function Home() {
 
   // Synchronize Dark Mode client state preferences
   useEffect(() => {
-    const isDark = localStorage.getItem('autolister-theme') === 'dark';
+    const isDark = readCached(PREF_KEYS.theme) === 'dark';
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
@@ -519,15 +559,11 @@ export default function Home() {
   const toggleDarkMode = () => {
     const nextVal = !darkMode;
     setDarkMode(nextVal);
-    if (nextVal) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('autolister-theme', 'dark');
-      toast.success("Dark Mode activated.");
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('autolister-theme', 'light');
-      toast.success("Light Mode activated.");
-    }
+    document.documentElement.classList.toggle('dark', nextVal);
+    savePref(user?.uid, { theme: nextVal ? 'dark' : 'light' }, {
+      [PREF_KEYS.theme]: nextVal ? 'dark' : 'light',
+    });
+    toast.success(nextVal ? "Dark Mode activated." : "Light Mode activated.");
   };
 
   // Monitor Authentication and profile sync
@@ -552,6 +588,17 @@ export default function Home() {
             toast.info("Created your cloud database account.");
           }
           if (profile) {
+            // The stored preferences win over the cache that painted the
+            // first frame.
+            const prefs = readStoredPrefs(profile.uiPrefs);
+            rememberStoredPrefs(prefs);
+            setStoredPrefs(prefs);
+            if (prefs.theme) {
+              const wantsDark = prefs.theme === 'dark';
+              setDarkMode(wantsDark);
+              document.documentElement.classList.toggle('dark', wantsDark);
+              window.localStorage?.setItem(PREF_KEYS.theme, prefs.theme);
+            }
             if (profile.etsyConnected) {
               setEtsyToken(ETSY_CONNECTED);
               setSelectedMode('etsy');
@@ -1819,20 +1866,40 @@ export default function Home() {
       });
       await new Promise(r => setTimeout(r, 1200));
 
-      // Step 2: Render real mockups on the local MockupGen server.
-      // Every run renders fresh, including a re-run: the mockups are part of
-      // what is being regenerated, not a cached artefact to carry over.
+      // Step 2: mockups on the local MockupGen server -- but only the ones that
+      // do not exist yet.
+      //
+      // This used to render fresh on every run, on the reasoning that mockups
+      // are part of what a run regenerates. That was reversed deliberately:
+      // rendering is the slowest step by far, and a re-run after an
+      // interruption, a copy retry or a tweak to the description was paying
+      // for images that were already sitting there unchanged.
+      //
+      // "Already there" means the folder has mockups and they cover the
+      // templates this run asked for. Ask for a template that has not been
+      // rendered and the step runs; press Render in the studio and it always
+      // runs, because that is an explicit instruction rather than a step in a
+      // chain.
       checkpoint();
-      await updateListing(user.uid, targetId, {
-        status: 'mockups',
-        pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
-      });
+      const existingMockups = mockupResultsMap[listing.folderName] || [];
+      const wantedTemplateIds = templateIds && templateIds.length > 0 ? templateIds : null;
+      if (mockupsAlreadyCover(existingMockups, wantedTemplateIds)) {
+        await updateListing(user.uid, targetId, {
+          status: 'mockups',
+          pipelineStepText: `Using the ${existingMockups.length} mockup${existingMockups.length === 1 ? '' : 's'} already rendered for this product...`,
+        });
+      } else {
+        await updateListing(user.uid, targetId, {
+          status: 'mockups',
+          pipelineStepText: 'Rendering high-fidelity mockup frames on the MockupGen server...',
+        });
 
-      try {
-        await renderMockupsForListing(listing.id, listing.folderName, templateIds, assignments);
-      } catch (mockupErr: any) {
-        // Mockup rendering is best-effort: keep the rest of the pipeline alive
-        toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
+        try {
+          await renderMockupsForListing(listing.id, listing.folderName, templateIds, assignments);
+        } catch (mockupErr: any) {
+          // Mockup rendering is best-effort: keep the rest of the pipeline alive
+          toast.warning('Mockup rendering failed: ' + (mockupErr.message || 'Unknown error'));
+        }
       }
 
       checkpoint();
@@ -1908,10 +1975,13 @@ export default function Home() {
 
     // Restore this listing's previous template/frame choices from the session
     // This session's choice first, then what was stored with the listing.
-    const prefs = studioPrefsMap[listing.id] ?? listing.studioPrefs;
-    setSelectedTemplateIds(prefs?.templateIds || []);
-    setFrameAssignments(prefs?.assignments || {});
-    if (prefs?.templateIds.length === 1) {
+    // Read rather than trusted: the column defaults to an empty object, so a
+    // product that has never been through the studio arrives as `{}` -- not as
+    // undefined, which is what the optional chaining below assumed.
+    const prefs = readStudioPrefs(studioPrefsMap[listing.id] ?? listing.studioPrefs);
+    setSelectedTemplateIds(prefs.templateIds);
+    setFrameAssignments(prefs.assignments);
+    if (prefs.templateIds.length === 1) {
       getMockupTemplate(prefs.templateIds[0])
         .then(details => setFrameTemplate(details))
         .catch(() => setFrameTemplate(null));

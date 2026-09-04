@@ -21,10 +21,13 @@ export interface UserProfile {
   lastProductType?: string | null;
   savedTips?: string[];
   plan?: string;
+  // Theme, Autopilot-vs-Guided, and the default fit mode. localStorage caches
+  // these; this is the copy that counts.
+  uiPrefs?: Record<string, unknown>;
 }
 
 export type ProfilePatch = Partial<
-  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan'>
+  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs'>
 >;
 
 export interface NewListingInput {
@@ -47,6 +50,7 @@ const PROFILE_TO_COLUMN: Record<keyof ProfilePatch, string> = {
   etsyToken: 'etsy_token',
   lastProductType: 'last_product_type',
   savedTips: 'saved_tips',
+  uiPrefs: 'ui_prefs',
   plan: 'plan',
 };
 
@@ -160,6 +164,7 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     lastProductType: data.last_product_type ?? null,
     savedTips: Array.isArray(data.saved_tips) ? data.saved_tips : [],
     plan: typeof data.plan === 'string' ? data.plan : 'free',
+    uiPrefs: (data.ui_prefs && typeof data.ui_prefs === 'object') ? data.ui_prefs : {},
   };
 }
 
@@ -269,13 +274,38 @@ export async function createListing(uid: string, input: NewListingInput): Promis
   if (error) handleDbError(error, OperationType.WRITE, `listings/${input.id}`);
 }
 
+/** The three fields worth being able to get back. */
+const VERSIONED_FIELDS = ['title', 'description', 'tags'] as const;
+type VersionedField = (typeof VERSIONED_FIELDS)[number];
+
+export interface ListingRevision {
+  id: number;
+  listingId: string;
+  field: VersionedField;
+  previousValue: string | string[] | null;
+  source: string | null;
+  changedAt: string;
+}
+
 export async function updateListing(
   uid: string,
   listingId: string,
   patch: ListingPatch,
+  source?: 'gemini' | 'manual',
 ): Promise<void> {
   const row = listingToRow(patch as Record<string, unknown>);
   if (Object.keys(row).length === 0) return;
+
+  // Keep what the copy said before it is replaced. Re-running Gemini or
+  // editing by hand used to overwrite the title, tags and description with no
+  // way back to one that was better. Only these three, only when they are
+  // actually being changed, and never at the cost of the write itself.
+  const touched = VERSIONED_FIELDS.filter(field => field in patch);
+  if (touched.length > 0) {
+    await recordPreviousValues(uid, listingId, patch, touched, source).catch(error => {
+      console.error('Could not record the previous copy', error);
+    });
+  }
 
   const { error } = await supabase
     .from('listings')
@@ -284,6 +314,82 @@ export async function updateListing(
     .eq('id', listingId);
 
   if (error) handleDbError(error, OperationType.UPDATE, `listings/${listingId}`);
+}
+
+async function recordPreviousValues(
+  uid: string,
+  listingId: string,
+  patch: ListingPatch,
+  fields: VersionedField[],
+  source?: string,
+): Promise<void> {
+  // A plain select: naming the columns from a runtime array defeats the
+  // generated types, and the row is three text fields.
+  const { data } = await supabase
+    .from('listings')
+    .select('title, description, tags')
+    .eq('user_id', uid)
+    .eq('id', listingId)
+    .maybeSingle();
+  if (!data) return;
+  const current = data as unknown as Record<string, unknown>;
+
+  const rows = fields
+    .filter(field => {
+      const before = current[field];
+      const after = (patch as Record<string, unknown>)[field];
+      // Nothing worth keeping if there was nothing there, or if the write is
+      // saying the same thing again -- which the pipeline does often.
+      if (before === null || before === undefined || before === '') return false;
+      return JSON.stringify(before) !== JSON.stringify(after);
+    })
+    .map(field => ({
+      user_id: uid,
+      listing_id: listingId,
+      field,
+      previous_value: stringifyValue(current[field]),
+      source: source ?? null,
+    }));
+
+  if (rows.length === 0) return;
+  const { error } = await supabase.from('listing_revisions').insert(rows);
+  if (error) throw error;
+}
+
+const stringifyValue = (value: unknown): string =>
+  Array.isArray(value) ? JSON.stringify(value) : String(value);
+
+/** What this listing's title, tags and description used to say, newest first. */
+export async function listingRevisions(uid: string, listingId: string, limit = 40): Promise<ListingRevision[]> {
+  const { data, error } = await supabase
+    .from('listing_revisions')
+    .select('*')
+    .eq('user_id', uid)
+    .eq('listing_id', listingId)
+    .order('changed_at', { ascending: false })
+    .limit(limit);
+  if (error) handleDbError(error, OperationType.LIST, 'listing_revisions');
+
+  return (data ?? []).map(row => {
+    const stored = row.previous_value as string | null;
+    return {
+      id: row.id as number,
+      listingId: row.listing_id as string,
+      field: row.field as VersionedField,
+      previousValue: row.field === 'tags' && stored ? safeParseTags(stored) : stored,
+      source: (row.source as string) ?? null,
+      changedAt: row.changed_at as string,
+    };
+  });
+}
+
+function safeParseTags(stored: string): string[] | string {
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : stored;
+  } catch {
+    return stored;
+  }
 }
 
 /**
