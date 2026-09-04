@@ -68,6 +68,7 @@ import {
 } from '@/lib/listings-repo';
 import JSZip from 'jszip';
 import { DevSignInDialog } from '@/components/dev-signin-dialog';
+import { PrintFilesDialog } from '@/components/print-files-dialog';
 import { createUploadedPreviews, type UploadedPreview } from '@/lib/uploaded-previews';
 import { mockupsAlreadyCover } from '@/lib/mockup-reuse';
 import { readStudioPrefs } from '@/lib/studio-prefs';
@@ -222,6 +223,7 @@ export default function Home() {
   const [isGalleryInspectorOpen, setIsGalleryInspectorOpen] = useState(false);
   // Mockup viewer dialog opened from the table's Live Mockup Thumb column
   const [mockupViewerListing, setMockupViewerListing] = useState<ListingMetadata | null>(null);
+  const [printViewerListing, setPrintViewerListing] = useState<ListingMetadata | null>(null);
   // Fullscreen lightbox with prev/next navigation over a set of photos
   const { lightbox, setLightbox } = useLightbox();
   // Saved tips + subscription plan (Firestore-synced)
@@ -514,7 +516,12 @@ export default function Home() {
         const latest = runs[0];
         if (!latest?.files?.length) continue;
         known[listing.folderName] = latest.files.map(file => ({
-          fileName: file.file_name,
+          // The batch id in front of the name is the render server's, not the
+          // buyer's -- and the same file must not read differently here just
+          // because it was loaded rather than just made.
+          fileName: file.file_name.includes('_')
+            ? file.file_name.slice(file.file_name.indexOf('_') + 1)
+            : file.file_name,
           url: `/print-outputs/${file.file_name}`,
           bytes: file.bytes,
         }));
@@ -3156,6 +3163,60 @@ export default function Home() {
                   </span>
                 </div>
 
+                {/* The print files themselves: what the buyer downloads.
+                    They are not held here -- a print file is 15 to 20MB and
+                    there can be five -- so this lists what the render server
+                    made and links to it. */}
+                {(printFilesMap[activeStudioListing.folderName] || []).length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-[9px] font-mono uppercase text-[#8b8676] tracking-widest font-bold select-none">{"\u25aa PRINT FILES"}</span>
+                      <span className="text-[9px] text-[#8b8676] font-mono select-none">
+                        {printFilesMap[activeStudioListing.folderName].length} file
+                        {printFilesMap[activeStudioListing.folderName].length === 1 ? '' : 's'} ·{' '}
+                        {Math.round(
+                          printFilesMap[activeStudioListing.folderName].reduce((sum, file) => sum + file.bytes, 0) / 1048576,
+                        )}MB · upload these to Etsy
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {printFilesMap[activeStudioListing.folderName].map(file => (
+                        <button
+                          key={file.fileName}
+                          type="button"
+                          onClick={() => setPrintViewerListing(activeStudioListing)}
+                          className="rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] overflow-hidden bg-white hover:border-[#ed6f5c] transition-colors cursor-zoom-in text-left"
+                          title={`${file.fileName} — see every print file`}
+                        >
+                          {/\.(jpe?g|png|webp)$/i.test(file.fileName) ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={`${resolveMockupUrl(file.url)}?preview=1`}
+                              alt={file.fileName}
+                              loading="lazy"
+                              className="w-full h-20 object-contain"
+                            />
+                          ) : (
+                            <div className="w-full h-20 flex items-center justify-center bg-[#ece4cf]/60 text-[9px] font-mono uppercase text-[#8b8676] select-none">
+                              {file.fileName.split('.').pop()}
+                            </div>
+                          )}
+                          <div className="px-1.5 py-1 bg-[#ece4cf]/50 dark:bg-[#22211b]">
+                            <span className="block text-[8.5px] font-mono text-[#5a5448] dark:text-[#a39e8f] truncate">
+                              {file.fileName.replace(/_ratio.*$/, '').replace(/_/g, ' ')}
+                            </span>
+                            <span className="block text-[8px] font-mono text-[#8b8676] select-none">
+                              {file.bytes >= 1048576
+                                ? `${(file.bytes / 1048576).toFixed(1)} MB`
+                                : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Admin note: the server lacks enough suitable templates */}
                 {activeStudioListing.mockupNote && (
                   <div className="p-3 rounded-xl border border-[#ed6f5c]/25 bg-[#ed6f5c]/5 text-[#5a5448] text-[10px] leading-relaxed relative overflow-hidden">
@@ -3776,7 +3837,8 @@ export default function Home() {
                             <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] pl-6 h-10">Collection / Folder</TableHead>
                             <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Class</TableHead>
                             <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Task Level</TableHead>
-                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Live Mockup Thumb</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Mockups</TableHead>
+                            <TableHead className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] h-10">Art Sizes</TableHead>
                             <TableHead className="text-right text-[10px] font-mono font-bold uppercase tracking-wider text-[#5a5448] dark:text-[#a39e8f] pr-6 h-10">Workflow Action</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -3901,6 +3963,34 @@ export default function Home() {
                                     </button>
                                   ) : (
                                     <span className="text-[#8b8676] dark:text-[#807b6c] font-mono text-[9px] select-none tracking-tight uppercase font-medium">Pending</span>
+                                  )}
+                                </TableCell>
+
+                                {/* The print files: what the buyer downloads.
+                                    The thumbnail is a preview the render
+                                    server keeps -- the file behind it is
+                                    twenty megabytes and is not fetched here. */}
+                                <TableCell className="align-middle">
+                                  {(printFilesMap[listingItem.folderName] || []).length > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPrintViewerListing(listingItem)}
+                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded overflow-hidden shadow-none bg-white group cursor-zoom-in"
+                                      title="View the print files this listing produced"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={`${resolveMockupUrl((printFilesMap[listingItem.folderName] || [])[0].url)}?preview=1`}
+                                        alt="print file thumb"
+                                        loading="lazy"
+                                        className="w-full h-full object-contain transition-transform group-hover:scale-105"
+                                      />
+                                      <span className="absolute bottom-0 right-0 bg-[#6e7448] text-white text-[8px] font-mono font-bold px-1 rounded-tl select-none">
+                                        {(printFilesMap[listingItem.folderName] || []).length}
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-[#8b8676] dark:text-[#807b6c] font-mono text-[9px] select-none tracking-tight uppercase font-medium">&mdash;</span>
                                   )}
                                 </TableCell>
 
@@ -4103,6 +4193,14 @@ export default function Home() {
         onClose={() => setMockupViewerListing(null)}
         onOpenStudio={(target) => { setMockupViewerListing(null); openStudio(target); }}
         onOpenLightbox={setLightbox}
+      />
+
+      {/* Print files — every size one listing produced */}
+      <PrintFilesDialog
+        listing={printViewerListing}
+        files={printViewerListing ? (printFilesMap[printViewerListing.folderName] || []) : []}
+        onClose={() => setPrintViewerListing(null)}
+        onOpenLightbox={(url) => setLightbox({ items: [{ url, label: 'Print file' }], index: 0 })}
       />
 
       {/* Listing photo inspector (extracted component) */}
