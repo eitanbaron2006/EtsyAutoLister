@@ -140,6 +140,8 @@ export interface MockupSingleRenderResult {
 
 // Large batches with realism on can take a while — allow well over 120s.
 const RENDER_TIMEOUT_MS = 180_000;
+// A full pack of print files is tens of megapixels each, several times over.
+const PRINT_TIMEOUT_MS = 600_000;
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${getMockupGenBaseUrl()}${path}`, init);
@@ -255,4 +257,88 @@ const ACCEPTED_ARTWORK_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/w
 // The server accepts png/jpg/jpeg/webp artworks only.
 export function isMockupGenSupportedImage(file: File): boolean {
   return ACCEPTED_ARTWORK_TYPES.includes(file.type.toLowerCase());
+}
+
+/* ------------------------------------------------------------ print files
+
+   The other half of what a listing ships. Mockups are what the shop shows;
+   these are what the buyer downloads -- the artwork at print resolution, in
+   every ratio the print system says suits its proportions.
+
+   The server does the packing: a digital listing on Etsy takes five files of
+   twenty megabytes, so it answers with plain images when they fit in five and
+   with size-aware archives when they do not. Nothing here has to know the
+   rule, only which shape came back. */
+
+export type PrintDeliveryMode = 'files' | 'archives';
+
+export interface PrintDeliverable {
+  index: number;
+  kind: 'print' | 'guide' | 'archive';
+  /** What the buyer should see it called. */
+  name: string;
+  /** What it is called on the render server. */
+  file: string;
+  url: string;
+  bytes: number;
+  ratio?: string | null;
+  ratios?: string[];
+}
+
+export interface PrintDeliverablesResponse {
+  success: boolean;
+  error?: string;
+  export_id?: number | null;
+  delivery: PrintDeliveryMode;
+  guide_dropped: boolean;
+  mode?: string;
+  quality?: string;
+  limits: { max_files: number; max_bytes: number };
+  slots_used: number;
+  deliverables: PrintDeliverable[];
+}
+
+/** Print files for one artwork, ready to upload as they are. */
+export async function requestPrintDeliverables(
+  artwork: File | Blob,
+  options: { setId?: number; ratios?: string; quality?: string; mode?: string; reference?: string } = {},
+): Promise<PrintDeliverablesResponse> {
+  const spec: Record<string, unknown> = {};
+  if (options.setId) spec.set = options.setId;
+  if (options.ratios) spec.ratios = options.ratios;
+  if (options.quality) spec.quality = options.quality;
+  if (options.mode) spec.mode = options.mode;
+  if (options.reference) spec.reference = options.reference;
+
+  const form = new FormData();
+  form.append('artwork', artwork, artwork instanceof File ? artwork.name : 'artwork.png');
+  form.append('spec', JSON.stringify(spec));
+
+  const controller = new AbortController();
+  // Print files are tens of megapixels each; a full pack is minutes of work,
+  // and the mockup timeout is not long enough for it.
+  const timer = setTimeout(() => controller.abort(), PRINT_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${getMockupGenBaseUrl()}/api/print/deliverables`, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // 409 is the one worth reading: the files were made, but they cannot be
+      // delivered under the limits. It names what did not fit.
+      throw new Error(payload.error || `Print export failed (HTTP ${res.status})`);
+    }
+    return payload as PrintDeliverablesResponse;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** The bytes of one deliverable, to be stored with the listing. */
+export async function downloadPrintDeliverable(url: string): Promise<Blob> {
+  const res = await fetch(resolveMockupUrl(url));
+  if (!res.ok) throw new Error(`Failed to download a print file (HTTP ${res.status})`);
+  return res.blob();
 }

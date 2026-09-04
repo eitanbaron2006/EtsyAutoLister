@@ -542,3 +542,60 @@ export async function backfillToCloud(uid: string): Promise<{ uploaded: number; 
 
   return outcome;
 }
+
+/* ------------------------------------------------------- the print files
+
+   What the buyer downloads, as opposed to what the shop shows. These go to
+   the bucket and stay there: they are five to twenty megabytes each, they are
+   derived from the artwork rather than given by the user, and they are needed
+   once, at publish time. Caching them in the browser would fill its store with
+   files nobody looks at.
+
+   The record is what makes them findable again, so it is read back on its own
+   -- metadata only, no download. */
+
+export interface DeliverableInput {
+  file: Blob;
+  fileName: string;
+  ratios?: string[];
+}
+
+export async function persistDeliverables(
+  uid: string,
+  folderName: string,
+  listingId: string,
+  items: DeliverableInput[],
+): Promise<AssetRecord[]> {
+  const stored: AssetRecord[] = [];
+  for (const item of items) {
+    try {
+      stored.push(await uploadAsset(uid, {
+        listingId,
+        folderName,
+        kind: 'delivery',
+        file: item.file,
+        fileName: item.fileName,
+        sourceFiles: item.ratios,
+      }));
+    } catch {
+      // One file that will not go is worth saying, not worth stopping for.
+      console.warn('A print file stayed on the render server only:', item.fileName);
+    }
+  }
+  return stored;
+}
+
+/** What print files each listing already has, without downloading any of them. */
+export async function loadDeliverableRecords(uid: string): Promise<Record<string, AssetRecord[]>> {
+  try {
+    const records = await listAssets(uid);
+    const byFolder: Record<string, AssetRecord[]> = {};
+    for (const record of records) {
+      if (record.kind !== 'delivery') continue;
+      byFolder[record.folderName] = [...(byFolder[record.folderName] ?? []), record];
+    }
+    return byFolder;
+  } catch {
+    return {};
+  }
+}

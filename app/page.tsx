@@ -80,6 +80,8 @@ import {
   persistSources,
   syncFromCloud,
   backfillToCloud,
+  loadDeliverableRecords,
+  persistDeliverables,
   clearStagingTray,
   loadStagingTray,
   saveStagingTray,
@@ -94,6 +96,8 @@ import {
   listMockupCategories,
   listMockupTemplates,
   renderMockupBatch,
+  requestPrintDeliverables,
+  downloadPrintDeliverable,
   resolveMockupUrl,
   type MockupArtworkRef,
   type MockupBatchItemSpec,
@@ -237,6 +241,10 @@ export default function Home() {
   // Saving must not start before the restore has had its say, or an empty
   // first render would wipe the tray it is about to bring back.
   const stagingRestoredRef = useRef(false);
+  // The print files each listing has: what the buyer downloads, as opposed to
+  // the mockups, which are what the shop shows. Metadata only -- the files
+  // themselves stay in the bucket until they are needed.
+  const [printFilesMap, setPrintFilesMap] = useState<Record<string, { fileName: string; url: string; bytes: number }[]>>({});
   const [projectNameInput, setProjectNameInput] = useState('');
   // The project this session works inside — set by the first creation or by
   // continuing a project from the hub; later creations join it.
@@ -373,6 +381,23 @@ export default function Home() {
         toast.success(
           `Backed up ${sent.uploaded} file${sent.uploaded === 1 ? '' : 's'} from this browser to your account.`,
         );
+      })
+      .then(async () => {
+        if (cancelled || !user) return;
+        // Which listings already have print files. Metadata only: the files
+        // stay in the bucket until something actually needs them.
+        const known = await loadDeliverableRecords(user.uid).catch(() => ({}));
+        if (cancelled) return;
+        setPrintFilesMap(Object.fromEntries(
+          Object.entries(known).map(([folderName, records]) => [
+            folderName,
+            records.map(record => ({
+              fileName: record.fileName,
+              url: `/print-outputs/${record.fileName}`,
+              bytes: record.bytes,
+            })),
+          ]),
+        ));
       })
       .then(async () => {
         if (cancelled) return;
@@ -1846,6 +1871,59 @@ export default function Home() {
     }
   };
 
+  // The print files for one listing: made on the render server, stored in the
+  // account, and listed here so the studio can show what a buyer would get.
+  const buildPrintFilesForListing = async (listingId: string, folderName: string) => {
+    if (!user) return;
+    const sources = localFilesMap[folderName]?.images ?? [];
+    const artwork = sources.find(file => isMockupGenSupportedImage(file));
+    if (!artwork) {
+      // Nothing to make them from. Not an error: the listing may be a set of
+      // files that were never images.
+      return;
+    }
+
+    try {
+      const answer = await requestPrintDeliverables(artwork, { reference: listingId });
+      if (!answer.deliverables?.length) return;
+
+      const downloaded: { file: Blob; fileName: string; ratios?: string[] }[] = [];
+      for (const item of answer.deliverables) {
+        try {
+          downloaded.push({
+            file: await downloadPrintDeliverable(item.url),
+            fileName: item.name,
+            ratios: item.ratios ?? (item.ratio ? [item.ratio] : undefined),
+          });
+        } catch {
+          // The rest of the pack is still worth having.
+        }
+      }
+      if (downloaded.length === 0) return;
+
+      const stored = await persistDeliverables(user.uid, folderName, listingId, downloaded);
+      setPrintFilesMap(prev => ({
+        ...prev,
+        [folderName]: stored.map(record => ({
+          fileName: record.fileName,
+          url: `/print-outputs/${record.fileName}`,
+          bytes: record.bytes,
+        })),
+      }));
+
+      const shape = answer.delivery === 'files' ? 'ready to upload as they are' : 'packed into archives';
+      toast.success(`${downloaded.length} print file${downloaded.length === 1 ? '' : 's'} ${shape}.`);
+      if (answer.guide_dropped) {
+        // Said out loud: five images the buyer can open beat four and a note,
+        // but the shop should know the note was the thing left out.
+        toast.info('The printing guide did not fit in the file allowance and was left out.');
+      }
+    } catch (printErr: any) {
+      // Best-effort, like the mockups: the listing is still worth finishing.
+      toast.warning('Print files could not be prepared: ' + (printErr.message || 'Unknown error'));
+    }
+  };
+
   // Autopilot: the full chained pipeline with step-by-step status updates
   const runAutomatedAIPipeline = async (listing: ListingMetadata, templateIds?: string[], assignments?: Record<number, string>) => {
     if (!user) return;
@@ -1911,12 +1989,18 @@ export default function Home() {
       await new Promise(r => setTimeout(r, 1200));
 
       checkpoint();
-      // Step 4: Zip Packing
+      // Step 4: the files the buyer downloads.
+      //
+      // This step used to be a second and a half of waiting with a message
+      // about assembling deliverables, and nothing was assembled. It makes
+      // them now: the artwork at print resolution, in every ratio the print
+      // system says suits its proportions, packed into what a listing is
+      // allowed to carry.
       await updateListing(user.uid, targetId, {
         status: 'compiling',
-        pipelineStepText: 'Assembling safe high-fidelity deliverable zip packs layers...',
+        pipelineStepText: 'Preparing the print files the buyer downloads...',
       });
-      await new Promise(r => setTimeout(r, 1200));
+      await buildPrintFilesForListing(listing.id, listing.folderName);
 
       checkpoint();
       // Step 5: SEO and copy generation with Gemini (manages its own statuses)
