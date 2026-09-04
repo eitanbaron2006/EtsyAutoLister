@@ -3226,7 +3226,7 @@ export default function Home() {
                           key={file.fileName}
                           type="button"
                           onClick={() => setPrintViewerListing(activeStudioListing)}
-                          className="rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] overflow-hidden bg-white hover:border-[#ed6f5c] transition-colors cursor-zoom-in text-left"
+                          className="rounded-lg border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] overflow-hidden hover:border-[#ed6f5c] transition-colors cursor-zoom-in text-left"
                           title={`${file.fileName} — see every print file`}
                         >
                           {/\.(jpe?g|png|webp)$/i.test(file.fileName) ? (
@@ -4016,7 +4016,7 @@ export default function Home() {
                                     <button
                                       type="button"
                                       onClick={() => setPrintViewerListing(listingItem)}
-                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded overflow-hidden shadow-none bg-white group cursor-zoom-in"
+                                      className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded overflow-hidden shadow-none group cursor-zoom-in"
                                       title="View the print files this listing produced"
                                     >
                                       {/* eslint-disable-next-line @next/next/no-img-element */}

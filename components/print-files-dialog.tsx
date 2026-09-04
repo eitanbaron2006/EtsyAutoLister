@@ -87,7 +87,7 @@ export function PrintFilesDialog({
                     src={`${resolveMockupUrl(file.url)}?preview=1`}
                     alt={file.fileName}
                     loading="lazy"
-                    className="w-full h-32 object-contain bg-white"
+                    className="w-full h-32 object-contain"
                   />
                 </button>
               ) : (
