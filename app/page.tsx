@@ -2542,7 +2542,13 @@ export default function Home() {
   };
 
   // Direct connected API Etsy publishing process
-  const publishToEtsySnapshot = async (item: ListingMetadata, options?: { withoutFiles?: boolean }) => {
+  const publishToEtsySnapshot = async (
+    item: ListingMetadata,
+    // `answered` marks a call that came back from the prompt below. Without it
+    // the guard would raise the same question again and the shop could never
+    // get past it.
+    options?: { withoutFiles?: boolean; answered?: boolean },
+  ) => {
     if (!user) return;
     if (selectedMode !== 'etsy' || !etsyToken) {
       toast.error('Select Interactive Etsy Store mode and connect your account.');
@@ -2565,13 +2571,15 @@ export default function Home() {
     // answer can differ per listing. Checked before the status moves to
     // 'publishing', so declining does not strand the row mid-flight.
     const delivery = deliveryFor(item);
-    if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
+    if (delivery?.mode === 'oversize' && !hasDeliveryRoute && !options?.answered) {
       setDeliveryPrompt({
         mode: 'publish',
         listingId: item.id,
         folderName: item.folderName,
         note: delivery.note,
-        onPublishAnyway: () => { void publishToEtsySnapshot(item, { withoutFiles: true }); },
+        onConfirm: (withoutFiles: boolean) => {
+          void publishToEtsySnapshot(item, { withoutFiles, answered: true });
+        },
       });
       return;
     }

@@ -150,6 +150,34 @@ function rowToListing(row: Row): ListingMetadata {
   return out as unknown as ListingMetadata;
 }
 
+/**
+ * Fold a realtime payload into the copy already held.
+ *
+ * Realtime does not always carry every column. A listing's `description` runs
+ * to a couple of kilobytes and is dropped from the change payload, which
+ * arrives with thirty-five of the thirty-six columns and no sign that anything
+ * is missing. Replacing the held row with it — which is what this used to do —
+ * erased the description on the next update of any kind, and the draft opened
+ * with "No description provided" over copy that was sitting in the database
+ * the whole time.
+ *
+ * So: what the payload carries wins, and what it omits is kept. A column that
+ * is present and null was genuinely cleared, and is removed — which is the
+ * difference between "not sent" and "set to nothing", and the reason this
+ * cannot just be a spread.
+ */
+function mergeListing(existing: ListingMetadata | undefined, row: Row): ListingMetadata {
+  const incoming = rowToListing(row);
+  if (!existing) return incoming;
+
+  const merged = { ...existing, ...incoming } as Record<string, unknown>;
+  for (const [column, value] of Object.entries(row)) {
+    const field = COLUMN_TO_LISTING[column];
+    if (field && value === null) delete merged[field];
+  }
+  return merged as unknown as ListingMetadata;
+}
+
 /** Partial ListingMetadata -> column patch, dropping unmapped keys. */
 function listingToRow(patch: Record<string, unknown>): Row {
   const out: Row = {};
@@ -244,8 +272,10 @@ export function subscribeToListings(
           const oldId = (payload.old as Row | null)?.id;
           if (typeof oldId === 'string') byId.delete(oldId);
         } else {
-          const listing = rowToListing(payload.new as Row);
-          byId.set(listing.id, listing);
+          const row = payload.new as Row;
+          const id = typeof row.id === 'string' ? row.id : undefined;
+          if (!id) return;
+          byId.set(id, mergeListing(byId.get(id), row));
         }
         emit();
       },

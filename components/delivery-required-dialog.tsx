@@ -26,8 +26,12 @@ export type DeliveryPrompt = {
   folderName: string;
   /** The render server's own account of the sizes, when it gave one. */
   note?: string;
-  /** Runs when the shop chooses to go ahead without the files. */
-  onPublishAnyway?: () => void;
+  /**
+   * The shop's answer. `withoutFiles` is false once a download location
+   * exists — the listing then goes up whole, the same as the draft's own
+   * publish button, rather than deliberately short.
+   */
+  onConfirm?: (withoutFiles: boolean) => void;
 };
 
 export function DeliveryRequiredDialog({
@@ -114,7 +118,7 @@ export function DeliveryRequiredDialog({
               </Button>
               {publishing && (
                 <Button
-                  onClick={() => { prompt.onPublishAnyway?.(); onClose(); }}
+                  onClick={() => { prompt.onConfirm?.(!ready); onClose(); }}
                   className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-6 uppercase tracking-wider cursor-pointer border-0"
                 >
                   {ready ? 'Publish' : 'Publish without files'}
