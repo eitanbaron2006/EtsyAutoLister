@@ -109,7 +109,11 @@ export function PrintFilesDialog({
                       return (
                         <button
                           type="button"
-                          key={file.fileName}
+                          // Not the name: a set repeats it once per artwork, which
+                          // made React warn about duplicate keys and, worse, made
+                          // the lightbox open the first file of that name rather
+                          // than the one clicked. The url carries the batch id.
+                          key={file.url}
                           onClick={() => {
                             if (!picture) return;
                             onOpenLightbox({
@@ -118,7 +122,7 @@ export function PrintFilesDialog({
                                 label: item.fileName,
                                 sub: sizeLabel(item.bytes)
                               })),
-                              index: previewable.findIndex(item => item.fileName === file.fileName)
+                              index: previewable.findIndex(item => item.url === file.url)
                             });
                           }}
                           className={`text-left rounded-xl overflow-hidden border border-[rgba(21,20,15,0.14)] dark:border-[rgba(247,241,222,0.14)] bg-[#efe7d2] dark:bg-[#12110c] hover:border-[#ed6f5c]/50 dark:hover:border-[#ed6f5c]/60 transition-colors group flex flex-col w-full h-full min-h-0 ${picture ? 'cursor-zoom-in' : 'cursor-default'}`}

@@ -217,29 +217,27 @@ export function ListingReviewDialog({
                         five-file allowance and come back as a single archive, so
                         "3 deliverables" above was counting staged files, not these. */}
                     {printFiles.length > 0 && (
-                      <div className="pt-1.5 border-t border-[rgba(21,20,15,0.12)] space-y-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] font-bold">
-                            Art Sizes
-                          </span>
-                          <span className="text-[9px] font-mono text-[#8b8676]">
-                            {printFiles.length} · {Math.round(printFiles.reduce((sum, f) => sum + f.bytes, 0) / 1048576)}MB
-                          </span>
-                        </div>
-                        <ul className="space-y-0.5">
-                          {printFiles.map(file => (
-                            <li key={file.fileName} className="flex items-center justify-between gap-2">
-                              <span className="text-[9px] text-[#15140f] truncate" title={file.fileName}>
-                                {file.fileName}
-                              </span>
-                              <span className="text-[9px] font-mono text-[#8b8676] shrink-0">
-                                {file.bytes >= 1048576
-                                  ? `${(file.bytes / 1048576).toFixed(1)} MB`
-                                  : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                      /* One line, not a list. A set of five artworks makes
+                         thirty of these, and spelling them out pushed the
+                         title, the description and the tags — the things this
+                         screen exists to review — off the bottom. The names
+                         are worth having, not worth the column: they hang off
+                         the hover instead. */
+                      <div
+                        className="pt-1.5 border-t border-[rgba(21,20,15,0.12)] flex items-baseline justify-between gap-2 cursor-help"
+                        title={printFiles
+                          .map(file => `${file.fileName}  ${file.bytes >= 1048576
+                            ? `${(file.bytes / 1048576).toFixed(1)} MB`
+                            : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}`)
+                          .join('\n')}
+                      >
+                        <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] font-bold">
+                          Art Sizes
+                        </span>
+                        <span className="text-[9px] font-mono text-[#8b8676]">
+                          {printFiles.length} file{printFiles.length === 1 ? '' : 's'} ·{' '}
+                          {Math.round(printFiles.reduce((sum, f) => sum + f.bytes, 0) / 1048576)}MB
+                        </span>
                       </div>
                     )}
                     <div className="flex flex-col gap-1.5">
