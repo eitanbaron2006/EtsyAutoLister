@@ -1785,6 +1785,20 @@ export default function Home() {
     if (!user) return;
     const targetId = listingId;
     const sessionFiles = localFilesMap[folderName] || { images: [], files: [] };
+
+    // Without artwork Gemini has only the folder name to go on, and it answers
+    // anyway: a plausible title and thirteen tags invented from a filename,
+    // written over whatever was there before with nothing to show that is what
+    // happened. Refuse instead. The render button beside this one already
+    // refuses on the same condition; this one used to run regardless.
+    if (sessionFiles.images.length === 0) {
+      toast.error(
+        'No artwork in this browser session for this product.',
+        { description: 'The copy is written from the images — re-stage the files, then try again.' },
+      );
+      return;
+    }
+
     setIsRunningCopy(true);
 
     // Show the user that we're starting the AI process

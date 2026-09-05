@@ -131,17 +131,34 @@ The whole point. Nothing else matters as much.
 
 **Done when:** signing in on a second machine shows the mockups and can publish.
 
-### Phase 2 — a run survives the tab (closes gap 2) — **partly done; see the note below**
+### Phase 2 — a run survives the tab (closes gap 2) — **step 2 closed as not worth doing, 2026-09-05**
 
 1. Persist what each step produced as it completes, not only the step name:
-   the mockup rows from phase 1 already do most of this.
-2. Change `recoverStalledListings` from *reset* to *resume*: return the listing
-   to the step after the last one that completed, rather than to `idle`.
+   the mockup rows from phase 1 already do most of this. — **done**
+2. ~~Change `recoverStalledListings` from *reset* to *resume*.~~ **Dropped, on
+   the numbers.** This was costed when a re-run re-rendered every mockup, so
+   resuming saved the slowest step in the pipeline. `lib/mockup-reuse.ts`
+   removed that cost: a re-run already reuses renders that cover the templates
+   it wants. What resuming would now skip is `scanning`, `thumbnail` and
+   `compiling` — three fixed 1.2s waits that do no work — so it buys about
+   **3.6 seconds**, in exchange for a partial-progress state to persist,
+   invalidate and get wrong. Reopen this if those stages ever do real work.
 3. Keep the ten-minute window — it is a reasonable definition of "no live
-   owner" — but let it hand back work instead of discarding it.
+   owner". **Kept.** It resets rather than hands back, per step 2.
 
-**Done when:** closing the tab during mockup rendering and reopening continues
-from the mockups already made.
+**Where this leaves the original goal:** closing the tab during mockup
+rendering and reopening does continue from the mockups already made — not by
+resuming, but because the re-run reuses them. The user presses Run once.
+
+**One case still open, found while closing this out:** the reuse check treats
+any existing mockup as covering an unnamed template set. An interrupted run is
+safe, because `generateListingMockups` commits in a single setState after the
+batch returns and so leaves zero mockups rather than a partial set. A run where
+MockupGen *reported* some renders as failed is not: the short set it leaves
+looks complete to the next run, and the failed templates are never retried.
+The user sees a warning toast at the time, and Render in the studio always
+re-renders, so this is a papercut rather than a defect — but it is the reason
+to be careful before widening reuse further.
 
 ### Phase 3 — the studio and the tray survive a refresh (gaps 3, 4) — **DONE**
 

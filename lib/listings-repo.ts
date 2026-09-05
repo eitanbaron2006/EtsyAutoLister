@@ -47,6 +47,10 @@ export type ListingsUnsubscribe = () => void;
 
 const PROFILE_TO_COLUMN: Record<keyof ProfilePatch, string> = {
   etsyConnected: 'etsy_connected',
+  // Not the Etsy access token. That moved to public.etsy_tokens, which no
+  // client role can read, and is written only by the server. This column
+  // survives because the demo connect path still stores the literal marker
+  // 'DEMO_TOKEN' in it. Never put a real credential here.
   etsyToken: 'etsy_token',
   lastProductType: 'last_product_type',
   savedTips: 'saved_tips',
@@ -409,10 +413,24 @@ function safeParseTags(stored: string): string[] | string {
  * started read exactly alike, and the step it reached was overwritten in the
  * same statement that reported the failure.
  *
- * Note that a re-run starts over rather than continuing. That is deliberate
- * elsewhere in the app -- mockups are treated as part of what a run
- * regenerates, not a cached artefact -- so this reports the interruption
- * rather than quietly resuming past it.
+ * A re-run starts over rather than continuing, and that is now the cheap
+ * option rather than a compromise. The reason given here previously -- that
+ * mockups are regenerated on every run -- stopped being true when
+ * lib/mockup-reuse.ts landed: a re-run reuses renders that already cover the
+ * templates it wants. What is left to repeat is `scanning`, `thumbnail` and
+ * `compiling`, which are three fixed 1.2s waits and no work, plus the copy
+ * stage, which is the step that usually failed and the one worth repeating.
+ *
+ * So resuming mid-pipeline would save about 3.6 seconds of deliberate delay,
+ * in exchange for a partial-progress state to persist and get wrong. Starting
+ * over is the better trade while the intermediate stages stay this thin. If
+ * they ever do real work, revisit it -- docs/persistence_plan.md phase 2.
+ *
+ * Note the one case this does not cover: `generateListingMockups` commits its
+ * results in a single setState after the batch returns, so an interrupted run
+ * leaves zero mockups rather than a partial set, and the reuse check is safe.
+ * Renders that the server itself reported as failed are a different matter --
+ * they leave a short set that later runs treat as complete.
  *
  * @returns the ids that were released
  */
