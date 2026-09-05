@@ -21,13 +21,20 @@ export interface UserProfile {
   lastProductType?: string | null;
   savedTips?: string[];
   plan?: string;
+  /** Where the buyer downloads a listing Etsy will not carry the files for. */
+  deliveryLink?: string | null;
+  /**
+   * The Google account whose Drive is connected, or null. A display value: the
+   * grant itself is in public.drive_tokens, which no client role can read.
+   */
+  driveAccountEmail?: string | null;
   // Theme, Autopilot-vs-Guided, and the default fit mode. localStorage caches
   // these; this is the copy that counts.
   uiPrefs?: Record<string, unknown>;
 }
 
 export type ProfilePatch = Partial<
-  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs'>
+  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs' | 'deliveryLink'>
 >;
 
 export interface NewListingInput {
@@ -56,6 +63,10 @@ const PROFILE_TO_COLUMN: Record<keyof ProfilePatch, string> = {
   savedTips: 'saved_tips',
   uiPrefs: 'ui_prefs',
   plan: 'plan',
+  deliveryLink: 'delivery_link',
+  // drive_account_email is deliberately absent: the server writes it when the
+  // grant is stored or removed, and a client must not be able to claim a
+  // connection it does not have.
 };
 
 const LISTING_TO_COLUMN: Record<string, string> = {
@@ -168,6 +179,8 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     lastProductType: data.last_product_type ?? null,
     savedTips: Array.isArray(data.saved_tips) ? data.saved_tips : [],
     plan: typeof data.plan === 'string' ? data.plan : 'free',
+    deliveryLink: data.delivery_link ?? null,
+    driveAccountEmail: data.drive_account_email ?? null,
     uiPrefs: (data.ui_prefs && typeof data.ui_prefs === 'object') ? data.ui_prefs : {},
   };
 }

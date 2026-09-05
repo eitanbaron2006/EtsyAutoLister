@@ -18,6 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DigitalDeliveryCard } from '@/components/digital-delivery-card';
 import type { MockupFitMode } from '@/lib/mockupgen';
 
 export function AccountView({
@@ -30,6 +31,11 @@ export function AccountView({
   etsyToken,
   handleDisconnectEtsy,
   mockupServerStatus,
+  driveAccountEmail,
+  deliveryLink,
+  handleConnectDrive,
+  handleDisconnectDrive,
+  handleSaveDeliveryLink,
   studioAutopilot,
   toggleStudioAutopilot,
   studioFitMode,
@@ -46,6 +52,11 @@ export function AccountView({
   etsyToken: string | null;
   handleDisconnectEtsy: () => void;
   mockupServerStatus: 'unknown' | 'checking' | 'online' | 'offline';
+  driveAccountEmail: string | null;
+  deliveryLink: string | null;
+  handleConnectDrive: () => void;
+  handleDisconnectDrive: () => void;
+  handleSaveDeliveryLink: (link: string) => void;
   studioAutopilot: boolean;
   toggleStudioAutopilot: () => void;
   studioFitMode: MockupFitMode;
@@ -173,6 +184,15 @@ export function AccountView({
                 </div>
               </div>
             </Card>
+
+            <DigitalDeliveryCard
+              darkMode={darkMode}
+              driveAccountEmail={driveAccountEmail}
+              deliveryLink={deliveryLink}
+              onConnectDrive={handleConnectDrive}
+              onDisconnectDrive={handleDisconnectDrive}
+              onSaveLink={handleSaveDeliveryLink}
+            />
           </div>
 
           {/* ---- Preferences & saved tips ---- */}

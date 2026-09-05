@@ -117,6 +117,7 @@ import { ScrollToTop } from '@/components/scroll-to-top';
 import { PhotoLightbox, type LightboxState } from '@/components/photo-lightbox';
 import { TipFillerCard, TipPanel } from '@/components/studio-tips';
 import { DeleteConfirmDialog, type ConfirmRequest } from '@/components/delete-confirm-dialog';
+import { DeliveryRequiredDialog, type DeliveryPrompt } from '@/components/delivery-required-dialog';
 import { MockupViewerDialog } from '@/components/mockup-viewer-dialog';
 import { GalleryInspectorDialog } from '@/components/gallery-inspector-dialog';
 import { ListingReviewDialog } from '@/components/listing-review-dialog';
@@ -261,6 +262,14 @@ export default function Home() {
   // worth carrying, because publishing must not queue an upload that cannot
   // succeed.
   const [printDeliveryMap, setPrintDeliveryMap] = useState<Record<string, { mode: PrintDeliveryMode; note?: string }>>({});
+
+  // How this shop can hand over files Etsy will not carry. A connected Drive
+  // account or a pasted link -- either counts, and neither is the token: the
+  // Drive grant lives on the server, and this is only what the page may know.
+  const [driveAccountEmail, setDriveAccountEmail] = useState<string | null>(null);
+  const [deliveryLink, setDeliveryLink] = useState<string | null>(null);
+  const hasDeliveryRoute = !!driveAccountEmail || !!(deliveryLink && deliveryLink.trim());
+  const [deliveryPrompt, setDeliveryPrompt] = useState<DeliveryPrompt | null>(null);
   const [projectNameInput, setProjectNameInput] = useState('');
   // The project this session works inside — set by the first creation or by
   // continuing a project from the hub; later creations join it.
@@ -698,6 +707,8 @@ export default function Home() {
             if (profile.plan) {
               setAccountPlan(profile.plan);
             }
+            setDriveAccountEmail(profile.driveAccountEmail ?? null);
+            setDeliveryLink(profile.deliveryLink ?? null);
           }
         } catch (err) {
           console.error("User profile sync error", err);
@@ -828,6 +839,39 @@ export default function Home() {
       toast.success("Welcome aboard!");
     } catch (err: any) {
       toast.error(err?.message || "Failed to sign in.");
+    }
+  };
+
+  // Google Drive: the consent flow runs on the server, so this only sends the
+  // shop there. What comes back is a redirect, never a token.
+  const handleConnectDrive = () => {
+    window.location.href = '/api/auth/drive/start';
+  };
+
+  const handleDisconnectDrive = async () => {
+    try {
+      const res = await fetch('/api/auth/drive/disconnect', { method: 'POST' });
+      if (!res.ok) throw new Error('Disconnect failed');
+      setDriveAccountEmail(null);
+      toast.success('Google Drive disconnected.');
+    } catch {
+      toast.error('Could not disconnect Google Drive.');
+    }
+  };
+
+  const handleSaveDeliveryLink = async (link: string) => {
+    if (!user) return;
+    const trimmed = link.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      toast.error('That does not look like a link. It should start with http:// or https://');
+      return;
+    }
+    try {
+      await updateProfile(user.uid, { deliveryLink: trimmed || null });
+      setDeliveryLink(trimmed || null);
+      toast.success(trimmed ? 'Download link saved.' : 'Download link cleared.');
+    } catch {
+      toast.error('Could not save the link.');
     }
   };
 
@@ -2430,7 +2474,7 @@ export default function Home() {
   };
 
   // Direct connected API Etsy publishing process
-  const publishToEtsySnapshot = async (item: ListingMetadata) => {
+  const publishToEtsySnapshot = async (item: ListingMetadata, options?: { withoutFiles?: boolean }) => {
     if (!user) return;
     if (selectedMode !== 'etsy' || !etsyToken) {
       toast.error('Select Interactive Etsy Store mode and connect your account.');
@@ -2444,18 +2488,21 @@ export default function Home() {
     }
 
     // An oversize pack is past what the marketplace accepts -- the render
-    // server said so when it made it, with the totals to hand. Attaching it
-    // anyway spends minutes uploading a hundred-odd megabytes for a refusal,
-    // and the shop is left guessing why. Checked here, before the status moves
-    // to 'publishing', so a refusal does not strand the listing mid-flight.
-    // The route this case is meant to take -- a Drive folder linked from a
-    // PDF -- is not built yet, so the honest answer is to stop and say so.
+    // server said so when it made it, with the totals to hand. Uploading it
+    // anyway spends minutes on a refusal, so it never goes in the request.
+    //
+    // With nowhere for the buyer to download from, that is a decision rather
+    // than an error, and it is the shop's: publish the listing without its
+    // files, or stop and set delivery up first. Asked every time, because the
+    // answer can differ per listing. Checked before the status moves to
+    // 'publishing', so declining does not strand the row mid-flight.
     const delivery = printDeliveryMap[item.folderName];
-    if (delivery?.mode === 'oversize') {
-      toast.error('These print files are too large for Etsy to accept.', {
-        duration: 10000,
-        description: delivery.note
-          ?? 'Deliver the archive as a link instead of an upload. Publishing would be rejected.',
+    if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
+      setDeliveryPrompt({
+        mode: 'publish',
+        folderName: item.folderName,
+        note: delivery.note,
+        onPublishAnyway: () => { void publishToEtsySnapshot(item, { withoutFiles: true }); },
       });
       return;
     }
@@ -2517,7 +2564,10 @@ export default function Home() {
       // moment the bytes are genuinely needed, so it is the one moment they
       // are fetched -- displaying them uses previews a few hundred times
       // smaller.
-      const printFiles = printFilesMap[item.folderName] || [];
+      // Skipped when the shop chose to publish without them: the listing goes
+      // up with its photos and copy, and the files are its own problem from
+      // there. Marked on the row so it can be found again.
+      const printFiles = options?.withoutFiles ? [] : (printFilesMap[item.folderName] || []);
       for (const printFile of printFiles) {
         try {
           const blob = await downloadPrintDeliverable(printFile.url);
@@ -2527,6 +2577,12 @@ export default function Home() {
         }
       }
       sessionFiles.files.forEach(file => formData.append('file', file));
+
+      if (options?.withoutFiles) {
+        await updateListing(user.uid, targetId, {
+          mockupNote: 'Published without files — the buyer has nothing to download yet.',
+        }).catch(() => { });
+      }
 
       if (printFiles.length === 0 && sessionFiles.files.length === 0) {
         // A digital listing with no file is a listing that cannot be
@@ -2597,6 +2653,14 @@ export default function Home() {
     setSelectedPreviewIndex(0);
     setDescTab('preview');
     setIsDialogOpen(true);
+
+    // Said on the way in, not on the way out. A listing whose files Etsy will
+    // not carry cannot be sold whole without somewhere to put them, and
+    // finding that out at the publish button is finding out too late.
+    const delivery = printDeliveryMap[item.folderName];
+    if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
+      setDeliveryPrompt({ mode: 'notice', folderName: item.folderName, note: delivery.note });
+    }
 
     // Append the per-type info extras to the gallery once they load
     fetchListingExtras(item.productType).then(extras => {
@@ -2796,6 +2860,11 @@ export default function Home() {
         etsyToken={etsyToken}
         handleDisconnectEtsy={handleDisconnectEtsy}
         mockupServerStatus={mockupServerStatus}
+        driveAccountEmail={driveAccountEmail}
+        deliveryLink={deliveryLink}
+        handleConnectDrive={handleConnectDrive}
+        handleDisconnectDrive={handleDisconnectDrive}
+        handleSaveDeliveryLink={handleSaveDeliveryLink}
         studioAutopilot={studioAutopilot}
         toggleStudioAutopilot={toggleStudioAutopilot}
         studioFitMode={studioFitMode}
@@ -4398,6 +4467,17 @@ export default function Home() {
 
       {/* Destructive action confirmation */}
       <DeleteConfirmDialog request={deleteRequest} onClose={() => setDeleteRequest(null)} />
+
+      <DeliveryRequiredDialog
+        prompt={deliveryPrompt}
+        darkMode={darkMode}
+        driveAccountEmail={driveAccountEmail}
+        deliveryLink={deliveryLink}
+        onConnectDrive={handleConnectDrive}
+        onDisconnectDrive={handleDisconnectDrive}
+        onSaveLink={handleSaveDeliveryLink}
+        onClose={() => setDeliveryPrompt(null)}
+      />
 
       <DevSignInDialog
         open={showDevSignIn}
