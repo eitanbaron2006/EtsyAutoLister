@@ -282,6 +282,8 @@ export default function Home() {
   // Drive grant lives on the server, and this is only what the page may know.
   const [driveAccountEmail, setDriveAccountEmail] = useState<string | null>(null);
   const [deliveryLink, setDeliveryLink] = useState<string | null>(null);
+  const [driveFolderPath, setDriveFolderPath] = useState<string | null>(null);
+  const [shopName, setShopName] = useState<string | null>(null);
   const hasDeliveryRoute = !!driveAccountEmail || !!(deliveryLink && deliveryLink.trim());
   const [deliveryPrompt, setDeliveryPrompt] = useState<DeliveryPrompt | null>(null);
   const [projectNameInput, setProjectNameInput] = useState('');
@@ -723,6 +725,8 @@ export default function Home() {
             }
             setDriveAccountEmail(profile.driveAccountEmail ?? null);
             setDeliveryLink(profile.deliveryLink ?? null);
+            setDriveFolderPath(profile.driveFolderPath ?? null);
+            setShopName(profile.shopName ?? null);
           }
         } catch (err) {
           console.error("User profile sync error", err);
@@ -906,6 +910,18 @@ export default function Home() {
       toast.success('Google Drive disconnected.');
     } catch {
       toast.error('Could not disconnect Google Drive.');
+    }
+  };
+
+  const handleSaveDriveFolderPath = async (path: string) => {
+    if (!user) return;
+    const trimmed = path.trim();
+    try {
+      await updateProfile(user.uid, { driveFolderPath: trimmed || null });
+      setDriveFolderPath(trimmed || null);
+      toast.success(trimmed ? `New listings will go to "${trimmed}".` : 'Back to the default folder.');
+    } catch {
+      toast.error('Could not save the folder.');
     }
   };
 
@@ -2939,9 +2955,12 @@ export default function Home() {
         mockupServerStatus={mockupServerStatus}
         driveAccountEmail={driveAccountEmail}
         deliveryLink={deliveryLink}
+        driveFolderPath={driveFolderPath}
+        shopName={shopName}
         handleConnectDrive={handleConnectDrive}
         handleDisconnectDrive={handleDisconnectDrive}
         handleSaveDeliveryLink={handleSaveDeliveryLink}
+        handleSaveDriveFolderPath={handleSaveDriveFolderPath}
         studioAutopilot={studioAutopilot}
         toggleStudioAutopilot={toggleStudioAutopilot}
         studioFitMode={studioFitMode}
@@ -4550,9 +4569,12 @@ export default function Home() {
         darkMode={darkMode}
         driveAccountEmail={driveAccountEmail}
         deliveryLink={deliveryLink}
+        driveFolderPath={driveFolderPath}
+        shopName={shopName}
         onConnectDrive={handleConnectDrive}
         onDisconnectDrive={handleDisconnectDrive}
         onSaveLink={handleSaveDeliveryLink}
+        onSaveFolderPath={handleSaveDriveFolderPath}
         onClose={() => setDeliveryPrompt(null)}
       />
 

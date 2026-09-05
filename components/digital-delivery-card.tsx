@@ -23,18 +23,25 @@ export function DigitalDeliveryCard({
   darkMode,
   driveAccountEmail,
   deliveryLink,
+  driveFolderPath,
+  shopName,
   onConnectDrive,
   onDisconnectDrive,
   onSaveLink,
+  onSaveFolderPath,
   /** Rendered inside the draft warning, where the framing is different. */
   compact = false,
 }: {
   darkMode: boolean;
   driveAccountEmail: string | null;
   deliveryLink: string | null;
+  driveFolderPath: string | null;
+  /** Shown as the placeholder, because it is what an unset path resolves to. */
+  shopName?: string | null;
   onConnectDrive: () => void;
   onDisconnectDrive: () => void;
   onSaveLink: (link: string) => void;
+  onSaveFolderPath: (path: string) => void;
   compact?: boolean;
 }) {
   // The saved value can change under the field — a profile load, or the other
@@ -50,6 +57,15 @@ export function DigitalDeliveryCard({
   }
 
   const dirty = draft.trim() !== (deliveryLink ?? '').trim();
+
+  const savedPath = driveFolderPath ?? '';
+  const [pathDraft, setPathDraft] = useState(savedPath);
+  const [lastPath, setLastPath] = useState(savedPath);
+  if (savedPath !== lastPath) {
+    setLastPath(savedPath);
+    setPathDraft(savedPath);
+  }
+  const pathDirty = pathDraft.trim() !== savedPath.trim();
   const connected = !!driveAccountEmail || !!(deliveryLink && deliveryLink.trim());
 
   const body = (
@@ -103,6 +119,48 @@ export function DigitalDeliveryCard({
           The app creates a folder and puts each listing&apos;s files in it. It can only
           see files it created — nothing already in your Drive.
         </p>
+
+        {driveAccountEmail && (
+          <div className="pt-2 border-t border-[rgba(21,20,15,0.10)] dark:border-[rgba(247,241,222,0.10)] space-y-1.5">
+            <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] font-bold block">
+              Where to put them
+            </span>
+            <div className="flex items-center gap-2">
+              <Input
+                value={pathDraft}
+                onChange={(e) => setPathDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && pathDirty) onSaveFolderPath(pathDraft); }}
+                placeholder={shopName ? `${shopName} (default)` : 'Your shop name (default)'}
+                className={`h-8 text-[11px] rounded-lg ${darkMode ? 'bg-[#22211b] border-[rgba(247,241,222,0.14)] text-[#f7f1de]' : 'bg-[#f7f1de] border-[rgba(21,20,15,0.16)] text-[#15140f]'}`}
+              />
+              <Button
+                size="xs"
+                variant="outline"
+                disabled={!pathDirty}
+                onClick={() => onSaveFolderPath(pathDraft)}
+                className={`h-8 shrink-0 font-mono text-[9px] uppercase tracking-wider rounded-full px-3 cursor-pointer disabled:opacity-40 ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de]'}`}
+              >
+                Save
+              </Button>
+            </div>
+            {!shopName && (
+              /* Without a connected shop there is no name to fall back on, and
+                 the folders would land under this app's name — which is not
+                 what anyone looking at their own Drive expects to find. */
+              <p className="text-[9px] leading-relaxed text-[#ed6f5c]">
+                No Etsy shop is connected, so there is no shop name to use. Connect your
+                shop, or set a path here — otherwise folders are created under
+                &quot;Etsy AutoLister — Buyer Downloads&quot;.
+              </p>
+            )}
+            <p className="text-[9px] text-[#8b8676] leading-relaxed">
+              Left empty, folders go under your shop&apos;s name. Set a path to put them
+              elsewhere — use <span className="font-mono">/</span> for nesting, e.g.{' '}
+              <span className="font-mono">Etsy/Downloads</span>. The app creates it, and cannot
+              use a folder you made yourself: the permission you granted does not see one.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 2 — a link the shop already has */}

@@ -58,7 +58,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const folder = await ensureListingFolder(userId, body.folderName);
+    const service = serviceClient();
+    const { data: settings } = await service
+      .from('profiles').select('drive_folder_path, pdf_preset').eq('id', userId).maybeSingle();
+
+    // Read before the folder is made: with no path set, the shop's own name
+    // is the root, so the buyer folders sit under <Shop>/<Product> rather
+    // than under this app's name.
+    const branding = await getShopBranding(userId);
+
+    const folder = await ensureListingFolder(
+      userId, body.folderName, settings?.drive_folder_path, branding.shopName,
+    );
 
     // One at a time on purpose: these are twenty megabytes each, and a dozen
     // concurrent uploads is how a local render server and a home connection
@@ -92,15 +103,11 @@ export async function POST(request: Request) {
 
     // The sheet is built last, so its file count is what actually arrived
     // rather than what was hoped for.
-    const service = serviceClient();
-    const { data: profile } = await service
-      .from('profiles').select('pdf_preset').eq('id', userId).maybeSingle();
-    const branding = await getShopBranding(userId);
     const logo = await fetchLogo(branding.iconUrl);
 
     const sheet = await buildDeliverySheet({
       branding,
-      choice: (profile?.pdf_preset ?? {}) as Record<string, never>,
+      choice: (settings?.pdf_preset ?? {}) as Record<string, never>,
       listingTitle: body.listingTitle || body.folderName,
       downloadUrl: folder.url,
       fileCount: delivered,

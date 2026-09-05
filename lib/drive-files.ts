@@ -8,9 +8,9 @@
 import 'server-only';
 
 import { readDriveAccessToken } from '@/lib/drive-token';
+import { parseFolderPath } from '@/lib/drive-path';
 
-/** The one folder everything else lives under, so a shop can find it. */
-export const ROOT_FOLDER_NAME = 'Etsy AutoLister — Buyer Downloads';
+export { DEFAULT_FOLDER_PATH, parseFolderPath } from '@/lib/drive-path';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
@@ -92,10 +92,24 @@ export interface ListingFolder {
  * buyer who has paid for it should not have to ask for access or sign in to a
  * Google account to collect what they bought.
  */
-export async function ensureListingFolder(userId: string, folderName: string): Promise<ListingFolder> {
+export async function ensureListingFolder(
+  userId: string,
+  folderName: string,
+  /** The shop's chosen path, e.g. "Etsy/Downloads". Defaulted when unset. */
+  rootPath?: string | null,
+  /** Used as the root when no path is set, so folders read as <Shop>/<Product>. */
+  shopName?: string | null,
+): Promise<ListingFolder> {
   const accessToken = await token(userId);
-  const rootId = await ensureFolder(accessToken, ROOT_FOLDER_NAME);
-  const folderId = await ensureFolder(accessToken, folderName, rootId);
+
+  // Walked rather than created in one call: Drive has no mkdir -p, so each
+  // segment is found-or-made inside the one before it.
+  let parentId: string | undefined;
+  for (const segment of parseFolderPath(rootPath, shopName)) {
+    parentId = await ensureFolder(accessToken, segment, parentId);
+  }
+
+  const folderId = await ensureFolder(accessToken, folderName, parentId);
 
   // Idempotent in effect: granting the same permission twice is not an error
   // worth failing a delivery over.

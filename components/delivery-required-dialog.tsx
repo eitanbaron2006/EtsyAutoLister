@@ -39,18 +39,24 @@ export function DeliveryRequiredDialog({
   darkMode,
   driveAccountEmail,
   deliveryLink,
+  driveFolderPath,
+  shopName,
   onConnectDrive,
   onDisconnectDrive,
   onSaveLink,
+  onSaveFolderPath,
   onClose,
 }: {
   prompt: DeliveryPrompt | null;
   darkMode: boolean;
   driveAccountEmail: string | null;
   deliveryLink: string | null;
+  driveFolderPath: string | null;
+  shopName: string | null;
   onConnectDrive: () => void;
   onDisconnectDrive: () => void;
   onSaveLink: (link: string) => void;
+  onSaveFolderPath: (path: string) => void;
   onClose: () => void;
 }) {
   const publishing = prompt?.mode === 'publish';
@@ -91,9 +97,12 @@ export function DeliveryRequiredDialog({
                 darkMode={darkMode}
                 driveAccountEmail={driveAccountEmail}
                 deliveryLink={deliveryLink}
+                driveFolderPath={driveFolderPath}
+                shopName={shopName}
                 onConnectDrive={onConnectDrive}
                 onDisconnectDrive={onDisconnectDrive}
                 onSaveLink={onSaveLink}
+                onSaveFolderPath={onSaveFolderPath}
               />
             </div>
 

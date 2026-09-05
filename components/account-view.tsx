@@ -33,9 +33,12 @@ export function AccountView({
   mockupServerStatus,
   driveAccountEmail,
   deliveryLink,
+  driveFolderPath,
+  shopName,
   handleConnectDrive,
   handleDisconnectDrive,
   handleSaveDeliveryLink,
+  handleSaveDriveFolderPath,
   studioAutopilot,
   toggleStudioAutopilot,
   studioFitMode,
@@ -54,9 +57,12 @@ export function AccountView({
   mockupServerStatus: 'unknown' | 'checking' | 'online' | 'offline';
   driveAccountEmail: string | null;
   deliveryLink: string | null;
+  driveFolderPath: string | null;
+  shopName: string | null;
   handleConnectDrive: () => void;
   handleDisconnectDrive: () => void;
   handleSaveDeliveryLink: (link: string) => void;
+  handleSaveDriveFolderPath: (path: string) => void;
   studioAutopilot: boolean;
   toggleStudioAutopilot: () => void;
   studioFitMode: MockupFitMode;
@@ -189,9 +195,12 @@ export function AccountView({
               darkMode={darkMode}
               driveAccountEmail={driveAccountEmail}
               deliveryLink={deliveryLink}
+              driveFolderPath={driveFolderPath}
+              shopName={shopName}
               onConnectDrive={handleConnectDrive}
               onDisconnectDrive={handleDisconnectDrive}
               onSaveLink={handleSaveDeliveryLink}
+              onSaveFolderPath={handleSaveDriveFolderPath}
             />
           </div>
 
