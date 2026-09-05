@@ -4240,8 +4240,10 @@ export default function Home() {
       <PrintFilesDialog
         listing={printViewerListing}
         files={printViewerListing ? (printFilesMap[printViewerListing.folderName] || []) : []}
+        savedTips={savedTips}
+        onToggleSaveTip={handleToggleSavedTip}
         onClose={() => setPrintViewerListing(null)}
-        onOpenLightbox={(url) => setLightbox({ items: [{ url, label: 'Print file' }], index: 0 })}
+        onOpenLightbox={setLightbox}
       />
 
       {/* Listing photo inspector (extracted component) */}
