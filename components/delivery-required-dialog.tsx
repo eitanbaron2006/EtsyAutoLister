@@ -21,6 +21,8 @@ import { DigitalDeliveryCard } from '@/components/digital-delivery-card';
 
 export type DeliveryPrompt = {
   mode: 'notice' | 'publish';
+  /** Which listing raised it, so the draft can be reopened after the OAuth trip. */
+  listingId: string;
   folderName: string;
   /** The render server's own account of the sizes, when it gave one. */
   note?: string;
@@ -60,18 +62,22 @@ export function DeliveryRequiredDialog({
                 <AlertTriangle className="w-3 h-3" /> Digital delivery needed
               </span>
               <DialogTitle className="text-lg font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">
-                {publishing
-                  ? 'Publish this listing without its files?'
-                  : 'This listing cannot go up whole'}
+                {ready
+                  ? 'Ready to publish in full'
+                  : publishing
+                    ? 'Publish this listing without its files?'
+                    : 'This listing cannot go up whole'}
               </DialogTitle>
               <DialogDescription className="text-[#5a5448] dark:text-[#a39e8f] text-xs leading-relaxed">
                 {prompt.note
                   ? prompt.note
                   : `The print sizes for "${prompt.folderName}" are larger than Etsy accepts as files.`}
                 {' '}
-                {publishing
-                  ? 'Without somewhere for the buyer to download them, the listing goes up with its photos, title, description and tags — but no files attached.'
-                  : 'Set up a download location and it can be listed automatically. Without one it can still be published, but the buyer receives nothing to download.'}
+                {ready
+                  ? 'A download location is set up, so this listing can be published in full.'
+                  : publishing
+                    ? 'Without somewhere for the buyer to download them, the listing goes up with its photos, title, description and tags — but no files attached.'
+                    : 'Set up a download location and it can be listed automatically. Without one it can still be published, but the buyer receives nothing to download.'}
               </DialogDescription>
             </DialogHeader>
 

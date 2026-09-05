@@ -1,15 +1,49 @@
 // Exchanges the Drive consent code for a grant, and stores it server-side.
 //
-// The token never reaches the page. What comes back to the browser is a
-// redirect and, at most, which account was connected.
+// This runs inside a popup, the way the Etsy connect flow already does. It
+// answers with a page that posts the outcome back to the opener and closes
+// itself, so the shop's draft, its scroll position and whatever dialog was
+// open are all still there — none of it is ever unloaded.
+//
+// The alternative, redirecting the whole tab and reassembling the workspace
+// afterwards, was tried first and is not worth the machinery: the app reloads
+// into the projects hub with no session, no mode and no category, and every
+// one of those has to be rebuilt before the draft dialog is even mounted.
+//
+// The token never reaches the page. What crosses the postMessage boundary is
+// whether it worked and which account was connected.
 
 import { NextResponse } from 'next/server';
 import { currentUserId, storeDriveGrant } from '@/lib/drive-token';
 
+/** A page that hands the outcome to the opener and gets out of the way. */
+function reply(origin: string, payload: Record<string, unknown>) {
+  const html = `<!doctype html>
+<html>
+  <body style="font-family:system-ui;background:#12110c;color:#f7f1de;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+    <p>${payload.ok ? 'Google Drive connected.' : 'Google Drive was not connected.'} You can close this window.</p>
+    <script>
+      (function () {
+        var payload = ${JSON.stringify(payload)};
+        if (window.opener) {
+          window.opener.postMessage(payload, ${JSON.stringify(origin)});
+          window.close();
+        } else {
+          // Opened without a parent — a blocked popup, or a pasted URL.
+          // Fall back to the old behaviour rather than stranding the tab.
+          window.location.href = '/' + (payload.ok ? '?drive_connected=1' : '?drive_error=' + encodeURIComponent(String(payload.error || '')));
+        }
+      })();
+    </script>
+  </body>
+</html>`;
+  return new NextResponse(html, { headers: { 'Content-Type': 'text/html' } });
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const fail = (message: string) =>
-    NextResponse.redirect(`${origin}/?drive_error=${encodeURIComponent(message)}`);
+    reply(origin, { type: 'DRIVE_AUTH_RESULT', ok: false, error: message });
 
   // The shop declining is an answer, not a fault.
   const denied = searchParams.get('error');
@@ -70,5 +104,5 @@ export async function GET(request: Request) {
     return fail('Connected to Google, but the grant could not be saved.');
   }
 
-  return NextResponse.redirect(`${origin}/?drive_connected=1`);
+  return reply(origin, { type: 'DRIVE_AUTH_RESULT', ok: true, accountEmail });
 }

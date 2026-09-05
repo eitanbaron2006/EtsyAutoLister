@@ -764,7 +764,28 @@ export default function Home() {
 
     // Listen for OAuth messages from popup window
     const handleMessage = (event: MessageEvent) => {
+      // Anything can post to a window it has a handle on, so the sender has to
+      // be this app. Both OAuth popups are served from our own origin; a
+      // message from anywhere else is not one of ours.
+      if (event.origin !== window.location.origin) return;
       if (typeof event.data !== 'object' || !event.data) return;
+      // The Drive popup reports here. Nothing was unloaded, so this only has
+      // to move the connected state — no route to rebuild, no dialog to reopen.
+      if (event.data.type === 'DRIVE_AUTH_RESULT') {
+        if (event.data.ok) {
+          setDriveAccountEmail(event.data.accountEmail ?? null);
+          toast.success(event.data.accountEmail
+            ? `Google Drive connected as ${event.data.accountEmail}.`
+            : 'Google Drive connected.');
+        } else {
+          toast.error('Google Drive was not connected.', {
+            description: event.data.error || undefined,
+            duration: 9000,
+          });
+        }
+        return;
+      }
+
       if (event.data.type === 'OAUTH_AUTH_SUCCESS' && signedInUid) {
         // The real token never arrives here any more: the callback stored it
         // server-side and the publish route reads it from there. What the page
@@ -858,8 +879,23 @@ export default function Home() {
 
   // Google Drive: the consent flow runs on the server, so this only sends the
   // shop there. What comes back is a redirect, never a token.
+  // Connecting happens in a popup, the way the Etsy connect flow already
+  // does. The page underneath is never unloaded, so the draft, the scroll
+  // position and whatever dialog is open are all still there when it closes --
+  // and the connected state simply appears in place.
   const handleConnectDrive = () => {
-    window.location.href = '/api/auth/drive/start';
+    const width = 600;
+    const height = 760;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    const popup = window.open(
+      '/api/auth/drive/start',
+      'drive_oauth',
+      `width=${width},height=${height},left=${left},top=${top}`,
+    );
+    if (!popup) {
+      toast.error('Popup blocked. Allow popups for this site and try again.');
+    }
   };
 
   const handleDisconnectDrive = async () => {
@@ -2532,6 +2568,7 @@ export default function Home() {
     if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
       setDeliveryPrompt({
         mode: 'publish',
+        listingId: item.id,
         folderName: item.folderName,
         note: delivery.note,
         onPublishAnyway: () => { void publishToEtsySnapshot(item, { withoutFiles: true }); },
@@ -2691,7 +2728,7 @@ export default function Home() {
     // finding that out at the publish button is finding out too late.
     const delivery = deliveryFor(item);
     if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
-      setDeliveryPrompt({ mode: 'notice', folderName: item.folderName, note: delivery.note });
+      setDeliveryPrompt({ mode: 'notice', listingId: item.id, folderName: item.folderName, note: delivery.note });
     }
 
     // Append the per-type info extras to the gallery once they load
