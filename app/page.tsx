@@ -1205,8 +1205,13 @@ export default function Home() {
       label: mockup.file.name,
       image: mockup.url
     }));
-    const printPreviews: UploadedPreview[] = (printFilesMap[folderName] || [])
-      .filter(file => /\.(jpe?g|png|webp)$/i.test(file.fileName))
+    // The sizes, not the deliverables. For a set those are different lists:
+    // the deliverables are the one archive Etsy receives, and an archive has
+    // no preview, so filtering them by extension left the gallery with none of
+    // the fifteen prints the run actually made. Falls back for listings
+    // compiled before the two lists were separated.
+    const printPreviews: UploadedPreview[] = (printSizesMap[folderName] || printFilesMap[folderName] || [])
+      .filter(file => isPrintPreviewable(file.fileName))
       .map((file, index) => ({
         id: `print-${index}`,
         label: file.fileName,
