@@ -35,6 +35,8 @@ export function AccountView({
   deliveryLink,
   driveFolderPath,
   shopName,
+  alwaysUseDrive,
+  handleToggleAlwaysUseDrive,
   handleConnectDrive,
   handleDisconnectDrive,
   handleSaveDeliveryLink,
@@ -59,6 +61,8 @@ export function AccountView({
   deliveryLink: string | null;
   driveFolderPath: string | null;
   shopName: string | null;
+  alwaysUseDrive: boolean;
+  handleToggleAlwaysUseDrive: (next: boolean) => void;
   handleConnectDrive: () => void;
   handleDisconnectDrive: () => void;
   handleSaveDeliveryLink: (link: string) => void;
@@ -197,6 +201,8 @@ export function AccountView({
               deliveryLink={deliveryLink}
               driveFolderPath={driveFolderPath}
               shopName={shopName}
+              alwaysUseDrive={alwaysUseDrive}
+              onToggleAlwaysUseDrive={handleToggleAlwaysUseDrive}
               onConnectDrive={handleConnectDrive}
               onDisconnectDrive={handleDisconnectDrive}
               onSaveLink={handleSaveDeliveryLink}

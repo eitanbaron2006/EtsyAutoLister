@@ -27,6 +27,8 @@ export interface UserProfile {
   driveFolderPath?: string | null;
   /** The connected Etsy shop's name. Read-only here — the server writes it. */
   shopName?: string | null;
+  /** Send every listing to Drive, not only those Etsy will not carry. */
+  alwaysUseDrive?: boolean;
   /**
    * The Google account whose Drive is connected, or null. A display value: the
    * grant itself is in public.drive_tokens, which no client role can read.
@@ -38,7 +40,7 @@ export interface UserProfile {
 }
 
 export type ProfilePatch = Partial<
-  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs' | 'deliveryLink' | 'driveFolderPath'>
+  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs' | 'deliveryLink' | 'driveFolderPath' | 'alwaysUseDrive'>
 >;
 
 export interface NewListingInput {
@@ -69,6 +71,7 @@ const PROFILE_TO_COLUMN: Record<keyof ProfilePatch, string> = {
   plan: 'plan',
   deliveryLink: 'delivery_link',
   driveFolderPath: 'drive_folder_path',
+  alwaysUseDrive: 'always_use_drive',
   // drive_account_email is deliberately absent: the server writes it when the
   // grant is stored or removed, and a client must not be able to claim a
   // connection it does not have.
@@ -216,6 +219,7 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     deliveryLink: data.delivery_link ?? null,
     driveFolderPath: data.drive_folder_path ?? null,
     shopName: (data.shop_branding as { shopName?: string } | null)?.shopName ?? null,
+    alwaysUseDrive: data.always_use_drive === true,
     driveAccountEmail: data.drive_account_email ?? null,
     uiPrefs: (data.ui_prefs && typeof data.ui_prefs === 'object') ? data.ui_prefs : {},
   };

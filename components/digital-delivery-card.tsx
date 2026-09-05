@@ -25,6 +25,8 @@ export function DigitalDeliveryCard({
   deliveryLink,
   driveFolderPath,
   shopName,
+  alwaysUseDrive,
+  onToggleAlwaysUseDrive,
   onConnectDrive,
   onDisconnectDrive,
   onSaveLink,
@@ -38,6 +40,8 @@ export function DigitalDeliveryCard({
   driveFolderPath: string | null;
   /** Shown as the placeholder, because it is what an unset path resolves to. */
   shopName?: string | null;
+  alwaysUseDrive?: boolean;
+  onToggleAlwaysUseDrive?: (next: boolean) => void;
   onConnectDrive: () => void;
   onDisconnectDrive: () => void;
   onSaveLink: (link: string) => void;
@@ -153,6 +157,22 @@ export function DigitalDeliveryCard({
                 &quot;Etsy AutoLister — Buyer Downloads&quot;.
               </p>
             )}
+            {onToggleAlwaysUseDrive && (
+              <label className="flex items-start gap-2 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!alwaysUseDrive}
+                  onChange={(e) => onToggleAlwaysUseDrive(e.target.checked)}
+                  className="mt-0.5 accent-[#ed6f5c] cursor-pointer"
+                />
+                <span className="text-[9px] leading-relaxed text-[#8b8676]">
+                  Send <span className="font-medium">every</span> listing here, not only the ones
+                  too large for Etsy. A cloud copy of everything you sell — it never changes how a
+                  listing publishes.
+                </span>
+              </label>
+            )}
+
             <p className="text-[9px] text-[#8b8676] leading-relaxed">
               Left empty, folders go under your shop&apos;s name. Set a path to put them
               elsewhere — use <span className="font-mono">/</span> for nesting, e.g.{' '}

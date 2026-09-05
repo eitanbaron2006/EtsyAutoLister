@@ -284,6 +284,7 @@ export default function Home() {
   const [deliveryLink, setDeliveryLink] = useState<string | null>(null);
   const [driveFolderPath, setDriveFolderPath] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
+  const [alwaysUseDrive, setAlwaysUseDrive] = useState(false);
   const hasDeliveryRoute = !!driveAccountEmail || !!(deliveryLink && deliveryLink.trim());
   const [deliveryPrompt, setDeliveryPrompt] = useState<DeliveryPrompt | null>(null);
   const [projectNameInput, setProjectNameInput] = useState('');
@@ -727,6 +728,7 @@ export default function Home() {
             setDeliveryLink(profile.deliveryLink ?? null);
             setDriveFolderPath(profile.driveFolderPath ?? null);
             setShopName(profile.shopName ?? null);
+            setAlwaysUseDrive(profile.alwaysUseDrive === true);
           }
         } catch (err) {
           console.error("User profile sync error", err);
@@ -910,6 +912,18 @@ export default function Home() {
       toast.success('Google Drive disconnected.');
     } catch {
       toast.error('Could not disconnect Google Drive.');
+    }
+  };
+
+  const handleToggleAlwaysUseDrive = async (next: boolean) => {
+    if (!user) return;
+    // Optimistic: a checkbox that waits on a round trip feels broken.
+    setAlwaysUseDrive(next);
+    try {
+      await updateProfile(user.uid, { alwaysUseDrive: next });
+    } catch {
+      setAlwaysUseDrive(!next);
+      toast.error('Could not save that preference.');
     }
   };
 
@@ -2957,6 +2971,8 @@ export default function Home() {
         deliveryLink={deliveryLink}
         driveFolderPath={driveFolderPath}
         shopName={shopName}
+        alwaysUseDrive={alwaysUseDrive}
+        handleToggleAlwaysUseDrive={handleToggleAlwaysUseDrive}
         handleConnectDrive={handleConnectDrive}
         handleDisconnectDrive={handleDisconnectDrive}
         handleSaveDeliveryLink={handleSaveDeliveryLink}
