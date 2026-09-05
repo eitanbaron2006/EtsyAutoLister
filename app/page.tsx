@@ -51,6 +51,7 @@ import {
   onAuthStateChange,
   signInWithGoogle,
   ProviderNotEnabledError,
+  AuthUnreachableError,
   signInWithPassword,
   signOut,
   type AppUser
@@ -890,6 +891,17 @@ export default function Home() {
     } catch (err: any) {
       if (err instanceof ProviderNotEnabledError) {
         setShowDevSignIn(true);
+        return;
+      }
+      // Not the same thing, and it used to be shown as if it were: a stack
+      // that is restarting answers nothing, and the email dialog then claimed
+      // Google was never configured. Say what actually happened instead --
+      // there is nothing to fix here except waiting for the containers.
+      if (err instanceof AuthUnreachableError) {
+        toast.error('The local Supabase stack is not responding.', {
+          description: `Nothing is answering at ${err.url}. If it is still starting, give it a moment and try again — otherwise run "supabase start".`,
+          duration: 10000,
+        });
         return;
       }
       toast.error(err?.message || "Failed to log in with Google.");

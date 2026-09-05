@@ -68,19 +68,40 @@ export class ProviderNotEnabledError extends Error {
 }
 
 /**
+ * Thrown when GoTrue could not be reached at all.
+ *
+ * Deliberately not the same as the error above. "The auth service did not
+ * answer" and "Google is switched off" call for opposite responses — start the
+ * stack, versus configure a provider — and treating the first as the second is
+ * how a container restart comes to look like a permanent misconfiguration.
+ */
+export class AuthUnreachableError extends Error {
+  constructor(public readonly url: string) {
+    super(`The authentication service at ${url} did not respond.`);
+    this.name = 'AuthUnreachableError';
+  }
+}
+
+/**
  * True when GoTrue reports the provider as configured. Checked up front
  * because signInWithOAuth navigates the browser rather than returning an
  * error — a disabled provider would otherwise dead-end on a raw 400 page.
+ *
+ * Throws AuthUnreachableError when the answer is unknown rather than false:
+ * a stack that is still booting answers nothing, and reporting that as "not
+ * configured" sends people to look at their OAuth credentials over what is
+ * really a container that has not finished starting.
  */
 export async function isProviderEnabled(provider: string): Promise<boolean> {
+  let settings: { external?: Record<string, boolean> };
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY } });
-    if (!res.ok) return false;
-    const settings = await res.json();
-    return settings?.external?.[provider] === true;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    settings = await res.json();
   } catch {
-    return false;
+    throw new AuthUnreachableError(SUPABASE_URL);
   }
+  return settings?.external?.[provider] === true;
 }
 
 export async function signInWithGoogle(): Promise<void> {
