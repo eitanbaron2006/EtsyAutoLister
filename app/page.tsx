@@ -95,7 +95,8 @@ import {
   listMockupCategories,
   listMockupTemplates,
   renderMockupBatch,
-  requestPrintDeliverables,
+  exportPrintFiles,
+  packPrintFiles,
   downloadPrintDeliverable,
   listPrintExports,
   listPrintSets,
@@ -1928,22 +1929,30 @@ export default function Home() {
   // account, and listed here so the studio can show what a buyer would get.
   const buildPrintFilesForListing = async (listingId: string, folderName: string) => {
     if (!user) return;
-    const sources = localFilesMap[folderName]?.images ?? [];
-    const artwork = sources.find(file => isMockupGenSupportedImage(file));
-    if (!artwork) {
+    // Every artwork in the listing, not the first one. A set is several
+    // pieces sold together, and a buyer who paid for three and received the
+    // sizes of one has been shortchanged -- which is what happened before.
+    const sources = (localFilesMap[folderName]?.images ?? []).filter(isMockupGenSupportedImage);
+    if (sources.length === 0) {
       // Nothing to make them from. Not an error: the listing may be a set of
       // files that were never images.
       return;
     }
 
     try {
-      const answer = await requestPrintDeliverables(artwork, {
-        reference: listingId,
-        // Whatever was chosen for this listing before the run; without one the
-        // render server falls back to the package configured for the shape the
-        // artwork arrives at.
-        setId: studioPrefsMap[listingId]?.printSetId ?? undefined,
-      });
+      const setId = studioPrefsMap[listingId]?.printSetId ?? undefined;
+      const produced: string[] = [];
+      let guide: string | undefined;
+      for (const artwork of sources) {
+        const run = await exportPrintFiles(artwork, { reference: listingId, setId });
+        produced.push(...(run.files || []).filter(entry => entry.success).map(entry => entry.file));
+        guide = guide ?? run.guide?.file;
+      }
+      if (produced.length === 0) return;
+
+      // Packed once, over everything: the allowance is five files for the
+      // listing, not five per artwork.
+      const answer = await packPrintFiles(produced, guide);
       if (!answer.deliverables?.length) return;
 
       // Deliberately not downloaded. A print file is 15 to 20 megabytes and
@@ -3204,17 +3213,32 @@ export default function Home() {
                     }}
                     className="text-[10px] font-mono bg-[#ece4cf]/80 border border-[rgba(21,20,15,0.16)] rounded-lg px-2 py-1.5 text-[#15140f] cursor-pointer"
                   >
-                    <option value="">Automatic — by the artwork&apos;s shape</option>
+                    <option value="">Automatic — the shop&apos;s own rule for this shape</option>
                     {printSets.map(set => (
                       <option key={set.id} value={set.id}>
-                        {set.name}{set.mode === 'chosen' ? ` (${set.ratio_keys.length})` : ''}
+                        {/* The sizes, not just a count: a name and "(6)" say
+                            nothing about what a buyer actually receives. */}
+                        {set.name} — {set.mode === 'chosen'
+                          ? set.ratio_keys.join(', ')
+                          : 'the artwork\u2019s own ratio'}
                       </option>
                     ))}
                   </select>
                   <span className="text-[9px] text-[#8b8676] font-mono select-none">
-                    {printSets.length === 0
-                      ? 'no packages configured on the render server'
-                      : 'what the buyer downloads, prepared during Compile'}
+                    {(() => {
+                      const chosen = printSets.find(
+                        set => set.id === studioPrefsMap[activeStudioListing.id]?.printSetId,
+                      );
+                      if (printSets.length === 0) return 'no packages defined yet — make one in MockupGen › Print files › Print sets';
+                      if (chosen) {
+                        return chosen.mode === 'chosen'
+                          ? `${chosen.ratio_keys.length} file${chosen.ratio_keys.length === 1 ? '' : 's'}, prepared during Compile`
+                          : 'one file, in the shape this artwork already has';
+                      }
+                      // The automatic path is configured on the render server,
+                      // and the shop should know where, not just that it exists.
+                      return 'set in MockupGen › Print files, above the ratio list';
+                    })()}
                   </span>
                 </div>
 

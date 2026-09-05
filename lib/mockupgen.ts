@@ -375,3 +375,57 @@ export async function listPrintSets(): Promise<{ id: number; name: string; mode:
   const payload = await res.json().catch(() => ({}));
   return payload.sets ?? [];
 }
+
+/**
+ * Pack files that have already been exported into what a listing can carry.
+ *
+ * A set is several artworks sold together, and each needs its own sizes -- so
+ * the export runs once per image. The packing has to see all of them at once:
+ * three artworks at six ratios is eighteen files against five slots, and that
+ * is not a decision six files can make on their own.
+ */
+export async function packPrintFiles(
+  fileNames: string[],
+  guide?: string,
+): Promise<PrintDeliverablesResponse> {
+  const res = await fetch(`${getMockupGenBaseUrl()}/api/print/package`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ files: fileNames, guide }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(payload.error || `Could not package the print files (HTTP ${res.status})`);
+  return payload as PrintDeliverablesResponse;
+}
+
+/** Print files for one artwork, without packaging them. */
+export async function exportPrintFiles(
+  artwork: File | Blob,
+  options: { setId?: number; ratios?: string; quality?: string; mode?: string; reference?: string } = {},
+): Promise<{ files: { file: string; success: boolean; ratio: string }[]; guide?: { file: string } | null }> {
+  const spec: Record<string, unknown> = {};
+  if (options.setId) spec.set = options.setId;
+  if (options.ratios) spec.ratios = options.ratios;
+  if (options.quality) spec.quality = options.quality;
+  if (options.mode) spec.mode = options.mode;
+  if (options.reference) spec.reference = options.reference;
+
+  const form = new FormData();
+  form.append('artwork', artwork, artwork instanceof File ? artwork.name : 'artwork.png');
+  form.append('spec', JSON.stringify(spec));
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PRINT_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${getMockupGenBaseUrl()}/api/print/export`, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error || `Print export failed (HTTP ${res.status})`);
+    return payload;
+  } finally {
+    clearTimeout(timer);
+  }
+}
