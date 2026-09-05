@@ -88,15 +88,22 @@ export function planDelivery(ctx: DeliveryContext): DeliveryPlan {
       uploadZipToDrive: true,
       offerZipDownload: false,
       makePdf: true,
-      attachPdfToEtsy: ctx.hasShop,
+      // Only when the listing's own files cannot go up. Etsy counts the sheet
+      // against the same five-file allowance, so attaching one to a listing
+      // that already carries its files is how a publish that would have
+      // worked starts being refused — and the buyer gets a link to files
+      // they were handed anyway.
+      attachPdfToEtsy: ctx.hasShop && ctx.oversize,
       // No shop to post to: the sheet is still made, and handed over for the
       // shop to upload itself.
-      offerPdfDownload: !ctx.hasShop,
+      offerPdfDownload: !ctx.hasShop && ctx.oversize,
       allowPdfEditing: !ctx.hasShop,
       linkSource: 'drive',
-      summary: ctx.hasShop
-        ? 'Every size and a combined archive go to your Drive, and the listing carries a PDF linking to them.'
-        : 'Every size and a combined archive go to your Drive. Download the PDF and upload it to your shop yourself.',
+      summary: !ctx.oversize
+        ? 'These files fit on Etsy and go up with the listing. A copy also goes to your Drive.'
+        : ctx.hasShop
+          ? 'Every size and a combined archive go to your Drive, and the listing carries a PDF linking to them.'
+          : 'Every size and a combined archive go to your Drive. Download the PDF and upload it to your shop yourself.',
     };
   }
 

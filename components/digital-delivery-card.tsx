@@ -17,7 +17,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Check, HardDrive, Link2 } from 'lucide-react';
+import { Check, FileText, HardDrive, Link2 } from 'lucide-react';
 
 export function DigitalDeliveryCard({
   darkMode,
@@ -31,6 +31,8 @@ export function DigitalDeliveryCard({
   onDisconnectDrive,
   onSaveLink,
   onSaveFolderPath,
+  presetName,
+  onEditSheetDesign,
   /** Rendered inside the draft warning, where the framing is different. */
   compact = false,
 }: {
@@ -46,6 +48,14 @@ export function DigitalDeliveryCard({
   onDisconnectDrive: () => void;
   onSaveLink: (link: string) => void;
   onSaveFolderPath: (path: string) => void;
+  /** Which preset the sheet is drawn with, for the shop to see at a glance. */
+  presetName?: string;
+  /**
+   * Opens the sheet designer. Optional, and the block below is only shown when
+   * it is given: inside the draft warning there is nowhere for a second dialog
+   * to go, and the shop is being asked a different question there anyway.
+   */
+  onEditSheetDesign?: () => void;
   compact?: boolean;
 }) {
   // The saved value can change under the field — a profile load, or the other
@@ -211,6 +221,38 @@ export function DigitalDeliveryCard({
           precedence when both are set.
         </p>
       </div>
+
+      {/* 3 — what the buyer actually opens.
+          Wherever the files end up, the buyer receives a one-page PDF carrying
+          the link. On those listings it is the only thing Etsy hands over with
+          the shop's name on it, so it is worth more than a default. */}
+      {onEditSheetDesign && (
+        <div className={`rounded-xl border p-3 space-y-2 ${darkMode ? 'border-[rgba(247,241,222,0.12)] bg-[#12110c]' : 'border-[rgba(21,20,15,0.12)] bg-[#efe7d2]/50'}`}>
+          <div className="flex items-center justify-between gap-3">
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${darkMode ? 'text-[#f7f1de]' : 'text-[#15140f]'}`}>
+              <FileText className="w-3.5 h-3.5 text-[#ed6f5c]" /> The buyer&apos;s sheet
+            </span>
+            <span className="flex items-center gap-2">
+              {presetName && (
+                <span className="text-[10px] font-mono text-[#8b8676]">{presetName}</span>
+              )}
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={onEditSheetDesign}
+                className={`h-7 font-mono text-[9px] uppercase tracking-wider rounded-full px-3 cursor-pointer ${darkMode ? 'border-[rgba(247,241,222,0.16)] text-[#ece4cf] bg-[#1a1914]' : 'border-[rgba(21,20,15,0.16)] text-[#5a5448] bg-[#f7f1de]'}`}
+              >
+                Design
+              </Button>
+            </span>
+          </div>
+          <p className="text-[9px] text-[#8b8676] leading-relaxed">
+            A one-page PDF with the download link on it. It starts from your shop
+            {shopName ? ` — ${shopName}` : ''} and its logo, and you can change the
+            preset, colour and wording.
+          </p>
+        </div>
+      )}
     </>
   );
 

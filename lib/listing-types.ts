@@ -30,6 +30,18 @@ export type ListingMetadata = {
     totalBytes?: number;
     allowanceBytes?: number;
   } | null;
+  // Where these files actually ended up, once they were delivered. Written by
+  // the server, which is the only side that ever talks to Drive, and read here
+  // so a reopened draft can show the folder instead of offering to make it
+  // again.
+  delivery?: {
+    provider: 'drive';
+    folderId?: string;
+    url: string;
+    fileCount?: number;
+    bytes?: number;
+    deliveredAt?: string;
+  } | null;
   quantity?: number;
   listingType?: string;
   renewalOption?: string;

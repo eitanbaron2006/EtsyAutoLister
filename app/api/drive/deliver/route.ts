@@ -15,6 +15,7 @@ import { currentUserId } from '@/lib/drive-token';
 import { ensureListingFolder, uploadToFolder, DriveError } from '@/lib/drive-files';
 import { buildDeliverySheet } from '@/lib/delivery-pdf';
 import { getShopBranding, fetchLogo } from '@/lib/shop-branding';
+import type { PdfPresetChoice } from '@/lib/pdf-presets';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 interface DeliverRequest {
@@ -107,7 +108,9 @@ export async function POST(request: Request) {
 
     const sheet = await buildDeliverySheet({
       branding,
-      choice: (settings?.pdf_preset ?? {}) as Record<string, never>,
+      // Whatever the shop set in the sheet designer. The rest of the
+      // design is resolved from its Etsy profile when the page is drawn.
+      choice: (settings?.pdf_preset ?? {}) as PdfPresetChoice,
       listingTitle: body.listingTitle || body.folderName,
       downloadUrl: folder.url,
       fileCount: delivered,

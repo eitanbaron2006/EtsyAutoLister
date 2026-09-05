@@ -10,6 +10,7 @@
 
 import { supabase, handleDbError, OperationType } from '@/lib/supabase';
 import type { ListingMetadata } from '@/lib/listing-types';
+import type { PdfPresetChoice } from '@/lib/pdf-presets';
 
 // ------------------------------------------------------------------ types --
 
@@ -30,6 +31,12 @@ export interface UserProfile {
   /** Send every listing to Drive, not only those Etsy will not carry. */
   alwaysUseDrive?: boolean;
   /**
+   * How the buyer's download sheet is designed: preset, colour and wording.
+   * Only what the shop set by hand — the rest is resolved when it is drawn,
+   * from the shop's own Etsy profile.
+   */
+  pdfPreset?: PdfPresetChoice;
+  /**
    * The Google account whose Drive is connected, or null. A display value: the
    * grant itself is in public.drive_tokens, which no client role can read.
    */
@@ -40,7 +47,7 @@ export interface UserProfile {
 }
 
 export type ProfilePatch = Partial<
-  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs' | 'deliveryLink' | 'driveFolderPath' | 'alwaysUseDrive'>
+  Pick<UserProfile, 'etsyConnected' | 'etsyToken' | 'lastProductType' | 'savedTips' | 'plan' | 'uiPrefs' | 'deliveryLink' | 'driveFolderPath' | 'alwaysUseDrive' | 'pdfPreset'>
 >;
 
 export interface NewListingInput {
@@ -72,6 +79,7 @@ const PROFILE_TO_COLUMN: Record<keyof ProfilePatch, string> = {
   deliveryLink: 'delivery_link',
   driveFolderPath: 'drive_folder_path',
   alwaysUseDrive: 'always_use_drive',
+  pdfPreset: 'pdf_preset',
   // drive_account_email is deliberately absent: the server writes it when the
   // grant is stored or removed, and a client must not be able to claim a
   // connection it does not have.
@@ -94,6 +102,9 @@ const LISTING_TO_COLUMN: Record<string, string> = {
   mockupImage: 'mockup_image',
   mockupNote: 'mockup_note',
   printDelivery: 'print_delivery',
+  // Written by the server after a Drive upload; read-only in practice here,
+  // but mapped so a reopened draft can find the folder again.
+  delivery: 'delivery',
   // What the studio was set to for this listing: the templates picked by hand
   // and which source sits in which frame. It was session state, so any refresh
   // threw it away.
@@ -220,6 +231,7 @@ export async function getProfile(uid: string): Promise<UserProfile | null> {
     driveFolderPath: data.drive_folder_path ?? null,
     shopName: (data.shop_branding as { shopName?: string } | null)?.shopName ?? null,
     alwaysUseDrive: data.always_use_drive === true,
+    pdfPreset: (data.pdf_preset && typeof data.pdf_preset === 'object') ? data.pdf_preset : {},
     driveAccountEmail: data.drive_account_email ?? null,
     uiPrefs: (data.ui_prefs && typeof data.ui_prefs === 'object') ? data.ui_prefs : {},
   };

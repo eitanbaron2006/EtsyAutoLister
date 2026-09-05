@@ -103,6 +103,7 @@ import {
   listPrintExports,
   listPrintSets,
   resolveMockupUrl,
+  getMockupGenBaseUrl,
   type MockupArtworkRef,
   type MockupBatchItemSpec,
   type MockupBatchSpec,
@@ -118,6 +119,9 @@ import { PhotoLightbox, type LightboxState } from '@/components/photo-lightbox';
 import { TipFillerCard, TipPanel } from '@/components/studio-tips';
 import { DeleteConfirmDialog, type ConfirmRequest } from '@/components/delete-confirm-dialog';
 import { DeliveryRequiredDialog, type DeliveryPrompt } from '@/components/delivery-required-dialog';
+import { DeliverySheetEditor } from '@/components/delivery-sheet-editor';
+import { planDelivery } from '@/lib/delivery-plan';
+import { presetById, type PdfPresetChoice } from '@/lib/pdf-presets';
 import { MockupViewerDialog } from '@/components/mockup-viewer-dialog';
 import { GalleryInspectorDialog } from '@/components/gallery-inspector-dialog';
 import { ListingReviewDialog } from '@/components/listing-review-dialog';
@@ -144,6 +148,18 @@ class RunCancelled extends Error {
 }
 
 const ETSY_CONNECTED = 'connected';
+
+/**
+ * The buyer's sheet comes back from the server base64-encoded, because it is
+ * made in the same round trip that uploads the files and there is no reason
+ * to fetch it again. Etsy wants a File.
+ */
+function sheetToFile(base64: string): File {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], 'Your download.pdf', { type: 'application/pdf' });
+}
 
 export default function Home() {
   // Authentication & Configuration States
@@ -285,6 +301,12 @@ export default function Home() {
   const [driveFolderPath, setDriveFolderPath] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
   const [alwaysUseDrive, setAlwaysUseDrive] = useState(false);
+  // How the buyer's sheet is designed. Only what the shop set by hand: the
+  // rest is resolved on the server when the page is drawn, from the shop's
+  // own Etsy profile.
+  const [pdfPreset, setPdfPreset] = useState<PdfPresetChoice>({});
+  const [sheetEditorOpen, setSheetEditorOpen] = useState(false);
+  const [isDownloadingDelivery, setIsDownloadingDelivery] = useState(false);
   const hasDeliveryRoute = !!driveAccountEmail || !!(deliveryLink && deliveryLink.trim());
   const [deliveryPrompt, setDeliveryPrompt] = useState<DeliveryPrompt | null>(null);
   const [projectNameInput, setProjectNameInput] = useState('');
@@ -729,6 +751,7 @@ export default function Home() {
             setDriveFolderPath(profile.driveFolderPath ?? null);
             setShopName(profile.shopName ?? null);
             setAlwaysUseDrive(profile.alwaysUseDrive === true);
+            setPdfPreset(profile.pdfPreset ?? {});
           }
         } catch (err) {
           console.error("User profile sync error", err);
@@ -936,6 +959,17 @@ export default function Home() {
       toast.success(trimmed ? `New listings will go to "${trimmed}".` : 'Back to the default folder.');
     } catch {
       toast.error('Could not save the folder.');
+    }
+  };
+
+  const handleSavePdfPreset = async (choice: PdfPresetChoice) => {
+    if (!user) return;
+    try {
+      await updateProfile(user.uid, { pdfPreset: choice });
+      setPdfPreset(choice);
+      toast.success('Sheet design saved. New listings will use it.');
+    } catch {
+      toast.error('Could not save the sheet design.');
     }
   };
 
@@ -1367,6 +1401,180 @@ export default function Home() {
 
   // Build and download the full product package as a real ZIP:
   // mockups, per-type info images, source images, deliverables + listing copy
+  /**
+   * Put one listing's print files in the shop's Drive.
+   *
+   * Both callers want the same three things -- every size, the archive beside
+   * them, and the sheet that comes back -- so the list is assembled once here
+   * rather than twice at the call sites. Returns null when the listing has no
+   * print files yet; throws when the upload itself fails, because what that
+   * should mean differs between the two.
+   */
+  const deliverToDrive = async (listing: ListingMetadata) => {
+    const seen = new Set<string>();
+    const files = [
+      // Every ratio on its own, so a buyer who wants the one size their frame
+      // takes is not made to download a hundred megabytes to get at it...
+      ...(printSizesMap[listing.folderName] || []),
+      // ...and the archive beside them, for taking the lot in one go. The two
+      // lists are the same files when a listing was small enough not to be
+      // packed, so a name is only ever sent once.
+      ...(printFilesMap[listing.folderName] || []),
+    ]
+      .filter(file => {
+        if (seen.has(file.fileName)) return false;
+        seen.add(file.fileName);
+        return true;
+      })
+      .map(file => ({ fileName: file.fileName, url: file.url }));
+
+    if (files.length === 0) return null;
+
+    // The bytes go render server -> our server -> Drive. They never come
+    // through here: fifteen print sizes is well over a hundred megabytes, and
+    // pulling them down only to push them back up would spend that twice on
+    // the shop's own connection.
+    const res = await fetch('/api/drive/deliver', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        listingId: listing.id,
+        folderName: listing.folderName,
+        listingTitle: listing.title || listing.folderName,
+        files,
+        renderBaseUrl: getMockupGenBaseUrl(),
+      }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error || 'Could not upload the files to your Drive.');
+    return payload as {
+      delivery?: { url: string; fileCount?: number };
+      failed?: string[];
+      sheet?: string;
+    };
+  };
+
+  /**
+   * Send a listing to Drive without publishing it.
+   *
+   * The shop-less case: nothing here will ever create an Etsy listing, so the
+   * upload has no publish to ride along with. The sheet comes back in the same
+   * response and is handed straight over, which is the whole job -- the shop
+   * uploads it to its own listing itself.
+   */
+  const handleDeliverToDrive = async (product: ProductData) => {
+    setIsDownloadingDelivery(true);
+    try {
+      const payload = await deliverToDrive(product);
+      if (!payload) {
+        toast.error('No print files have been made for this listing yet. Run Compile first.');
+        return;
+      }
+      if (payload.failed?.length) {
+        toast.warning(
+          `${payload.failed.length} file${payload.failed.length === 1 ? '' : 's'} did not reach your Drive.`,
+          { description: payload.failed.join(', ') },
+        );
+      }
+      if (payload.sheet) {
+        saveBlob(sheetToFile(payload.sheet), `${product.folderName} — your download.pdf`);
+      }
+      // The server wrote this to the row; the open draft is a snapshot taken
+      // when it was opened, so it is told as well rather than waiting for the
+      // shop to close and reopen it.
+      if (payload.delivery?.url) {
+        setActiveProduct(prev => (prev && prev.id === product.id
+          ? { ...prev, delivery: { provider: 'drive', ...payload.delivery! } }
+          : prev));
+      }
+      toast.success('Files are in your Drive, and the sheet has downloaded.', {
+        description: 'Upload the sheet to your Etsy listing as its digital file.',
+        duration: 9000,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'The upload failed.');
+    } finally {
+      setIsDownloadingDelivery(false);
+    }
+  };
+
+  /** Save a blob under a name, and clean up after the browser has taken it. */
+  const saveBlob = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    // Not revoked on the next line: Chrome cancels a download whose blob URL
+    // is released before it has started reading it.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  /**
+   * The buyer's archive, for a shop that has to host it itself.
+   *
+   * Fetched now rather than kept: it is the one moment the bytes are wanted,
+   * and holding a hundred megabytes in the tab for a button nobody may press
+   * is not a trade worth making. On an oversize listing this is the single
+   * archive the render server packed; on any other it is what the listing
+   * carries anyway.
+   */
+  const handleDownloadBuyerArchive = async (product: ProductData) => {
+    const files = printFilesMap[product.folderName] || [];
+    if (files.length === 0) {
+      toast.error('No print files have been made for this listing yet. Run Compile first.');
+      return;
+    }
+    setIsDownloadingDelivery(true);
+    try {
+      for (const file of files) {
+        saveBlob(await downloadPrintDeliverable(file.url), file.fileName);
+      }
+      toast.success(`Downloaded ${files.length} file${files.length === 1 ? '' : 's'}. Host them where your download link points.`);
+    } catch (err) {
+      toast.error(`Could not download the archive: ${err instanceof Error ? err.message : 'unknown error'}`);
+    } finally {
+      setIsDownloadingDelivery(false);
+    }
+  };
+
+  /**
+   * The buyer's sheet, for a shop that will upload it to Etsy itself.
+   *
+   * Built on the server against this listing's real title and link, so what
+   * the shop uploads is the finished page rather than the editor's preview.
+   */
+  const handleDownloadDeliverySheet = async (product: ProductData) => {
+    // The folder this listing was actually delivered to wins over the shop's
+    // standing link: one points at these files, the other at wherever the
+    // shop generally puts things.
+    const link = product.delivery?.url || deliveryLink?.trim();
+    setIsDownloadingDelivery(true);
+    try {
+      const res = await fetch('/api/delivery-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          choice: pdfPreset,
+          listingTitle: product.title || product.folderName,
+          // Without a link there is nothing to point at, and the sheet says
+          // so in place of a URL rather than shipping a dead one.
+          downloadUrl: link || 'Your download link has not been set yet.',
+          fileCount: (printSizesMap[product.folderName] || printFilesMap[product.folderName] || []).length,
+        }),
+      });
+      if (!res.ok) throw new Error('The sheet could not be built.');
+      saveBlob(await res.blob(), `${product.folderName} — your download.pdf`);
+      toast.success(link
+        ? 'Sheet downloaded. Upload it to the listing as its digital file.'
+        : 'Sheet downloaded — but it has no link on it yet. Add your download link in Account.');
+    } catch (err) {
+      toast.error(`Could not build the sheet: ${err instanceof Error ? err.message : 'unknown error'}`);
+    } finally {
+      setIsDownloadingDelivery(false);
+    }
+  };
+
   const handleDownloadZipPackage = async (product: ProductData) => {
     setIsPackingZip(true);
     try {
@@ -2601,7 +2809,8 @@ export default function Home() {
     // answer can differ per listing. Checked before the status moves to
     // 'publishing', so declining does not strand the row mid-flight.
     const delivery = deliveryFor(item);
-    if (delivery?.mode === 'oversize' && !hasDeliveryRoute && !options?.answered) {
+    const oversize = delivery?.mode === 'oversize';
+    if (oversize && !hasDeliveryRoute && !options?.answered) {
       setDeliveryPrompt({
         mode: 'publish',
         listingId: item.id,
@@ -2614,12 +2823,55 @@ export default function Home() {
       return;
     }
 
+    // What happens to this listing's files, decided in one place rather than
+    // inferred from four conditions spread down the function. `hasShop` is
+    // true by construction: the branch above already refused a publish
+    // without a connected shop.
+    const plan = planDelivery({
+      hasShop: true,
+      hasDrive: !!driveAccountEmail,
+      manualLink: deliveryLink,
+      oversize,
+      alwaysUseDrive,
+    });
+
     const targetId = item.id;
     try {
       await updateListing(user.uid, targetId, {
         status: 'publishing',
         pipelineStepText: 'Exporting digital listing data straight to Connected Etsy Shop...',
       });
+
+      // Files Etsy will not carry go to the shop's Drive, and the sheet that
+      // comes back is what the listing carries in their place.
+      //
+      // Before the listing is created, deliberately: a live listing pointing
+      // at a folder that was never made is worse than a publish that stopped
+      // and said why.
+      let sheetFile: File | null = null;
+      if (plan.uploadSizesToDrive && !options?.withoutFiles) {
+        await updateListing(user.uid, targetId, {
+          pipelineStepText: 'Uploading the print files to your Google Drive...',
+        });
+        try {
+          const payload = await deliverToDrive(item);
+          if (payload?.failed?.length) {
+            toast.warning(
+              `${payload.failed.length} file${payload.failed.length === 1 ? '' : 's'} did not reach your Drive.`,
+              { description: payload.failed.join(', ') },
+            );
+          }
+          if (plan.attachPdfToEtsy && payload?.sheet) sheetFile = sheetToFile(payload.sheet);
+        } catch (err) {
+          // When the files are oversize, Drive is the only route the buyer
+          // has, so this has to stop the publish. A backup copy of a listing
+          // that fits is not worth failing over -- those files go up with the
+          // listing either way, which is the whole promise of that
+          // preference.
+          if (oversize) throw err;
+          toast.warning('The Drive copy did not go through — publishing the listing anyway.');
+        }
+      }
 
       const formData = new FormData();
       // Only the demo path names a token; the real one is read on the server.
@@ -2674,7 +2926,13 @@ export default function Home() {
       // Skipped when the shop chose to publish without them: the listing goes
       // up with its photos and copy, and the files are its own problem from
       // there. Marked on the row so it can be found again.
-      const printFiles = options?.withoutFiles ? [] : (printFilesMap[item.folderName] || []);
+      //
+      // Also skipped when the pack is past what Etsy accepts. Those files
+      // were never going to be uploaded -- the render server said so when it
+      // made them -- and the sheet built above travels in their place.
+      const printFiles = (options?.withoutFiles || oversize)
+        ? []
+        : (printFilesMap[item.folderName] || []);
       for (const printFile of printFiles) {
         try {
           const blob = await downloadPrintDeliverable(printFile.url);
@@ -2683,6 +2941,7 @@ export default function Home() {
           toast.warning(`Could not attach "${printFile.fileName}" — publishing without it.`);
         }
       }
+      if (sheetFile) formData.append('file', sheetFile);
       sessionFiles.files.forEach(file => formData.append('file', file));
 
       if (options?.withoutFiles) {
@@ -2691,10 +2950,14 @@ export default function Home() {
         }).catch(() => { });
       }
 
-      if (printFiles.length === 0 && sessionFiles.files.length === 0) {
+      if (printFiles.length === 0 && !sheetFile && sessionFiles.files.length === 0) {
         // A digital listing with no file is a listing that cannot be
         // fulfilled, so it is worth saying before it goes up.
-        toast.warning('This listing has no downloadable file attached. Run Compile to prepare the print sizes.');
+        toast.warning(
+          oversize
+            ? 'This listing goes up without a download. Open the draft to get the sheet and archive, and attach them in Etsy.'
+            : 'This listing has no downloadable file attached. Run Compile to prepare the print sizes.',
+        );
       }
 
       const res = await fetch('/api/etsy/create-listing', {
@@ -2957,6 +3220,7 @@ export default function Home() {
   // Personal account & settings page (extracted component)
   if (currentView === 'account' && user) {
     return (
+      <>
       <AccountView
         user={user}
         darkMode={darkMode}
@@ -2977,6 +3241,8 @@ export default function Home() {
         handleDisconnectDrive={handleDisconnectDrive}
         handleSaveDeliveryLink={handleSaveDeliveryLink}
         handleSaveDriveFolderPath={handleSaveDriveFolderPath}
+        sheetPresetName={presetById(pdfPreset.preset).name}
+        handleEditSheetDesign={() => setSheetEditorOpen(true)}
         studioAutopilot={studioAutopilot}
         toggleStudioAutopilot={toggleStudioAutopilot}
         studioFitMode={studioFitMode}
@@ -2984,6 +3250,16 @@ export default function Home() {
         setCurrentView={setCurrentView}
         handleLogOut={handleLogOut}
       />
+      {/* The account branch returns early, so a dialog raised from it has to
+          be mounted here rather than with the rest of them at the bottom. */}
+      <DeliverySheetEditor
+        open={sheetEditorOpen}
+        saved={pdfPreset}
+        shopName={shopName}
+        onSave={handleSavePdfPreset}
+        onClose={() => setSheetEditorOpen(false)}
+      />
+      </>
     );
   }
 
@@ -4537,6 +4813,20 @@ export default function Home() {
         handleDownloadZipPackage={handleDownloadZipPackage}
         publishToEtsySnapshot={publishToEtsySnapshot}
         selectedMode={selectedMode}
+        deliveryPlan={activeProduct ? planDelivery({
+          // Not "a shop exists" but "this dialog can publish to one": in
+          // manual mode nothing here creates a listing, so the app has
+          // nowhere to attach a sheet and the shop does that part itself.
+          hasShop: selectedMode === 'etsy' && !!etsyToken,
+          hasDrive: !!driveAccountEmail,
+          manualLink: deliveryLink,
+          oversize: deliveryFor(activeProduct)?.mode === 'oversize',
+          alwaysUseDrive,
+        }) : null}
+        isDownloadingDelivery={isDownloadingDelivery}
+        onDeliverToDrive={handleDeliverToDrive}
+        onDownloadBuyerArchive={handleDownloadBuyerArchive}
+        onDownloadDeliverySheet={handleDownloadDeliverySheet}
       />
 
       {/* Mockup viewer — all renders for one listing (extracted component) */}

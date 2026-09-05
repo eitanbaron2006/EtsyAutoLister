@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Copy, Download, ExternalLink, FileCode, Grid, Info, Loader2 } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, FileCode, FileText, Grid, HardDrive, Info, Loader2 } from 'lucide-react';
 
 import { renderFormattedDescription } from '@/lib/listing-format';
 import type { ListingMetadata, ProductData } from '@/lib/listing-types';
 import type { LightboxState } from '@/components/photo-lightbox';
 import type { UploadedPreview } from '@/lib/uploaded-previews';
+import type { DeliveryPlan } from '@/lib/delivery-plan';
 
 export function ListingReviewDialog({
   isDialogOpen,
@@ -34,7 +35,12 @@ export function ListingReviewDialog({
   isPackingZip,
   handleDownloadZipPackage,
   publishToEtsySnapshot,
-  selectedMode
+  selectedMode,
+  deliveryPlan,
+  isDownloadingDelivery,
+  onDeliverToDrive,
+  onDownloadBuyerArchive,
+  onDownloadDeliverySheet
 }: {
   isDialogOpen: boolean;
   setIsDialogOpen: (open: boolean) => void;
@@ -54,6 +60,16 @@ export function ListingReviewDialog({
   handleDownloadZipPackage: (product: ProductData) => void;
   publishToEtsySnapshot: (item: ListingMetadata) => void;
   selectedMode: 'etsy' | 'manual' | null;
+  /**
+   * What happens to this listing's files. Null until one is open; `kind:
+   * 'none'` for the ordinary case where they simply go up with the listing
+   * and there is nothing to say.
+   */
+  deliveryPlan: DeliveryPlan | null;
+  isDownloadingDelivery: boolean;
+  onDeliverToDrive: (product: ProductData) => void;
+  onDownloadBuyerArchive: (product: ProductData) => void;
+  onDownloadDeliverySheet: (product: ProductData) => void;
 }) {
   return (
       <Dialog
@@ -662,18 +678,101 @@ export function ListingReviewDialog({
 
           <div className="shrink-0 px-6 sm:px-8 py-4 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 border-t border-[rgba(21,20,15,0.12)] bg-[#f5efdc] font-sans">
 
-            {/* Direct Link live on Etsy if published */}
-            {activeProduct?.status === 'published' && activeProduct.listingUrl ? (
-              <a
-                href={activeProduct.listingUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-[#ed6f5c] hover:underline font-mono tracking-wide font-medium flex items-center gap-1.5"
-              >
-                <span>🌐 View live Etsy Listing Manager</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : <div />}
+            {/* Beside the publish button, because it is what publishing this
+                listing will actually do — and, when the shop has to finish
+                the job by hand, the two files it needs to do it with. */}
+            <div className="flex flex-col gap-2 min-w-0 sm:max-w-[54%]">
+              {/* Direct Link live on Etsy if published */}
+              {activeProduct?.status === 'published' && activeProduct.listingUrl && (
+                <a
+                  href={activeProduct.listingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-[#ed6f5c] hover:underline font-mono tracking-wide font-medium flex items-center gap-1.5"
+                >
+                  <span>🌐 View live Etsy Listing Manager</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {deliveryPlan && deliveryPlan.kind !== 'none' && activeProduct && (() => {
+                // Publishing to Etsy from here triggers the upload on its way
+                // past. Without that, the same upload has to be asked for.
+                const driveNeedsSending =
+                  deliveryPlan.uploadSizesToDrive
+                  && !deliveryPlan.attachPdfToEtsy
+                  && !activeProduct.delivery?.url;
+                return (
+                <div className="space-y-1.5 min-w-0">
+                  <p className="text-[10px] leading-relaxed text-[#5a5448] flex items-start gap-1.5">
+                    {deliveryPlan.kind === 'drive'
+                      ? <HardDrive className="w-3 h-3 mt-0.5 shrink-0 text-[#ed6f5c]" />
+                      : <FileText className="w-3 h-3 mt-0.5 shrink-0 text-[#ed6f5c]" />}
+                    <span className="min-w-0">{deliveryPlan.summary}</span>
+                  </p>
+
+                  {activeProduct.delivery?.url && (
+                    <a
+                      href={activeProduct.delivery.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-mono text-[#6e7448] hover:underline inline-flex items-center gap-1.5"
+                    >
+                      <Check className="w-3 h-3" />
+                      {activeProduct.delivery.fileCount
+                        ? `${activeProduct.delivery.fileCount} files in Drive`
+                        : 'In your Drive'}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+
+                  {(driveNeedsSending || deliveryPlan.offerZipDownload || deliveryPlan.offerPdfDownload) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {/* Drive is set up, but nothing here is going to publish
+                          this listing — so the upload has no publish to ride
+                          along with, and the shop asks for it directly. */}
+                      {driveNeedsSending && (
+                        <Button
+                          size="xs"
+                          disabled={isDownloadingDelivery}
+                          onClick={() => onDeliverToDrive(activeProduct)}
+                          className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white border-0 font-mono text-[9px] py-1.5 rounded-md uppercase tracking-wider cursor-pointer disabled:opacity-40"
+                        >
+                          {isDownloadingDelivery
+                            ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Sending</>
+                            : <><HardDrive className="w-3 h-3 mr-1" /> Send to Drive</>}
+                        </Button>
+                      )}
+                      {deliveryPlan.offerZipDownload && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          disabled={isDownloadingDelivery}
+                          onClick={() => onDownloadBuyerArchive(activeProduct)}
+                          className="bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] hover:bg-[#ece4cf] text-[#15140f] font-mono text-[9px] py-1.5 rounded-md uppercase tracking-wider cursor-pointer disabled:opacity-40"
+                        >
+                          {isDownloadingDelivery
+                            ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Working</>
+                            : <><Download className="w-3 h-3 mr-1 text-[#ed6f5c]" /> Buyer files</>}
+                        </Button>
+                      )}
+                      {deliveryPlan.offerPdfDownload && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          disabled={isDownloadingDelivery}
+                          onClick={() => onDownloadDeliverySheet(activeProduct)}
+                          className="bg-transparent border border-[#ed6f5c]/35 text-[#ed6f5c] hover:bg-[#ed6f5c]/10 font-mono text-[9px] py-1.5 rounded-md uppercase tracking-wider cursor-pointer disabled:opacity-40"
+                        >
+                          <FileText className="w-3 h-3 mr-1" /> Buyer&apos;s sheet
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                );
+              })()}
+            </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
               <Button variant="ghost" className="text-[#5a5448] hover:bg-[#ece4cf] hover:text-[#15140f] text-xs font-mono uppercase tracking-wider cursor-pointer rounded-lg px-5" onClick={() => setIsDialogOpen(false)}>Close Review</Button>

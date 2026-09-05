@@ -41,6 +41,8 @@ export function AccountView({
   handleDisconnectDrive,
   handleSaveDeliveryLink,
   handleSaveDriveFolderPath,
+  sheetPresetName,
+  handleEditSheetDesign,
   studioAutopilot,
   toggleStudioAutopilot,
   studioFitMode,
@@ -67,6 +69,8 @@ export function AccountView({
   handleDisconnectDrive: () => void;
   handleSaveDeliveryLink: (link: string) => void;
   handleSaveDriveFolderPath: (path: string) => void;
+  sheetPresetName: string;
+  handleEditSheetDesign: () => void;
   studioAutopilot: boolean;
   toggleStudioAutopilot: () => void;
   studioFitMode: MockupFitMode;
@@ -207,6 +211,8 @@ export function AccountView({
               onDisconnectDrive={handleDisconnectDrive}
               onSaveLink={handleSaveDeliveryLink}
               onSaveFolderPath={handleSaveDriveFolderPath}
+              presetName={sheetPresetName}
+              onEditSheetDesign={handleEditSheetDesign}
             />
           </div>
 

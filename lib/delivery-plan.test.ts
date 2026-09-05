@@ -129,3 +129,23 @@ test('every case says what it is doing', () => {
     }
   }
 });
+
+test('a backup copy never puts a PDF on a listing that carries its own files', () => {
+  // Etsy allows five files. A listing that fits is already using those slots,
+  // so a sheet added "for completeness" is what pushes it over — and it would
+  // point the buyer at a link to files they were handed with the listing.
+  const p = planDelivery({ ...base, oversize: false, hasShop: true, hasDrive: true, alwaysUseDrive: true });
+  assert.equal(p.uploadZipToDrive, true, 'the backup still happens');
+  assert.equal(p.attachPdfToEtsy, false);
+  assert.equal(p.offerPdfDownload, false, 'there is nothing for the shop to do by hand either');
+  assert.match(p.summary, /go up with the listing/);
+});
+
+test('the sheet only ever reaches Etsy for a listing that cannot carry its files', () => {
+  for (const alwaysUseDrive of [true, false]) {
+    for (const oversize of [true, false]) {
+      const p = planDelivery({ ...base, oversize, hasShop: true, hasDrive: true, alwaysUseDrive });
+      assert.equal(p.attachPdfToEtsy, oversize, `oversize=${oversize} always=${alwaysUseDrive}`);
+    }
+  }
+});
