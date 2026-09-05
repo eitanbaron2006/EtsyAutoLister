@@ -177,7 +177,6 @@ export default function Home() {
   // server, so this stands in for it.
   const [etsyToken, setEtsyToken] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [globalAppUrl, setGlobalAppUrl] = useState('');
 
   // Brand New Dark Mode & Projects view states represent user's workspace preferences:
   // The cache paints the first frame; the stored preference wins when the
@@ -838,15 +837,9 @@ export default function Home() {
 
     window.addEventListener('message', handleMessage);
 
-    // Defer setting app URL
-    const timeoutId = setTimeout(() => {
-      setGlobalAppUrl(window.location.origin);
-    }, 0);
-
     return () => {
       unsub();
       window.removeEventListener('message', handleMessage);
-      clearTimeout(timeoutId);
     };
     // setSavedTips/setAccountPlan are stable hook setters
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4133,24 +4126,6 @@ export default function Home() {
           </div>
         ) : (
           <>
-
-            {/* Workspace Redirect Alert */}
-            {selectedMode === 'etsy' && (
-              <Card className="bg-[#ece4cf]/30 dark:bg-[#22211b]/30 border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] shadow-none relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 bg-[#ed6f5c] h-full" />
-                <CardHeader className="py-4 px-6">
-                  <CardTitle className="text-xs font-mono uppercase tracking-wider text-[#8C6D4F] dark:text-[#ece4cf]">Active Redirect Endpoint for Etsy Developer Portal</CardTitle>
-                  <CardDescription className="text-[#6B655B] dark:text-[#a39e8f] text-xs mt-1">
-                    Confirm your callback settings matches this secure host:
-                  </CardDescription>
-                  <div className="pt-2">
-                    <code className="bg-[#FAF8F5] dark:bg-[#12110c] text-[#191919] dark:text-[#f7f1de] px-3 py-1 border border-[#E5DEC9] dark:border-[rgba(247,241,222,0.14)] rounded font-mono text-[11px] inline-block shadow-none">
-                      {globalAppUrl}/api/auth/etsy/callback
-                    </code>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
 
             {/* Studio floor: intake rail (left) + production area (right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

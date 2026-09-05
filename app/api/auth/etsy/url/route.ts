@@ -1,3 +1,22 @@
+// Where the shop is sent to authorise this app against its Etsy account.
+//
+// SETUP, once, and only once you have Etsy API access: the redirect URI built
+// below must be registered verbatim in the Etsy Developer Portal, under your
+// app's settings. Etsy refuses to redirect anywhere it was not told about, and
+// compares character for character.
+//
+//     <APP_URL>/api/auth/etsy/callback
+//
+// It comes from APP_URL, not from the browser -- so the address you register
+// has to match APP_URL, not whatever host you happen to be browsing on. With
+// APP_URL unset this falls back to http://localhost:3000, and visiting the app
+// on 127.0.0.1 then produces a mismatch that Etsy reports unhelpfully.
+//
+// The workspace used to print this address in a panel above the studio floor.
+// It was removed: it is a one-time setup detail, and it displayed
+// window.location.origin, which is not what is sent here -- so it could name
+// an address that was never actually used.
+
 import { NextResponse } from 'next/server';
 import { generateCodeVerifier, generateCodeChallenge } from '@/lib/pkce';
 
