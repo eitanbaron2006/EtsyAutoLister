@@ -270,7 +270,19 @@ export function isMockupGenSupportedImage(file: File): boolean {
    with size-aware archives when they do not. Nothing here has to know the
    rule, only which shape came back. */
 
-export type PrintDeliveryMode = 'files' | 'archives';
+/**
+ * How a listing's print files can be handed over.
+ *
+ * - `files`    the exports fit the marketplace allowance and go up as they are
+ * - `archives` more files than slots, but the total fits: packed by size
+ * - `oversize` past what the marketplace accepts at all. One archive of
+ *              everything, which CANNOT be uploaded -- it is meant to be
+ *              delivered as a link (a Drive folder named in a PDF). The
+ *              client used to know only the first two, so this arrived
+ *              labelled "packed into archives" and was queued for an upload
+ *              that could not succeed.
+ */
+export type PrintDeliveryMode = 'files' | 'archives' | 'oversize';
 
 export interface PrintDeliverable {
   index: number;
@@ -285,6 +297,18 @@ export interface PrintDeliverable {
   ratios?: string[];
 }
 
+/**
+ * Whether a deliverable has a picture the render server can preview.
+ *
+ * A listing whose files overflow Etsy's five-file allowance comes back packed
+ * -- one archive instead of eighteen images -- and an archive has no preview.
+ * Asking for one yields a broken image icon, which is what the art-sizes
+ * column used to show for every set.
+ */
+export function isPrintPreviewable(fileName: string): boolean {
+  return /\.(jpe?g|png|webp)$/i.test(fileName);
+}
+
 export interface PrintDeliverablesResponse {
   success: boolean;
   error?: string;
@@ -296,6 +320,12 @@ export interface PrintDeliverablesResponse {
   limits: { max_files: number; max_bytes: number };
   slots_used: number;
   deliverables: PrintDeliverable[];
+  /** Present on `oversize`: the server's own account of why, in plain words. */
+  note?: string;
+  total_bytes?: number;
+  allowance_bytes?: number;
+  /** Ratios that exceed a single slot on their own, if any. */
+  oversized?: string[];
 }
 
 /** Print files for one artwork, ready to upload as they are. */
@@ -398,11 +428,35 @@ export async function packPrintFiles(
   return payload as PrintDeliverablesResponse;
 }
 
+/**
+ * One ratio export: the artwork at print resolution for a single aspect.
+ *
+ * The server returns url, bytes and dimensions per file and always has; the
+ * client used to declare only the name, so the individual sizes could not be
+ * listed anywhere and a set appeared to have produced one file -- the archive
+ * they were packed into -- instead of the fifteen it actually made.
+ */
+export interface PrintExportFile {
+  file: string;
+  success: boolean;
+  ratio: string;
+  url: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+  prints_at?: string;
+}
+
+export interface PrintExportResponse {
+  files: PrintExportFile[];
+  guide?: { file: string; url?: string } | null;
+}
+
 /** Print files for one artwork, without packaging them. */
 export async function exportPrintFiles(
   artwork: File | Blob,
   options: { setId?: number; ratios?: string; quality?: string; mode?: string; reference?: string } = {},
-): Promise<{ files: { file: string; success: boolean; ratio: string }[]; guide?: { file: string } | null }> {
+): Promise<PrintExportResponse> {
   const spec: Record<string, unknown> = {};
   if (options.setId) spec.set = options.setId;
   if (options.ratios) spec.ratios = options.ratios;

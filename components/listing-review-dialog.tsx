@@ -23,6 +23,7 @@ export function ListingReviewDialog({
   setSourcePreviewImages,
   setSelectedPreviewIndex,
   activeProduct,
+  printFiles,
   sourcePreviewImages,
   selectedPreview,
   setLightbox,
@@ -41,6 +42,7 @@ export function ListingReviewDialog({
   setSourcePreviewImages: React.Dispatch<React.SetStateAction<UploadedPreview[]>>;
   setSelectedPreviewIndex: (index: number) => void;
   activeProduct: ProductData | null;
+  printFiles: { fileName: string; url: string; bytes: number }[];
   sourcePreviewImages: UploadedPreview[];
   selectedPreview: UploadedPreview | undefined;
   setLightbox: (state: LightboxState) => void;
@@ -207,6 +209,39 @@ export function ListingReviewDialog({
                         Includes {sourcePreviewImages.length} image{sourcePreviewImages.length === 1 ? '' : 's'} &amp; {activeProduct.files?.length || 0} deliverable{activeProduct.files?.length === 1 ? '' : 's'}.
                       </p>
                     </div>
+
+                    {/* The print sizes were missing from this panel entirely — the
+                        one screen for reviewing a draft before it goes to the shop
+                        said nothing about the files the buyer actually receives.
+                        A set makes it obvious: eighteen renders overflow Etsy's
+                        five-file allowance and come back as a single archive, so
+                        "3 deliverables" above was counting staged files, not these. */}
+                    {printFiles.length > 0 && (
+                      <div className="pt-1.5 border-t border-[rgba(21,20,15,0.12)] space-y-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] font-bold">
+                            Art Sizes
+                          </span>
+                          <span className="text-[9px] font-mono text-[#8b8676]">
+                            {printFiles.length} · {Math.round(printFiles.reduce((sum, f) => sum + f.bytes, 0) / 1048576)}MB
+                          </span>
+                        </div>
+                        <ul className="space-y-0.5">
+                          {printFiles.map(file => (
+                            <li key={file.fileName} className="flex items-center justify-between gap-2">
+                              <span className="text-[9px] text-[#15140f] truncate" title={file.fileName}>
+                                {file.fileName}
+                              </span>
+                              <span className="text-[9px] font-mono text-[#8b8676] shrink-0">
+                                {file.bytes >= 1048576
+                                  ? `${(file.bytes / 1048576).toFixed(1)} MB`
+                                  : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <div className="flex flex-col gap-1.5">
                       <Button
                         onClick={() => {

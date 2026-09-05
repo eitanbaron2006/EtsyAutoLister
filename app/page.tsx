@@ -92,6 +92,8 @@ import {
   downloadMockupOutput,
   getMockupTemplate,
   isMockupGenSupportedImage,
+  isPrintPreviewable,
+  type PrintDeliveryMode,
   listMockupCategories,
   listMockupTemplates,
   renderMockupBatch,
@@ -250,6 +252,15 @@ export default function Home() {
   // the mockups, which are what the shop shows. Metadata only -- the files
   // themselves stay in the bucket until they are needed.
   const [printFilesMap, setPrintFilesMap] = useState<Record<string, { fileName: string; url: string; bytes: number }[]>>({});
+  // What Etsy receives (printFilesMap) and what the shop looks at are not the
+  // same list once a set overflows the five-file allowance: the first is the
+  // archive, the second is every ratio inside it.
+  const [printSizesMap, setPrintSizesMap] = useState<Record<string, { fileName: string; url: string; bytes: number; ratio: string }[]>>({});
+  // How those files can be handed over. `oversize` means the marketplace will
+  // not take them at all and the archive has to travel as a link instead --
+  // worth carrying, because publishing must not queue an upload that cannot
+  // succeed.
+  const [printDeliveryMap, setPrintDeliveryMap] = useState<Record<string, { mode: PrintDeliveryMode; note?: string }>>({});
   const [projectNameInput, setProjectNameInput] = useState('');
   // The project this session works inside — set by the first creation or by
   // continuing a project from the hub; later creations join it.
@@ -513,11 +524,29 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       const known: Record<string, { fileName: string; url: string; bytes: number }[]> = {};
+      const sizes: Record<string, { fileName: string; url: string; bytes: number; ratio: string }[]> = {};
       for (const listing of dbListings) {
         const runs = await listPrintExports(listing.id).catch(() => []);
-        const latest = runs[0];
-        if (!latest?.files?.length) continue;
-        known[listing.folderName] = latest.files.map(file => ({
+        if (runs.length === 0) continue;
+
+        // One export run per artwork, so a set of three leaves three records
+        // under the same reference. Reading only the newest showed one
+        // artwork's five ratios and called it the whole listing.
+        //
+        // Grouped by artwork rather than by time: a re-compile adds a fresh
+        // record per artwork, and keeping the newest of each takes the last
+        // complete pass without dragging in ratios from the one before it.
+        const newestPerArtwork = new Map<string, typeof runs[number]>();
+        for (const run of runs) {
+          const key = run.artwork_name || String(run.id);
+          const seen = newestPerArtwork.get(key);
+          if (!seen || run.created_at > seen.created_at) newestPerArtwork.set(key, run);
+        }
+
+        const files = [...newestPerArtwork.values()].flatMap(run => run.files ?? []);
+        if (files.length === 0) continue;
+
+        const described = files.map(file => ({
           // The batch id in front of the name is the render server's, not the
           // buyer's -- and the same file must not read differently here just
           // because it was loaded rather than just made.
@@ -527,8 +556,16 @@ export default function Home() {
           url: `/print-outputs/${file.file_name}`,
           bytes: file.bytes,
         }));
+        known[listing.folderName] = described;
+        sizes[listing.folderName] = described.map((entry, index) => ({
+          ...entry,
+          ratio: files[index].ratio_key,
+        }));
       }
-      if (!cancelled && Object.keys(known).length > 0) setPrintFilesMap(prev => ({ ...known, ...prev }));
+      if (!cancelled && Object.keys(known).length > 0) {
+        setPrintFilesMap(prev => ({ ...known, ...prev }));
+        setPrintSizesMap(prev => ({ ...sizes, ...prev }));
+      }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1942,13 +1979,30 @@ export default function Home() {
     try {
       const setId = studioPrefsMap[listingId]?.printSetId ?? undefined;
       const produced: string[] = [];
+      // Every ratio export, kept for display. A set of three artworks at five
+      // ratios makes fifteen of these, and they are what the shop wants to
+      // see. What Etsy receives is the packed result below -- five slots, so
+      // fifteen files arrive as one archive. Showing only that made a set look
+      // as though it had produced a single file.
+      const sizes: { fileName: string; url: string; bytes: number; ratio: string }[] = [];
       let guide: string | undefined;
       for (const artwork of sources) {
         const run = await exportPrintFiles(artwork, { reference: listingId, setId });
-        produced.push(...(run.files || []).filter(entry => entry.success).map(entry => entry.file));
+        for (const entry of run.files || []) {
+          if (!entry.success) continue;
+          produced.push(entry.file);
+          sizes.push({
+            fileName: entry.file.split('_').slice(1).join('_') || entry.file,
+            url: entry.url,
+            bytes: entry.bytes ?? 0,
+            ratio: entry.ratio,
+          });
+        }
         guide = guide ?? run.guide?.file;
       }
       if (produced.length === 0) return;
+
+      setPrintSizesMap(prev => ({ ...prev, [folderName]: sizes }));
 
       // Packed once, over everything: the allowance is five files for the
       // listing, not five per artwork.
@@ -1969,8 +2023,23 @@ export default function Home() {
         })),
       }));
 
-      const shape = answer.delivery === 'files' ? 'ready to upload as they are' : 'packed into archives';
-      toast.success(`${answer.deliverables.length} print file${answer.deliverables.length === 1 ? '' : 's'} ${shape}.`);
+      setPrintDeliveryMap(prev => ({
+        ...prev,
+        [folderName]: { mode: answer.delivery, note: answer.note },
+      }));
+
+      if (answer.delivery === 'oversize') {
+        // The server explains this one better than a generic message can: it
+        // knows the totals and the ceiling. Not a success -- the listing has
+        // its files, but they cannot be uploaded as they are.
+        toast.warning(
+          `${sizes.length} print file${sizes.length === 1 ? '' : 's'} made, but too large for Etsy.`,
+          { duration: 9000, description: answer.note ?? 'Deliver the archive as a link rather than an upload.' },
+        );
+      } else {
+        const shape = answer.delivery === 'files' ? 'ready to upload as they are' : 'packed into archives';
+        toast.success(`${answer.deliverables.length} print file${answer.deliverables.length === 1 ? '' : 's'} ${shape}.`);
+      }
       if (answer.guide_dropped) {
         // Said out loud: five images the buyer can open beat four and a note,
         // but the shop should know the note was the thing left out.
@@ -2371,6 +2440,23 @@ export default function Home() {
     const sessionFiles = localFilesMap[item.folderName];
     if (!sessionFiles) {
       toast.error('Active upload assets missing in this browser. Reload raw files or browse directory.');
+      return;
+    }
+
+    // An oversize pack is past what the marketplace accepts -- the render
+    // server said so when it made it, with the totals to hand. Attaching it
+    // anyway spends minutes uploading a hundred-odd megabytes for a refusal,
+    // and the shop is left guessing why. Checked here, before the status moves
+    // to 'publishing', so a refusal does not strand the listing mid-flight.
+    // The route this case is meant to take -- a Drive folder linked from a
+    // PDF -- is not built yet, so the honest answer is to stop and say so.
+    const delivery = printDeliveryMap[item.folderName];
+    if (delivery?.mode === 'oversize') {
+      toast.error('These print files are too large for Etsy to accept.', {
+        duration: 10000,
+        description: delivery.note
+          ?? 'Deliver the archive as a link instead of an upload. Publishing would be rejected.',
+      });
       return;
     }
 
@@ -4050,22 +4136,32 @@ export default function Home() {
                                     server keeps -- the file behind it is
                                     twenty megabytes and is not fetched here. */}
                                 <TableCell className="align-middle">
-                                  {(printFilesMap[listingItem.folderName] || []).length > 0 ? (
+                                  {(printSizesMap[listingItem.folderName] || printFilesMap[listingItem.folderName] || []).length > 0 ? (
                                     <button
                                       type="button"
                                       onClick={() => setPrintViewerListing(listingItem)}
                                       className="relative w-12 h-12 border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.16)] rounded overflow-hidden shadow-none group cursor-zoom-in"
                                       title="View the print files this listing produced"
                                     >
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img
-                                        src={`${resolveMockupUrl((printFilesMap[listingItem.folderName] || [])[0].url)}?preview=1`}
-                                        alt="print file thumb"
-                                        loading="lazy"
-                                        className="w-full h-full object-contain transition-transform group-hover:scale-105"
-                                      />
+                                      {/* A set overflows Etsy's five-file allowance and comes
+                                          back packed, so the first deliverable is an archive
+                                          with no preview behind it. Asking for one drew a
+                                          broken image icon; name the file type instead. */}
+                                      {isPrintPreviewable((printSizesMap[listingItem.folderName] || printFilesMap[listingItem.folderName] || [])[0].fileName) ? (
+                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                        <img
+                                          src={`${resolveMockupUrl((printSizesMap[listingItem.folderName] || printFilesMap[listingItem.folderName] || [])[0].url)}?preview=1`}
+                                          alt="print file thumb"
+                                          loading="lazy"
+                                          className="w-full h-full object-contain transition-transform group-hover:scale-105"
+                                        />
+                                      ) : (
+                                        <span className="w-full h-full flex items-center justify-center bg-[#ece4cf]/60 dark:bg-[#22211b]/60 text-[9px] font-mono font-bold uppercase tracking-wider text-[#8b8676] select-none">
+                                          {((printSizesMap[listingItem.folderName] || printFilesMap[listingItem.folderName] || [])[0].fileName.split('.').pop() || 'file')}
+                                        </span>
+                                      )}
                                       <span className="absolute bottom-0 right-0 bg-[#6e7448] text-white text-[8px] font-mono font-bold px-1 rounded-tl select-none">
-                                        {(printFilesMap[listingItem.folderName] || []).length}
+                                        {(printSizesMap[listingItem.folderName] || printFilesMap[listingItem.folderName] || []).length}
                                       </span>
                                     </button>
                                   ) : (
@@ -4248,6 +4344,7 @@ export default function Home() {
         setSourcePreviewImages={setSourcePreviewImages}
         setSelectedPreviewIndex={setSelectedPreviewIndex}
         activeProduct={activeProduct}
+        printFiles={activeProduct ? (printSizesMap[activeProduct.folderName] || printFilesMap[activeProduct.folderName] || []) : []}
         sourcePreviewImages={sourcePreviewImages}
         selectedPreview={selectedPreview}
         setLightbox={setLightbox}
@@ -4277,7 +4374,8 @@ export default function Home() {
       {/* Print files — every size one listing produced */}
       <PrintFilesDialog
         listing={printViewerListing}
-        files={printViewerListing ? (printFilesMap[printViewerListing.folderName] || []) : []}
+        files={printViewerListing ? (printSizesMap[printViewerListing.folderName] || printFilesMap[printViewerListing.folderName] || []) : []}
+        deliveredAs={printViewerListing ? (printFilesMap[printViewerListing.folderName] || []).length : 0}
         savedTips={savedTips}
         onToggleSaveTip={handleToggleSavedTip}
         onClose={() => setPrintViewerListing(null)}

@@ -16,9 +16,9 @@
 // if someone actually opens one.
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download } from 'lucide-react';
+import { Download, FileArchive } from 'lucide-react';
 import { balancedGridColumns } from '@/lib/grid';
-import { resolveMockupUrl } from '@/lib/mockupgen';
+import { isPrintPreviewable, resolveMockupUrl } from '@/lib/mockupgen';
 import type { ListingMetadata } from '@/lib/listing-types';
 import type { LightboxState } from '@/components/photo-lightbox';
 import { TipFillerCard, TipPanel } from '@/components/studio-tips';
@@ -32,11 +32,10 @@ export interface PrintFile {
 const sizeLabel = (bytes: number) =>
   bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
-const isPicture = (name: string) => /\.(jpe?g|png|webp)$/i.test(name);
-
 export function PrintFilesDialog({
   listing,
   files,
+  deliveredAs,
   savedTips,
   onToggleSaveTip,
   onClose,
@@ -44,6 +43,14 @@ export function PrintFilesDialog({
 }: {
   listing: ListingMetadata | null;
   files: PrintFile[];
+  /**
+   * How many files Etsy actually receives. Usually the same as `files.length`,
+   * but a set makes more sizes than the five-file allowance holds and they are
+   * packed, so fifteen sizes can arrive as one archive. Saying so here is the
+   * difference between "the run only made one file" and "the run made fifteen
+   * and they travel together".
+   */
+  deliveredAs: number;
   savedTips: string[];
   onToggleSaveTip: (tip: string) => void;
   onClose: () => void;
@@ -57,7 +64,7 @@ export function PrintFilesDialog({
 
   const total = files.reduce((sum, file) => sum + file.bytes, 0);
   // Only pictures can be opened full size, so the lightbox indexes those alone.
-  const previewable = files.filter(file => isPicture(file.fileName));
+  const previewable = files.filter(file => isPrintPreviewable(file.fileName));
 
   return (
     <Dialog open={!!listing} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -72,7 +79,11 @@ export function PrintFilesDialog({
                     {listing.folderName}
                   </DialogTitle>
                   <DialogDescription className="text-[#5a5448] dark:text-[#a39e8f] text-xs font-sans">
-                    {files.length} size{files.length === 1 ? '' : 's'} · {Math.round(total / 1048576)}MB · upload these to Etsy — they stay on the render server until you save one
+                    {files.length} size{files.length === 1 ? '' : 's'} · {Math.round(total / 1048576)}MB ·{' '}
+                    {deliveredAs > 0 && deliveredAs < files.length
+                      ? `packed into ${deliveredAs} file${deliveredAs === 1 ? '' : 's'} for Etsy — it allows five per listing`
+                      : 'upload these to Etsy'}
+                    {' '}— they stay on the render server until you save one
                   </DialogDescription>
                 </div>
               </div>
@@ -93,7 +104,7 @@ export function PrintFilesDialog({
                     }}
                   >
                     {files.map(file => {
-                      const picture = isPicture(file.fileName);
+                      const picture = isPrintPreviewable(file.fileName);
                       const fullUrl = resolveMockupUrl(file.url);
                       return (
                         <button
@@ -123,8 +134,19 @@ export function PrintFilesDialog({
                                 className="max-w-full max-h-full object-contain transition-transform group-hover:scale-[1.02]"
                               />
                             ) : (
-                              <span className="text-[11px] font-mono uppercase tracking-wider text-[#8b8676] select-none">
-                                {file.fileName.split('.').pop()}
+                              /* An archive has no preview, and a set usually comes back as
+                                 exactly one of them — which in a single-cell grid meant the
+                                 whole dialog was an empty box with "ZIP" adrift in the middle.
+                                 Give it something to be: an icon, the type, and what is in it. */
+                              <span className="flex flex-col items-center justify-center gap-2 text-[#8b8676] select-none px-4 text-center">
+                                <FileArchive className="w-8 h-8 text-[#ed6f5c]/70" />
+                                <span className="text-[11px] font-mono uppercase tracking-wider font-bold">
+                                  {file.fileName.split('.').pop()}
+                                </span>
+                                <span className="text-[10px] leading-relaxed max-w-[32ch]">
+                                  Every size for this listing, packed into one file — Etsy allows
+                                  five per listing and a set needs more than that.
+                                </span>
                               </span>
                             )}
                             <a
