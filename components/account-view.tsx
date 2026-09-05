@@ -56,7 +56,7 @@ export function AccountView({
   return (
       <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} pb-16 font-sans transition-colors duration-300`}>
         <div className={`sticky top-0 z-30 w-full backdrop-blur-md ${darkMode ? 'bg-[#12110c]/95 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/90 border-[rgba(21,20,15,0.16)]'} border-b`}>
-          <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <header className="w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 size="sm"
@@ -82,7 +82,7 @@ export function AccountView({
           </header>
         </div>
 
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           {/* ---- Identity, plan & connections ---- */}
           <div className="lg:col-span-5 space-y-6">

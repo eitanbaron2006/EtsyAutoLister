@@ -33,7 +33,7 @@ export function RouteSelectView({
 
         {/* Topbar strip */}
         <div className={`topbar w-full ${darkMode ? 'bg-[#12110c] border-[rgba(247,241,222,0.12)] border-b' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.14)] border-b'}`}>
-          <div className="max-w-6xl mx-auto px-6 sm:px-12 topbar-inner">
+          <div className="w-full mx-auto px-6 sm:px-12 topbar-inner">
             <span><b>{darkMode ? "NIGHT MODE" : "AUTOLISTER"} / 2026</b> &nbsp;·&nbsp; Routing Channels</span>
             <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-wider text-[#8b8676]">
               <span>Filed under <b className="text-[#ed6f5c]">Etsy · Automation</b></span>
@@ -46,7 +46,7 @@ export function RouteSelectView({
         </div>
 
         <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/40 border-[rgba(21,20,15,0.16)]'} border-b w-full flex-shrink-0`}>
-          <div className="max-w-6xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
+          <div className="w-full mx-auto px-6 sm:px-12 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de]' : 'border-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
                 Ø

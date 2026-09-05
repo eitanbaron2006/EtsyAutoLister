@@ -2756,7 +2756,7 @@ export default function Home() {
     <div className={`min-h-screen ${darkMode ? 'dark bg-[#12110c] text-[#f7f1de]' : 'bg-[#efe7d2] text-[#15140f]'} pb-16 relative font-sans transition-colors duration-300`}>
       <div className={`sticky top-0 z-30 w-full backdrop-blur-md ${darkMode ? 'bg-[#12110c]/95 border-[rgba(247,241,222,0.12)]' : 'bg-[#efe7d2]/90 border-[rgba(21,20,15,0.16)]'} border-b`}>
         <div className="topbar w-full border-b-0">
-          <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
+          <div className="w-full mx-auto px-6 sm:px-12 topbar-inner">
             <span><b>{darkMode ? "NIGHT ARCHIVE" : "AUTOLISTER"} / 2026</b> &nbsp;·&nbsp; Workspace Catalog Suite</span>
             <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-wider text-[#8b8676]">
               <span>Filed under <b className="text-[#ed6f5c]">Etsy · Automation</b></span>
@@ -2780,7 +2780,7 @@ export default function Home() {
 
         {/* Workspace Header Panel */}
         <header className="w-full">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
             <div className="flex items-center space-x-3">
               <div className={`w-9 h-9 border ${darkMode ? 'border-[#f7f1de]' : 'border-[#15140f]'} rounded-full flex items-center justify-center font-serif italic text-lg select-none`}>
@@ -2875,7 +2875,7 @@ export default function Home() {
       </div>
 
       {/* Primary Workspace main grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
         {activeStudioListing ? (
           <div className="mockup-studio-shell space-y-10">

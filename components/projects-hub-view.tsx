@@ -91,7 +91,7 @@ export function ProjectsHubView({
         <div>
           {/* Topbar strip */}
           <div className={`topbar w-full ${darkMode ? 'bg-[#12110c] border-[rgba(247,241,222,0.12)] border-b' : 'bg-[#efe7d2] border-[rgba(21,20,15,0.14)] border-b'}`}>
-            <div className="max-w-7xl mx-auto px-6 sm:px-12 topbar-inner">
+            <div className="w-full mx-auto px-6 sm:px-12 topbar-inner">
               <span><b>{darkMode ? "NIGHT ARCHIVE" : "AUTOLISTER"} / 2026</b> &nbsp;·&nbsp; Projects Hub</span>
               <span className="hidden md:inline-flex gap-6 font-mono text-[9px] uppercase tracking-widest text-[#8b8676]">
                 <span>User: <b className={`${darkMode ? 'text-[#f08e7c]' : 'text-[#ed6f5c]'}`}>{user.email}</b></span>
@@ -107,7 +107,7 @@ export function ProjectsHubView({
 
           {/* Header Navigation with Dark Mode Toggler and Actions */}
           <header className={`relative z-10 py-5 ${darkMode ? 'bg-[#1a1914]/40' : 'bg-[#efe7d2]/40'} w-full flex-shrink-0 border-b ${darkMode ? 'border-[rgba(247,241,222,0.12)]' : 'border-[rgba(21,20,15,0.14)]'}`}>
-            <div className="max-w-7xl mx-auto w-full px-6 sm:px-12 flex items-center justify-between">
+            <div className="w-full mx-auto px-6 sm:px-12 flex items-center justify-between">
               <div className="group flex items-center gap-2.5">
                 <Store className="w-[1.4rem] h-[1.4rem] text-[#15140f] dark:text-[#f7f1de] group-hover:text-[#ed6f5c] transition-all duration-500 ease-out group-hover:scale-110 group-hover:rotate-3" />
                 <div className="flex flex-col">
@@ -164,7 +164,7 @@ export function ProjectsHubView({
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto w-full px-6 sm:px-12 py-10 space-y-10">
+          <main className="w-full mx-auto px-6 sm:px-12 py-10 space-y-10">
             {/* Hero / Overview Welcome Section */}
             <div className="flex flex-col md:flex-row justify-between items-start gap-8">
               <div className="space-y-3 max-w-xl text-left">
