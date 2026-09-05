@@ -16,7 +16,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import { DigitalDeliveryCard } from '@/components/digital-delivery-card';
 
 export type DeliveryPrompt = {
@@ -88,12 +88,17 @@ export function DeliveryRequiredDialog({
             </div>
 
             {ready && (
-              <p className="text-[10px] font-mono text-[#6e7448] leading-relaxed">
+              <p className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#6e7448] leading-relaxed">
+                <Check className="w-3 h-3 shrink-0" />
                 Delivery is set up. This listing can be published in full.
               </p>
             )}
 
-            <DialogFooter className="gap-2 pt-1">
+            {/* The shared footer is a full-bleed bar: a top border, a grey
+                ground and negative margins that push it past the dialog's
+                padding. Under a single Close button that reads as a toolbar
+                with nothing in it. Stripped back to a plain right-aligned row. */}
+            <DialogFooter className="!mx-0 !mb-0 !border-0 !bg-transparent !p-0 !pt-2 gap-2">
               <Button
                 variant="ghost"
                 onClick={onClose}

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Copy, Download, ExternalLink, FileCode, Grid, Loader2 } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, FileCode, Grid, Info, Loader2 } from 'lucide-react';
 
 import { renderFormattedDescription } from '@/lib/listing-format';
 import type { ListingMetadata, ProductData } from '@/lib/listing-types';
@@ -203,44 +203,42 @@ export function ListingReviewDialog({
                   </div>
 
                   <Card className="shrink-0 bg-[#efe7d2]/55 p-2.5 border border-[rgba(21,20,15,0.12)] rounded-xl shadow-none space-y-2">
-                    <div>
-                      <h4 className="text-[11px] font-serif font-medium text-[#15140f] leading-none">Compiled Etsy Package</h4>
-                      <p className="text-[9px] text-[#5a5448] mt-0.5 leading-tight">
-                        Includes {sourcePreviewImages.length} image{sourcePreviewImages.length === 1 ? '' : 's'} &amp; {activeProduct.files?.length || 0} deliverable{activeProduct.files?.length === 1 ? '' : 's'}.
-                      </p>
+                    {/* One header row rather than a stack: the title, the counts
+                        and the sizes all fit on two lines, and the panel is
+                        pinned under a scrolling gallery where every row it
+                        takes is a row the gallery loses. */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h4 className="text-[11px] font-serif font-medium text-[#15140f] leading-none">Compiled Etsy Package</h4>
+                        <p className="text-[9px] text-[#5a5448] mt-0.5 leading-tight">
+                          {sourcePreviewImages.length} image{sourcePreviewImages.length === 1 ? '' : 's'} &amp;{' '}
+                          {activeProduct.files?.length || 0} deliverable{activeProduct.files?.length === 1 ? '' : 's'}
+                          {printFiles.length > 0 && (
+                            <> &middot; {printFiles.length} art size{printFiles.length === 1 ? '' : 's'}{' '}
+                              ({Math.round(printFiles.reduce((sum, f) => sum + f.bytes, 0) / 1048576)}MB)</>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* The names hang off this, not off the whole row: a
+                          cursor resting anywhere near the panel used to raise a
+                          fifteen-line tooltip nobody asked for. */}
+                      {printFiles.length > 0 && (
+                        <span
+                          className="shrink-0 mt-0.5 text-[#8b8676] hover:text-[#ed6f5c] transition-colors cursor-help"
+                          title={printFiles
+                            .map(file => `${file.fileName}  ${file.bytes >= 1048576
+                              ? `${(file.bytes / 1048576).toFixed(1)} MB`
+                              : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}`)
+                            .join('\n')}
+                          aria-label={`${printFiles.length} art sizes`}
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                        </span>
+                      )}
                     </div>
 
-                    {/* The print sizes were missing from this panel entirely — the
-                        one screen for reviewing a draft before it goes to the shop
-                        said nothing about the files the buyer actually receives.
-                        A set makes it obvious: eighteen renders overflow Etsy's
-                        five-file allowance and come back as a single archive, so
-                        "3 deliverables" above was counting staged files, not these. */}
-                    {printFiles.length > 0 && (
-                      /* One line, not a list. A set of five artworks makes
-                         thirty of these, and spelling them out pushed the
-                         title, the description and the tags — the things this
-                         screen exists to review — off the bottom. The names
-                         are worth having, not worth the column: they hang off
-                         the hover instead. */
-                      <div
-                        className="pt-1.5 border-t border-[rgba(21,20,15,0.12)] flex items-baseline justify-between gap-2 cursor-help"
-                        title={printFiles
-                          .map(file => `${file.fileName}  ${file.bytes >= 1048576
-                            ? `${(file.bytes / 1048576).toFixed(1)} MB`
-                            : `${Math.max(1, Math.round(file.bytes / 1024))} KB`}`)
-                          .join('\n')}
-                      >
-                        <span className="text-[9px] font-mono uppercase tracking-wider text-[#8b8676] font-bold">
-                          Art Sizes
-                        </span>
-                        <span className="text-[9px] font-mono text-[#8b8676]">
-                          {printFiles.length} file{printFiles.length === 1 ? '' : 's'} ·{' '}
-                          {Math.round(printFiles.reduce((sum, f) => sum + f.bytes, 0) / 1048576)}MB
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <Button
                         onClick={() => {
                           if (selectedPreview) {
@@ -256,7 +254,7 @@ export function ListingReviewDialog({
                         className="w-full bg-[#f7f1de] border border-[rgba(21,20,15,0.14)] hover:bg-[#ece4cf] text-[#15140f] font-mono text-[9px] py-1.5 rounded-md uppercase tracking-wider cursor-pointer"
                         variant="outline"
                       >
-                        <Download className="w-3 h-3 mr-1 text-[#ed6f5c]" /> Download Selected
+                        <Download className="w-3 h-3 mr-1 text-[#ed6f5c]" /> Selected
                       </Button>
                       <Button
                         onClick={() => handleDownloadZipPackage(activeProduct)}
@@ -268,7 +266,7 @@ export function ListingReviewDialog({
                         {isPackingZip ? (
                           <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Packing...</>
                         ) : (
-                          <><FileCode className="w-3 h-3 mr-1" /> Get ZIP Package</>
+                          <><FileCode className="w-3 h-3 mr-1" /> ZIP Package</>
                         )}
                       </Button>
                     </div>

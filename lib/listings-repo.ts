@@ -85,6 +85,7 @@ const LISTING_TO_COLUMN: Record<string, string> = {
   pipelineStepText: 'pipeline_step_text',
   mockupImage: 'mockup_image',
   mockupNote: 'mockup_note',
+  printDelivery: 'print_delivery',
   // What the studio was set to for this listing: the templates picked by hand
   // and which source sits in which frame. It was session state, so any refresh
   // threw it away.

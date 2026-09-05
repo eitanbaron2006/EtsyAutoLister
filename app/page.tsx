@@ -263,6 +263,20 @@ export default function Home() {
   // succeed.
   const [printDeliveryMap, setPrintDeliveryMap] = useState<Record<string, { mode: PrintDeliveryMode; note?: string }>>({});
 
+  /**
+   * How this listing's files can be handed over.
+   *
+   * The compile writes it to the listing and holds it here; only the listing
+   * survives a reload. Read in that order -- session first, because during a
+   * compile it is the fresher of the two -- rather than copied into state,
+   * which would be the same fact in two places going out of step.
+   */
+  const deliveryFor = (listing: ListingMetadata) =>
+    printDeliveryMap[listing.folderName]
+    ?? (listing.printDelivery?.mode
+      ? { mode: listing.printDelivery.mode, note: listing.printDelivery.note }
+      : undefined);
+
   // How this shop can hand over files Etsy will not carry. A connected Drive
   // account or a pasted link -- either counts, and neither is the token: the
   // Drive grant lives on the server, and this is only what the page may know.
@@ -2077,6 +2091,19 @@ export default function Home() {
         [folderName]: { mode: answer.delivery, note: answer.note },
       }));
 
+      // Persisted as well as held: the map is state and dies with the tab,
+      // and without this a reload could no longer tell an oversize listing
+      // from any other -- so the warning never fired and publishing failed
+      // against Etsy instead of being stopped with an explanation.
+      await updateListing(user.uid, listingId, {
+        printDelivery: {
+          mode: answer.delivery,
+          note: answer.note,
+          totalBytes: answer.total_bytes,
+          allowanceBytes: answer.allowance_bytes,
+        },
+      }).catch(() => { });
+
       if (answer.delivery === 'oversize') {
         // The server explains this one better than a generic message can: it
         // knows the totals and the ceiling. Not a success -- the listing has
@@ -2501,7 +2528,7 @@ export default function Home() {
     // files, or stop and set delivery up first. Asked every time, because the
     // answer can differ per listing. Checked before the status moves to
     // 'publishing', so declining does not strand the row mid-flight.
-    const delivery = printDeliveryMap[item.folderName];
+    const delivery = deliveryFor(item);
     if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
       setDeliveryPrompt({
         mode: 'publish',
@@ -2662,7 +2689,7 @@ export default function Home() {
     // Said on the way in, not on the way out. A listing whose files Etsy will
     // not carry cannot be sold whole without somewhere to put them, and
     // finding that out at the publish button is finding out too late.
-    const delivery = printDeliveryMap[item.folderName];
+    const delivery = deliveryFor(item);
     if (delivery?.mode === 'oversize' && !hasDeliveryRoute) {
       setDeliveryPrompt({ mode: 'notice', folderName: item.folderName, note: delivery.note });
     }

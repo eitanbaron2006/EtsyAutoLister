@@ -21,6 +21,15 @@ export type ListingMetadata = {
   // refresh threw away work that had been done listing by listing.
   studioPrefs?: { templateIds: string[]; assignments: Record<number, string>; printSetId?: number | null };
   updatedAt?: string; // ISO timestamp, maintained by the DB trigger; used to detect stalled pipeline runs
+  // What the render server said about handing these files over. Kept with the
+  // listing because it cannot be recomputed: only the pack knows the totals,
+  // and without it a reload cannot tell an oversize listing from any other.
+  printDelivery?: {
+    mode: 'files' | 'archives' | 'oversize';
+    note?: string;
+    totalBytes?: number;
+    allowanceBytes?: number;
+  } | null;
   quantity?: number;
   listingType?: string;
   renewalOption?: string;
