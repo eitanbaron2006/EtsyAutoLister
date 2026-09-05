@@ -4130,45 +4130,59 @@ export default function Home() {
             {/* Studio floor: intake rail (left) + production area (right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-              {/* ---- Intake rail ---- */}
-              <div className="lg:col-span-4 space-y-6">
+              {/* ---- Intake rail ----
+                   Three columns rather than four: staging is a few seconds of
+                   work at the start of a batch, and the session table beside it
+                   is where the rest of the time goes. */}
+              <div className="lg:col-span-3 space-y-6">
 
                 {/* Staging tray: mix sets and singles — each card becomes a product */}
                 <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none flex flex-col">
-                  <CardHeader className="pb-3 p-5">
+                  <CardHeader className="pb-2.5 p-4">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)]">
+                      <div className="p-1.5 rounded-lg bg-[#ece4cf]/60 dark:bg-[#22211b] text-[#ed6f5c] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] shrink-0">
                         <Sparkles className="w-4 h-4" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <CardTitle className="text-sm font-serif font-medium text-[#15140f] dark:text-[#f7f1de]">Product Staging Tray</CardTitle>
-                        <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-0.5">
+                        <CardDescription className="text-[#5a5448] dark:text-[#ece4cf] text-xs mt-0.5 leading-snug">
                           Mix sets and singles freely — every card below becomes its own product.
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-5 pt-0 space-y-4">
+                  <CardContent className="p-4 pt-0 space-y-3.5">
 
-                    {/* Two intake actions: singles vs a set */}
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div
-                        className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                    {/* Two intake actions: singles vs a set.
+                        Same words as ever, still centred. Only the box shrank:
+                        the icon moved onto the label's line instead of sitting
+                        in a row of its own. The padding is back up from there --
+                        pulled all the way in, two lines of text in a short wide
+                        box read as cramped rather than compact. */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className="flex flex-col items-center justify-center border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] px-2 py-3 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
                         onClick={() => rawFileInputRef.current?.click()}
                       >
-                        <ImageIcon className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
-                        <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add Singles</span>
-                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">each image → product</span>
-                      </div>
-                      <div
-                        className="border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] p-3.5 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
+                        <span className="flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-[#ed6f5c] shrink-0" />
+                          <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">Add Singles</span>
+                        </span>
+                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono leading-none mt-1.5">each image → product</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="flex flex-col items-center justify-center border border-dashed border-[rgba(21,20,15,0.24)] dark:border-[rgba(247,241,222,0.24)] rounded-[14px] px-2 py-3 bg-[#ece4cf]/40 dark:bg-[#22211b]/40 hover:bg-[#ece4cf]/60 dark:hover:bg-[#22211b]/60 transition-colors cursor-pointer text-center"
                         onClick={() => setFileInputRef.current?.click()}
                       >
-                        <Layers className="w-5 h-5 text-[#ed6f5c] mx-auto mb-1" />
-                        <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] block">Add a Set</span>
-                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono mt-0.5">picked files → one product</span>
-                      </div>
+                        <span className="flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-[#ed6f5c] shrink-0" />
+                          <span className="text-[11px] font-medium text-[#15140f] dark:text-[#f7f1de] leading-none">Add a Set</span>
+                        </span>
+                        <span className="text-[8.5px] text-[#8b8676] dark:text-[#a39e8f] block font-mono leading-none mt-1.5">picked files → one product</span>
+                      </button>
                     </div>
                     <input type="file" ref={rawFileInputRef} accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleAddSingleProducts} />
                     <input type="file" ref={setFileInputRef} multiple className="hidden" onChange={handleAddSetProduct} />
@@ -4328,7 +4342,7 @@ export default function Home() {
               </div>
 
               {/* ---- Production area ---- */}
-              <div className="lg:col-span-8 space-y-6">
+              <div className="lg:col-span-9 space-y-6">
 
                 {/* Compact portfolio statistics strip */}
                 <Card className="bg-[#f7f1de] dark:bg-[#1a1914] border border-[rgba(21,20,15,0.16)] dark:border-[rgba(247,241,222,0.12)] rounded-[18px] shadow-none px-5 py-3.5 font-sans">
