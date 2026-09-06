@@ -58,6 +58,30 @@ export async function GET() {
           f.request.loggedDate <= nextListingDate + 2000
       );
 
+      const extractFilename = (text: string) => {
+        const m = text.match(/filename="([^"]+)"/);
+        return m ? m[1] : null;
+      };
+
+      const imgsToUse = associatedImages.length > 0 ? associatedImages : imageReqs;
+      const filesToUse = associatedFiles.length > 0 ? associatedFiles : fileReqs;
+
+      const parsedImages = imgsToUse
+        .map((img) => {
+          const fn = extractFilename(img.request.body || '');
+          if (!fn) return null;
+          return {
+            filename: fn,
+            url: fn.startsWith('mockup_') ? `/outputs/${fn}` : `/outputs/${fn}`,
+          };
+        })
+        .filter(Boolean);
+
+      const parsedFiles = filesToUse.map((f) => {
+        const fn = extractFilename(f.request.body || '');
+        return { filename: fn || 'digital_download.zip' };
+      });
+
       const tagsRaw = params.get('tags') || '';
       const tags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
 
@@ -78,8 +102,10 @@ export async function GET() {
         isSupply: params.get('is_supply') === 'true',
         description: params.get('description') || '',
         tags,
-        imagesCount: associatedImages.length > 0 ? associatedImages.length : imageReqs.length,
-        filesCount: associatedFiles.length > 0 ? associatedFiles.length : fileReqs.length,
+        images: parsedImages,
+        files: parsedFiles,
+        imagesCount: parsedImages.length > 0 ? parsedImages.length : imageReqs.length,
+        filesCount: parsedFiles.length > 0 ? parsedFiles.length : fileReqs.length,
         url: req.request.url,
       };
     });
