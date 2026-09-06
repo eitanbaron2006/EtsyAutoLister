@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Copy, Download, ExternalLink, FileCode, FileText, Grid, HardDrive, Info, Loader2 } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, FileCode, FileText, Grid, HardDrive, Info, Loader2, Store } from 'lucide-react';
 
 import { renderFormattedDescription } from '@/lib/listing-format';
 import type { ListingMetadata, ProductData } from '@/lib/listing-types';
@@ -780,8 +780,13 @@ export function ListingReviewDialog({
               {selectedMode === 'etsy' ? (
                 activeProduct?.status === 'published' ? (
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-xs uppercase tracking-wider rounded-lg px-4">
-                      <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open('/mock-store', '_blank')}
+                      className="text-[#F1641E] border-[#F1641E]/30 bg-[#F1641E]/5 hover:bg-[#F1641E]/10 font-mono text-xs uppercase tracking-wider rounded-lg px-3 cursor-pointer"
+                      title="Open local mock store dashboard"
+                    >
+                      <Store className="w-4 h-4 mr-1 text-[#F1641E]" /> View in Mock Store
                     </Button>
                     <Button
                       onClick={() => {

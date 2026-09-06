@@ -2985,7 +2985,13 @@ export default function Home() {
         pipelineStepText: 'Finished layout. Successfully listed!',
       });
 
-      toast.success('Successfully uploaded files and published draft to Etsy!');
+      toast.success('Successfully uploaded files and published draft to Etsy!', {
+        action: {
+          label: 'Open Mock Store ↗',
+          onClick: () => window.open('/mock-store', '_blank'),
+        },
+        duration: 8000,
+      });
       setIsDialogOpen(false);
     } catch (err: any) {
       toast.error('Failed to publish to store: ' + (err.message || 'Unknown error'));
