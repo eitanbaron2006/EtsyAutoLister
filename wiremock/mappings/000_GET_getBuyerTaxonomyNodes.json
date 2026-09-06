@@ -1,0 +1,20 @@
+{
+  "id": "eb8e022a-83ae-40ab-9ac2-0737c4ef6c70",
+  "name": "getBuyerTaxonomyNodes",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/buyer-taxonomy/nodes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

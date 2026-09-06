@@ -1,0 +1,31 @@
+{
+  "id": "5e11f926-02ad-484e-a2b0-bbae678ca18b",
+  "name": "getListingProperties",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/properties$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {
+          "property_id": 1,
+          "property_name": "The name of the Property.",
+          "scale_id": 1,
+          "scale_name": "The label used to describe the",
+          "value_ids": [
+            {}
+          ],
+          "values": [
+            {}
+          ]
+        }
+      ]
+    }
+  }
+}

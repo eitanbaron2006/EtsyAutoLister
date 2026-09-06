@@ -9,18 +9,25 @@ export async function POST(req: NextRequest) {
     // one is read here, from a table no client role can reach, for whoever the
     // session cookies say is asking.
     const declared = formData.get('token') as string | null;
-    const token = declared === 'DEMO_TOKEN'
+    const isMockServer = !!process.env.ETSY_API_BASE_URL;
+
+    let token = declared === 'DEMO_TOKEN' && !isMockServer
       ? declared
       : await (async () => {
           const userId = await currentUserId();
           return userId ? await readEtsyToken(userId) : null;
         })();
+
+    // When running with WireMock / local mock server, allow fallback mock token
+    if (!token && isMockServer) {
+      token = 'mock_wiremock_token';
+    }
     
     if (!token) {
       return NextResponse.json({ error: 'Missing Etsy access token. Connect your account first.' }, { status: 401 });
     }
 
-    if (token === 'DEMO_TOKEN') {
+    if (token === 'DEMO_TOKEN' && !isMockServer) {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       return NextResponse.json({
@@ -36,8 +43,10 @@ export async function POST(req: NextRequest) {
     const price = parseFloat(formData.get('price') as string);
     const quantity = 999; 
 
+    const etsyBase = process.env.ETSY_API_BASE_URL || 'https://api.etsy.com';
+
     // Retrieve the user ID
-    const userRes = await fetch('https://api.etsy.com/v3/application/users/me', {
+    const userRes = await fetch(`${etsyBase}/v3/application/users/me`, {
       headers: { 
         'x-api-key': process.env.ETSY_API_KEY!,
         'Authorization': `Bearer ${token}` 
@@ -49,7 +58,7 @@ export async function POST(req: NextRequest) {
     const userId = userData.user_id;
 
     // Retrieve the shop
-    const shopRes = await fetch(`https://api.etsy.com/v3/application/users/${userId}/shops`, {
+    const shopRes = await fetch(`${etsyBase}/v3/application/users/${userId}/shops`, {
       headers: {
         'x-api-key': process.env.ETSY_API_KEY!,
         'Authorization': `Bearer ${token}`
@@ -80,7 +89,7 @@ export async function POST(req: NextRequest) {
       createParams.append('tags', tags.slice(0, 13).join(','));
     }
 
-    const createListingRes = await fetch(`https://api.etsy.com/v3/application/shops/${shopId}/listings`, {
+    const createListingRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings`, {
       method: 'POST',
       headers: {
         'x-api-key': process.env.ETSY_API_KEY!,
@@ -99,7 +108,7 @@ export async function POST(req: NextRequest) {
       if (key === 'image' && typeof value === 'object') {
         const imageForm = new FormData();
         imageForm.append('image', value);
-        const imgRes = await fetch(`https://api.etsy.com/v3/application/shops/${shopId}/listings/${listingId}/images`, {
+        const imgRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/images`, {
           method: 'POST',
           headers: {
             'x-api-key': process.env.ETSY_API_KEY!,
@@ -114,7 +123,7 @@ export async function POST(req: NextRequest) {
         const fileForm = new FormData();
         fileForm.append('file', value);
         fileForm.append('name', (value as unknown as File).name || 'product_file');
-        const fileRes = await fetch(`https://api.etsy.com/v3/application/shops/${shopId}/listings/${listingId}/files`, {
+        const fileRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/files`, {
           method: 'POST',
           headers: {
             'x-api-key': process.env.ETSY_API_KEY!,

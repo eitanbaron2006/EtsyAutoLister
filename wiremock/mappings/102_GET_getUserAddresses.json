@@ -1,0 +1,20 @@
+{
+  "id": "bf161ade-5266-4ab4-af4e-7208eaa9d9cb",
+  "name": "getUserAddresses",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/user/addresses"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

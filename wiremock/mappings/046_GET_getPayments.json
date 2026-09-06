@@ -1,0 +1,20 @@
+{
+  "id": "38fa2ac6-b5b3-4c5a-acbe-65e7078341fa",
+  "name": "getPayments",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/payments$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

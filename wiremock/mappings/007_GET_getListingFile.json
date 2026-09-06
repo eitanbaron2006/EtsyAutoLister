@@ -1,0 +1,25 @@
+{
+  "id": "39e4fca2-01e2-449b-b4e5-cf26c3c6117f",
+  "name": "getListingFile",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/files/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_file_id": 1,
+      "listing_id": 1,
+      "rank": 0,
+      "filename": "The file name string for a fil",
+      "filesize": "A human-readable format size s",
+      "size_bytes": 0,
+      "filetype": "A type string indicating a fil",
+      "create_timestamp": 946684800,
+      "created_timestamp": 946684800
+    }
+  }
+}

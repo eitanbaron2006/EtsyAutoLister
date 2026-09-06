@@ -1,0 +1,22 @@
+{
+  "id": "5f5b167f-f13a-49d6-8596-b8bc683a3f31",
+  "name": "createShopReadinessStateDefinition",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/readiness-state-definitions$"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shop_id": 1,
+      "readiness_state_id": 1,
+      "readiness_state": "ready_to_ship",
+      "min_processing_days": 0,
+      "max_processing_days": 0,
+      "processing_days_display_label": "Translated display label strin"
+    }
+  }
+}

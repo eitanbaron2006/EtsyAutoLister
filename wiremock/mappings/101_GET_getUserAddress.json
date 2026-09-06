@@ -1,0 +1,27 @@
+{
+  "id": "524d910c-62df-4594-99dd-61c5e0abd48b",
+  "name": "getUserAddress",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/user/addresses/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "user_address_id": 1,
+      "user_id": 1,
+      "name": "The user's name for this addre",
+      "first_line": "The first line of the user's a",
+      "second_line": "The second line of the user's ",
+      "city": "The city field of the user's a",
+      "state": "The state field of the user's ",
+      "zip": "The zip code field of the user",
+      "iso_country_code": "The ISO code of the country in",
+      "country_name": "The name of the user's country",
+      "is_default_shipping_address": true
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "43720c10-d08b-4b5a-adc8-1148a9a8ec8a",
+  "name": "getPropertiesByBuyerTaxonomyId",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/buyer-taxonomy/nodes/[^/]+/properties$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

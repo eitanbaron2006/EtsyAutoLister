@@ -1,0 +1,20 @@
+{
+  "id": "7859bf53-ca3c-4c2f-86b3-5f837d57b01c",
+  "name": "getListingsByShop",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

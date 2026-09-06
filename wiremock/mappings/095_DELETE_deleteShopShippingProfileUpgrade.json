@@ -1,0 +1,15 @@
+{
+  "id": "a141585d-14f1-4cdf-a82b-50ca9e8284a4",
+  "name": "deleteShopShippingProfileUpgrade",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+/upgrades/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

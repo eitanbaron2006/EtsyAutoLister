@@ -1,0 +1,32 @@
+{
+  "id": "64978d51-23ce-4be5-a1a0-c7fccd8b7b50",
+  "name": "getShopPaymentAccountLedgerEntry",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/payment-account/ledger-entries/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "entry_id": 1,
+      "ledger_id": 1,
+      "sequence_number": 123456789,
+      "amount": 123456789,
+      "currency": "The currency of the entry on t",
+      "description": "Details what kind of ledger en",
+      "balance": 123456789,
+      "create_date": 0,
+      "created_timestamp": 0,
+      "ledger_type": "The original reference type fo",
+      "reference_type": "The object type the ledger ent",
+      "reference_id": "The object id the ledger entry",
+      "parent_entry_id": 0,
+      "payment_adjustments": [
+        {}
+      ]
+    }
+  }
+}

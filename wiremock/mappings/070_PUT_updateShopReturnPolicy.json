@@ -1,0 +1,21 @@
+{
+  "id": "53ea777a-0847-44a9-9f77-3a40a739ecf8",
+  "name": "updateShopReturnPolicy",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/policies/return/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "return_policy_id": 1,
+      "shop_id": 1,
+      "accepts_returns": true,
+      "accepts_exchanges": true,
+      "return_deadline": 123456789
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "99f80d91-531b-4541-b2de-a3e2f20ad4df",
+  "name": "createShopSection",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/sections$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shop_section_id": 1,
+      "title": "The title string for a shop se",
+      "rank": 0,
+      "user_id": 1,
+      "active_listing_count": 0
+    }
+  }
+}

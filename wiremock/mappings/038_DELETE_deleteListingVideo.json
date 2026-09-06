@@ -1,0 +1,15 @@
+{
+  "id": "c60f7a8e-464a-4988-b895-6aa0713534f3",
+  "name": "deleteListingVideo",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/videos/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

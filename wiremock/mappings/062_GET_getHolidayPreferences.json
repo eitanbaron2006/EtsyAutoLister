@@ -1,0 +1,23 @@
+{
+  "id": "3c45c1ba-7a58-4dbf-a0ae-25e8a94a1ba5",
+  "name": "getHolidayPreferences",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/holiday-preferences$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": [
+      {
+        "shop_id": 1,
+        "holiday_id": 123456789,
+        "country_iso": "The country ISO where the shop",
+        "is_working": true,
+        "holiday_name": "The name of the holiday that a"
+      }
+    ]
+  }
+}

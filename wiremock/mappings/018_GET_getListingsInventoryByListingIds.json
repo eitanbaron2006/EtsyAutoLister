@@ -1,0 +1,20 @@
+{
+  "id": "a4c051f7-b507-4ee3-9482-4769cbb8ef44",
+  "name": "getListingsInventoryByListingIds",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/listings/batch/inventory"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

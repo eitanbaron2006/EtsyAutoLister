@@ -1,0 +1,23 @@
+{
+  "id": "8792070b-29c3-4e32-9927-c83701e18ff2",
+  "name": "updateListingTranslation",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/translations/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_id": 1,
+      "language": "The IETF language tag (e.g. 'f",
+      "title": "The title of the Listing of th",
+      "description": "The description of the Listing",
+      "tags": [
+        "sample_string"
+      ]
+    }
+  }
+}

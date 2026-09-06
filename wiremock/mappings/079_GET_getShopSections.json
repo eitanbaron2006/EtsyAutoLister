@@ -1,0 +1,20 @@
+{
+  "id": "334292c6-cb3e-4dc0-b2df-175f02839b07",
+  "name": "getShopSections",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/sections$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

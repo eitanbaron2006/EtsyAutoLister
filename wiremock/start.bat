@@ -1,0 +1,3 @@
+@echo off
+echo Starting WireMock Etsy API Server on http://127.0.0.1:8080 ...
+java -jar "%~dp0wiremock-standalone.jar" --port 8080 --root-dir "%~dp0."

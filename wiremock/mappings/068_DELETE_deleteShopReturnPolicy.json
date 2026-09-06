@@ -1,0 +1,15 @@
+{
+  "id": "9bd75bc0-b075-49fe-b37a-e70a946e821c",
+  "name": "deleteShopReturnPolicy",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/policies/return/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

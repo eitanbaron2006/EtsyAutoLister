@@ -368,7 +368,31 @@ export async function requestPrintDeliverables(
 
 /** The bytes of one deliverable, to be stored with the listing. */
 export async function downloadPrintDeliverable(url: string): Promise<Blob> {
-  const res = await fetch(resolveMockupUrl(url));
+  // Use the same-origin relative path directly (proxied by Next.js rewrites)
+  // to prevent browser CORS blocks when fetching from port 5000.
+  let targetUrl = url;
+  try {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const parsed = new URL(url);
+      if (parsed.pathname.startsWith('/print-outputs/') || parsed.pathname.startsWith('/outputs/')) {
+        targetUrl = parsed.pathname;
+      }
+    } else if (url.startsWith('/print-outputs/') || url.startsWith('/outputs/')) {
+      targetUrl = url;
+    }
+  } catch {
+    targetUrl = url;
+  }
+
+  try {
+    const res = await fetch(targetUrl);
+    if (res.ok) return res.blob();
+  } catch {
+    // If relative path fails, try resolved absolute URL as fallback
+  }
+
+  const fallbackUrl = resolveMockupUrl(url);
+  const res = await fetch(fallbackUrl);
   if (!res.ok) throw new Error(`Failed to download a print file (HTTP ${res.status})`);
   return res.blob();
 }

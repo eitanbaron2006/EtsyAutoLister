@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   transpilePackages: ['motion'],
+  async rewrites() {
+    return [
+      {
+        source: '/print-outputs/:path*',
+        destination: 'http://127.0.0.1:5000/print-outputs/:path*',
+      },
+      {
+        source: '/outputs/:path*',
+        destination: 'http://127.0.0.1:5000/outputs/:path*',
+      },
+    ];
+  },
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
     // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

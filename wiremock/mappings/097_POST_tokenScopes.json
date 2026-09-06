@@ -1,0 +1,15 @@
+{
+  "id": "fa4e340b-4abe-45c7-8d7e-ef429c520682",
+  "name": "tokenScopes",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v3/application/scopes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

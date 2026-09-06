@@ -1,0 +1,15 @@
+{
+  "id": "13d94f61-e0b1-44f3-a6f7-04fe38b91896",
+  "name": "deleteShopShippingProfile",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "44bc0dd4-5e57-42d0-a25d-afccf09bfd75",
+  "name": "findAllListingsActive",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/listings/active"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

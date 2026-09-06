@@ -1,0 +1,20 @@
+{
+  "id": "2cf0a002-3ccd-4c99-ad5c-098cda72d837",
+  "name": "findAllActiveListingsByShop",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/active$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

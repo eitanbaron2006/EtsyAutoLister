@@ -1,0 +1,20 @@
+{
+  "id": "e4f33043-6709-4b23-ad86-f47e1e40ec6a",
+  "name": "getShopShippingProfileUpgrades",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+/upgrades$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

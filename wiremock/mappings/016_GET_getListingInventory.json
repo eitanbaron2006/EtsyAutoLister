@@ -1,0 +1,32 @@
+{
+  "id": "7ab3b7d3-abee-4a06-a88e-68ffdf3c386e",
+  "name": "getListingInventory",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/inventory$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "products": [
+        {}
+      ],
+      "price_on_property": [
+        123456789
+      ],
+      "quantity_on_property": [
+        123456789
+      ],
+      "sku_on_property": [
+        123456789
+      ],
+      "readiness_state_on_property": [
+        1
+      ],
+      "listing": {}
+    }
+  }
+}

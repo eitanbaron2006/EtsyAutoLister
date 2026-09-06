@@ -1,0 +1,20 @@
+{
+  "id": "1b949adc-0921-446b-8c00-4b081bb80da4",
+  "name": "getShopShippingProfileDestinationsByShippingProfile",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+/destinations$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

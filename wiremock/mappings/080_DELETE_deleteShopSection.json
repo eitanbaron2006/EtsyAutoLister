@@ -1,0 +1,15 @@
+{
+  "id": "ba356f81-8b02-4631-bf73-cc7c8f57ce42",
+  "name": "deleteShopSection",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/sections/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

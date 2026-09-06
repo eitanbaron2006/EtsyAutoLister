@@ -1,0 +1,20 @@
+{
+  "id": "d00df05b-6148-4210-9551-9590754c4df2",
+  "name": "findShops",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/shops"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

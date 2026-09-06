@@ -1,0 +1,21 @@
+{
+  "id": "7e5b3964-e4c1-4892-9447-637bae31ede5",
+  "name": "getUser",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/users/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "user_id": 1,
+      "primary_email": "An email address string for th",
+      "first_name": "The user's first name.",
+      "last_name": "The user's last name.",
+      "image_url_75x75": "The user's avatar URL."
+    }
+  }
+}

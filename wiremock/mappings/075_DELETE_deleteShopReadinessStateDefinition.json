@@ -1,0 +1,15 @@
+{
+  "id": "3f512d09-8525-4d1d-a04f-ebf14d551a9d",
+  "name": "deleteShopReadinessStateDefinition",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/readiness-state-definitions/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

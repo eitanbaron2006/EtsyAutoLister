@@ -1,0 +1,21 @@
+{
+  "id": "4ede6626-6702-45ac-8eec-2efd9fb43bda",
+  "name": "updateShopSection",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/sections/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shop_section_id": 1,
+      "title": "The title string for a shop se",
+      "rank": 0,
+      "user_id": 1,
+      "active_listing_count": 0
+    }
+  }
+}

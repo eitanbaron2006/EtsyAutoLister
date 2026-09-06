@@ -1,0 +1,26 @@
+{
+  "id": "e03fb40c-631d-4cf4-9b11-1ac4fb4b85f3",
+  "name": "getListingProperty",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/properties/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "property_id": 1,
+      "property_name": "The name of the Property.",
+      "scale_id": 1,
+      "scale_name": "The label used to describe the",
+      "value_ids": [
+        1
+      ],
+      "values": [
+        "sample_string"
+      ]
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "30cadb0a-1893-4c5d-8212-b953269aa4f0",
+  "name": "updateShopShippingProfileDestination",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+/destinations/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shipping_profile_destination_id": 1,
+      "shipping_profile_id": 1,
+      "origin_country_iso": "The ISO code of the country fr",
+      "destination_country_iso": "The ISO code of the country to",
+      "destination_region": "eu",
+      "primary_cost": {},
+      "secondary_cost": {},
+      "shipping_carrier_id": 123456789,
+      "mail_class": "The unique ID string of a ship",
+      "min_delivery_days": 1,
+      "max_delivery_days": 1
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "id": "c125e8ad-0c26-4bf3-96fd-fc21f1dc0df0",
+  "name": "getListing",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_id": 1,
+      "user_id": 1,
+      "shop_id": 1,
+      "title": "The listing's title string. Wh",
+      "description": "A description string of the pr",
+      "rich_description": "The seller-authored HTML rich-",
+      "state": "active",
+      "creation_timestamp": 946684800,
+      "created_timestamp": 946684800,
+      "ending_timestamp": 946684800,
+      "original_creation_timestamp": 946684800,
+      "last_modified_timestamp": 946684800,
+      "updated_timestamp": 946684800,
+      "state_timestamp": 946684800,
+      "quantity": 0,
+      "shop_section_id": 1,
+      "featured_rank": 123456789,
+      "url": "The full URL to the listing's ",
+      "num_favorers": 0,
+      "non_taxable": true,
+      "is_taxable": true,
+      "is_customizable": true,
+      "is_personalizable": true,
+      "listing_type": "physical",
+      "tags": [
+        "sample_string"
+      ],
+      "materials": [
+        "sample_string"
+      ],
+      "shipping_profile_id": 1,
+      "return_policy_id": 1,
+      "processing_min": 0,
+      "processing_max": 0,
+      "who_made": "i_did",
+      "when_made": "made_to_order",
+      "is_supply": true,
+      "item_weight": 123456789,
+      "item_weight_unit": "oz",
+      "item_length": 123456789,
+      "item_width": 123456789,
+      "item_height": 123456789,
+      "item_dimensions_unit": "in",
+      "is_private": true,
+      "style": [
+        "sample_string"
+      ],
+      "file_data": "A string describing the files ",
+      "has_variations": true,
+      "should_auto_renew": true,
+      "language": "The IETF language tag for the ",
+      "price": {},
+      "converted_price": {},
+      "taxonomy_id": 123456789,
+      "readiness_state_id": 1,
+      "suggested_title": "A title string suggested by Et",
+      "shipping_profile": {},
+      "user": {},
+      "shop": {},
+      "images": [
+        {}
+      ],
+      "videos": [
+        {}
+      ],
+      "inventory": {},
+      "production_partners": [
+        {}
+      ],
+      "skus": [
+        "sample_string"
+      ],
+      "translations": {},
+      "views": 123456789,
+      "personalization": {},
+      "buyer_price": {}
+    }
+  }
+}

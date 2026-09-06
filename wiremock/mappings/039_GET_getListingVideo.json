@@ -1,0 +1,22 @@
+{
+  "id": "5aed231b-695b-41aa-8ece-0a78c530ac02",
+  "name": "getListingVideo",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/videos/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "video_id": 1,
+      "height": 123456789,
+      "width": 123456789,
+      "thumbnail_url": "The url of the video thumbnail",
+      "video_url": "The url of the video file.",
+      "video_state": "active"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "fd4455a1-43a3-47fe-817e-a2c67ed81e9c",
+  "name": "getPaymentAccountLedgerEntryPayments",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/payment-account/ledger-entries/payments$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "8bf1f185-3b00-4906-8864-edd6a7a687e5",
+  "name": "updateVariationImages",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/variation-images$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {
+          "property_id": 1,
+          "value_id": 1,
+          "value": "The string value of the proper",
+          "image_id": 1
+        }
+      ]
+    }
+  }
+}

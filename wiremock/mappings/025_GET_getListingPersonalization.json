@@ -1,0 +1,31 @@
+{
+  "id": "86b8313c-d404-472b-bf26-ccf1a7776aa3",
+  "name": "getListingPersonalization",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/personalization$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "personalization_questions": [
+        {
+          "question_id": 1,
+          "question_text": "sample_string",
+          "instructions": "sample_string",
+          "question_type": "sample_string",
+          "required": true,
+          "max_allowed_characters": 123456789,
+          "max_allowed_files": 123456789,
+          "add_on_price": {},
+          "options": [
+            {}
+          ]
+        }
+      ]
+    }
+  }
+}

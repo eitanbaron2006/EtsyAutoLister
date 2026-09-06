@@ -1,0 +1,15 @@
+{
+  "id": "ebe249bf-506f-4881-85b1-bde3edc6d496",
+  "name": "deleteListingFile",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/files/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

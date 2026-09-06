@@ -1,0 +1,20 @@
+{
+  "id": "b835f319-59a9-4358-8dc5-906e52e03017",
+  "name": "getShopReceiptTransactionsByListing",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/transactions$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 123456789,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

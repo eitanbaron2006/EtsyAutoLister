@@ -24,9 +24,10 @@ export async function GET(request: Request) {
   const clientId = process.env.ETSY_API_KEY;
   const envAppUrl = process.env.APP_URL || 'http://localhost:3000';
   const redirectUri = `${envAppUrl}/api/auth/etsy/callback`;
+  const etsyBase = process.env.ETSY_API_BASE_URL || 'https://api.etsy.com';
 
   try {
-    const response = await fetch('https://api.etsy.com/v3/public/oauth/token', {
+    const response = await fetch(`${etsyBase}/v3/public/oauth/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

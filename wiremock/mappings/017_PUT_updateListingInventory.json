@@ -1,0 +1,31 @@
+{
+  "id": "b353df5d-0073-47d2-8a13-69800c73da3d",
+  "name": "updateListingInventory",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/inventory$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "products": [
+        {}
+      ],
+      "price_on_property": [
+        123456789
+      ],
+      "quantity_on_property": [
+        123456789
+      ],
+      "sku_on_property": [
+        123456789
+      ],
+      "readiness_state_on_property": [
+        1
+      ]
+    }
+  }
+}

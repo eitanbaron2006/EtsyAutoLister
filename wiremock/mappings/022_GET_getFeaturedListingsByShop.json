@@ -1,0 +1,20 @@
+{
+  "id": "91511daf-a1df-45eb-8bc4-9985aca7ad1f",
+  "name": "getFeaturedListingsByShop",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/featured$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

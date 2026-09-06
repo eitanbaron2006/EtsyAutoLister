@@ -1,0 +1,20 @@
+{
+  "id": "5d37d096-2d98-43ba-a849-6c69e269d422",
+  "name": "getListingVideos",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/videos$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "f8538c86-1ea2-45cb-a568-a1be41f1c2c7",
+  "name": "uploadListingVideo",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/videos$"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "video_id": 1,
+      "height": 123456789,
+      "width": 123456789,
+      "thumbnail_url": "The url of the video thumbnail",
+      "video_url": "The url of the video file.",
+      "video_state": "active"
+    }
+  }
+}

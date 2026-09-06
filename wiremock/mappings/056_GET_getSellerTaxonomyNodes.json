@@ -1,0 +1,20 @@
+{
+  "id": "67056082-bfc1-4ca8-a44a-713347592a0c",
+  "name": "getSellerTaxonomyNodes",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/seller-taxonomy/nodes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

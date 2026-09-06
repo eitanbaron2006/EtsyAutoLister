@@ -1,0 +1,20 @@
+{
+  "id": "87996cfe-0af6-4ceb-9229-159f541c525e",
+  "name": "getShopProductionPartners",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/production-partners$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

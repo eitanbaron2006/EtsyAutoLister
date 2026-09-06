@@ -1,0 +1,31 @@
+{
+  "id": "8f91955f-5003-4a80-9b03-89117fb5f53e",
+  "name": "updateListingPersonalization",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/personalization$"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "personalization_questions": [
+        {
+          "question_id": 1,
+          "question_text": "sample_string",
+          "instructions": "sample_string",
+          "question_type": "sample_string",
+          "required": true,
+          "max_allowed_characters": 123456789,
+          "max_allowed_files": 123456789,
+          "add_on_price": {},
+          "options": [
+            {}
+          ]
+        }
+      ]
+    }
+  }
+}

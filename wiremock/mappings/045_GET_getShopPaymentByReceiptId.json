@@ -1,0 +1,20 @@
+{
+  "id": "6892681b-5765-464f-b881-ddd137783c87",
+  "name": "getShopPaymentByReceiptId",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/receipts/[^/]+/payments$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

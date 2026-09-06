@@ -1,0 +1,15 @@
+{
+  "id": "b93c85a5-8e78-4a8e-ab39-f36818a7c75b",
+  "name": "deleteListing",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/listings/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

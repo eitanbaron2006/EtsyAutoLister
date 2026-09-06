@@ -2748,11 +2748,11 @@ export default function Home() {
     },
     {
       label: 'Review & Publish',
-      hint: activeStudioListing.status === 'published' ? 'Live on Etsy'
+      hint: activeStudioListing.status === 'published' ? 'Live on Etsy — click to review or publish again'
         : activeStudioListing.status === 'ready' ? 'Your turn — click to open the draft' : 'Final draft review',
       state: activeStudioListing.status === 'published' ? 'done'
         : activeStudioListing.status === 'ready' ? 'attention' : 'pending',
-      onClick: activeStudioListing.status === 'ready' && !studioBusy
+      onClick: ['ready', 'published'].includes(activeStudioListing.status) && !studioBusy
         ? () => openPreviewPanel(activeStudioListing)
         : undefined
     }

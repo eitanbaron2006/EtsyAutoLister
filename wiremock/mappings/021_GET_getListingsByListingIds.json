@@ -1,0 +1,20 @@
+{
+  "id": "986c9e52-4dfa-47fb-b75b-60ca5fca80bb",
+  "name": "getListingsByListingIds",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/listings/batch"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

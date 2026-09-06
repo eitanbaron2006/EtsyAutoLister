@@ -1,0 +1,36 @@
+{
+  "id": "df99fd65-e417-4475-8a0e-50c9b9130844",
+  "name": "getListingImage",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/images/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_id": 1,
+      "listing_image_id": 1,
+      "hex_code": "The webhex string for the imag",
+      "red": 0,
+      "green": 0,
+      "blue": 0,
+      "hue": 0,
+      "saturation": 0,
+      "brightness": 0,
+      "is_black_and_white": true,
+      "creation_tsz": 0,
+      "created_timestamp": 0,
+      "rank": 0,
+      "url_75x75": "The url string for a 75x75 pix",
+      "url_170x135": "The url string for a 170x135 p",
+      "url_570xN": "The url string for a thumbnail",
+      "url_fullxfull": "The url string for the full-si",
+      "full_height": 0,
+      "full_width": 0,
+      "alt_text": "Alt text for the listing image"
+    }
+  }
+}

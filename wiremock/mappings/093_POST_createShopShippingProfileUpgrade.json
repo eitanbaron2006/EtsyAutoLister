@@ -1,0 +1,28 @@
+{
+  "id": "7f33fd6c-9787-41eb-8eb1-d1e249f8067a",
+  "name": "createShopShippingProfileUpgrade",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+/upgrades$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shipping_profile_id": 1,
+      "upgrade_id": 1,
+      "upgrade_name": "Name for the shipping upgrade ",
+      "type": 123456789,
+      "rank": 0,
+      "language": "The IETF language tag for the ",
+      "price": {},
+      "secondary_price": {},
+      "shipping_carrier_id": 123456789,
+      "mail_class": "The unique ID string of a ship",
+      "min_delivery_days": 1,
+      "max_delivery_days": 1
+    }
+  }
+}

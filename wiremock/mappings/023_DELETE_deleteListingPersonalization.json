@@ -1,0 +1,15 @@
+{
+  "id": "81bd640c-1055-4aae-b9ed-8e5c29c39e10",
+  "name": "deleteListingPersonalization",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/personalization$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

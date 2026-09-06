@@ -1,0 +1,15 @@
+{
+  "id": "7ed40001-df45-4950-8d1c-e266a4544f5a",
+  "name": "deleteListingProperty",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/properties/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

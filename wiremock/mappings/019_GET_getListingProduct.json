@@ -1,0 +1,25 @@
+{
+  "id": "e3e3a354-6f15-4070-964f-146a06443613",
+  "name": "getListingProduct",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/inventory/products/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "product_id": 1,
+      "sku": "The SKU string for the product",
+      "is_deleted": true,
+      "offerings": [
+        {}
+      ],
+      "property_values": [
+        {}
+      ]
+    }
+  }
+}

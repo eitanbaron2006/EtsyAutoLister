@@ -1,0 +1,20 @@
+{
+  "id": "87513140-646c-4544-b839-6894b3655f7e",
+  "name": "getReviewsByListing",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/reviews$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

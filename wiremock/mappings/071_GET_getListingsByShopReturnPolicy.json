@@ -1,0 +1,20 @@
+{
+  "id": "07c9bf89-adfe-4fab-89cb-ce73b3bcae07",
+  "name": "getListingsByShopReturnPolicy",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/policies/return/[^/]+/listings$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

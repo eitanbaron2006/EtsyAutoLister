@@ -1,0 +1,21 @@
+{
+  "id": "e04138c6-fb56-44aa-8821-d0674dc275d7",
+  "name": "updateHolidayPreferences",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/holiday-preferences/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shop_id": 1,
+      "holiday_id": 123456789,
+      "country_iso": "The country ISO where the shop",
+      "is_working": true,
+      "holiday_name": "The name of the holiday that a"
+    }
+  }
+}

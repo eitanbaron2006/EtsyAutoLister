@@ -1,0 +1,50 @@
+{
+  "id": "1e5c242f-0ace-4954-adef-a1fec339a485",
+  "name": "getShopReceiptTransaction",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/transactions/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "transaction_id": 1,
+      "title": "The title string of the [listi",
+      "description": "The description string of the ",
+      "seller_user_id": 1,
+      "buyer_user_id": 1,
+      "create_timestamp": 946684800,
+      "created_timestamp": 946684800,
+      "paid_timestamp": 946684800,
+      "shipped_timestamp": 946684800,
+      "quantity": 0,
+      "listing_image_id": 1,
+      "receipt_id": 1,
+      "is_digital": true,
+      "file_data": "A string describing the files ",
+      "listing_id": 0,
+      "transaction_type": "The type string for the transa",
+      "product_id": 1,
+      "sku": "The SKU string for the product",
+      "price": {},
+      "shipping_cost": {},
+      "variations": [
+        {}
+      ],
+      "product_data": [
+        {}
+      ],
+      "shipping_profile_id": 1,
+      "min_processing_days": 0,
+      "max_processing_days": 0,
+      "shipping_method": "Name of the selected shipping ",
+      "shipping_upgrade": "The name of the shipping upgra",
+      "expected_ship_date": 946684800,
+      "buyer_coupon": 0,
+      "shop_coupon": 0
+    }
+  }
+}

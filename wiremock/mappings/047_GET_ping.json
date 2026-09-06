@@ -1,0 +1,17 @@
+{
+  "id": "07a05478-50c8-4140-934c-c620963e540f",
+  "name": "ping",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/openapi-ping"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "application_id": 1
+    }
+  }
+}

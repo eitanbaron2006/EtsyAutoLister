@@ -1,0 +1,24 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "url": "/"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "online",
+      "service": "Etsy Mock API (WireMock)",
+      "version": "v3",
+      "totalEndpoints": 105,
+      "exampleEndpoints": [
+        "/v3/application/openapi-ping",
+        "/v3/application/users/me",
+        "/v3/application/shops/123/listings"
+      ]
+    }
+  }
+}

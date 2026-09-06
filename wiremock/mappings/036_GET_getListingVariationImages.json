@@ -1,0 +1,25 @@
+{
+  "id": "0ff26b84-8db4-4ab0-9477-03d9c3bcd3cd",
+  "name": "getListingVariationImages",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/variation-images$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {
+          "property_id": 1,
+          "value_id": 1,
+          "value": "The string value of the proper",
+          "image_id": 1
+        }
+      ]
+    }
+  }
+}

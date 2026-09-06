@@ -1,0 +1,20 @@
+{
+  "id": "8079b51f-9b61-42b7-a46b-f1cedea76979",
+  "name": "getAllListingFiles",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/files$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

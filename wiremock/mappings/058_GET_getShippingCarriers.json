@@ -1,0 +1,29 @@
+{
+  "id": "a9d996ec-8d83-4b5e-bf9b-78eb9a2065d3",
+  "name": "getShippingCarriers",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/shipping-carriers"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {
+          "shipping_carrier_id": 1,
+          "name": "The name of this shipping carr",
+          "domestic_classes": [
+            {}
+          ],
+          "international_classes": [
+            {}
+          ]
+        }
+      ]
+    }
+  }
+}

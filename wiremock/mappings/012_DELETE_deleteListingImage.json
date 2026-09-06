@@ -1,0 +1,15 @@
+{
+  "id": "0bcde102-7dfb-40fe-86a7-88c686487cad",
+  "name": "deleteListingImage",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/images/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "afb0b5e6-df05-44ed-a3a0-c94d01000320",
+  "name": "getMe",
+  "request": {
+    "method": "GET",
+    "urlPath": "/v3/application/users/me"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "user_id": 1,
+      "shop_id": 1
+    }
+  }
+}

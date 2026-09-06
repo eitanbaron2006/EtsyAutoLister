@@ -1,0 +1,20 @@
+{
+  "id": "d74dba98-9446-4f1f-b7a4-6236779ebded",
+  "name": "getListingsByShopSectionId",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shop-sections/listings$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

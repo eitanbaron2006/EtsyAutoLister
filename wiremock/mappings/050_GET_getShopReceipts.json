@@ -1,0 +1,20 @@
+{
+  "id": "bc4bc4b0-2d63-4307-94bc-8535e04487bc",
+  "name": "getShopReceipts",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/receipts$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 123456789,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

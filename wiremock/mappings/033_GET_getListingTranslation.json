@@ -1,0 +1,23 @@
+{
+  "id": "fe7d5bb3-bcb0-4c15-a458-dcc419051b4c",
+  "name": "getListingTranslation",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/translations/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_id": 1,
+      "language": "The IETF language tag (e.g. 'f",
+      "title": "The title of the Listing of th",
+      "description": "The description of the Listing",
+      "tags": [
+        "sample_string"
+      ]
+    }
+  }
+}

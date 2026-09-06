@@ -1,0 +1,19 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v3/public/oauth/token"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "mock_etsy_access_token_12345",
+      "token_type": "Bearer",
+      "expires_in": 86400,
+      "refresh_token": "mock_etsy_refresh_token_12345"
+    }
+  }
+}

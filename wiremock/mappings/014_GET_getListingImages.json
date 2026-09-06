@@ -1,0 +1,20 @@
+{
+  "id": "bf7d99cc-51ea-4292-aea8-09329d3decb6",
+  "name": "getListingImages",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/listings/[^/]+/images$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "dc1f6a5d-0cfd-4407-871c-bf0627ec6a78",
+  "name": "getPropertiesByTaxonomyId",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/seller-taxonomy/nodes/[^/]+/properties$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

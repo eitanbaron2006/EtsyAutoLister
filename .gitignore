@@ -8,3 +8,6 @@ coverage/
 
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo
+
+# WireMock standalone binary
+wiremock/*.jar

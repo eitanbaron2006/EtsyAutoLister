@@ -1,0 +1,25 @@
+{
+  "id": "7115b958-4068-4b95-8d05-e941078b5e70",
+  "name": "uploadListingFile",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/listings/[^/]+/files$"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "listing_file_id": 1,
+      "listing_id": 1,
+      "rank": 0,
+      "filename": "The file name string for a fil",
+      "filesize": "A human-readable format size s",
+      "size_bytes": 0,
+      "filetype": "A type string indicating a fil",
+      "create_timestamp": 946684800,
+      "created_timestamp": 946684800
+    }
+  }
+}

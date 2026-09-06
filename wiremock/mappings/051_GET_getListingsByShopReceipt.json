@@ -1,0 +1,20 @@
+{
+  "id": "c9881e9b-3e20-4ce6-be5d-50989e29196d",
+  "name": "getListingsByShopReceipt",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/receipts/[^/]+/listings$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {}
+      ]
+    }
+  }
+}

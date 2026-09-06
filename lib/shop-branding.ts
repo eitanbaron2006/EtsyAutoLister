@@ -25,13 +25,14 @@ async function fetchFromEtsy(token: string): Promise<ShopBranding | null> {
   const apiKey = process.env.ETSY_API_KEY;
   if (!apiKey) return null;
 
+  const etsyBase = process.env.ETSY_API_BASE_URL || 'https://api.etsy.com';
   const headers = { Authorization: `Bearer ${token}`, 'x-api-key': apiKey };
 
-  const me = await fetch('https://api.etsy.com/v3/application/users/me', { headers });
+  const me = await fetch(`${etsyBase}/v3/application/users/me`, { headers });
   if (!me.ok) return null;
   const userId = (await me.json()).user_id;
 
-  const shops = await fetch(`https://api.etsy.com/v3/application/users/${userId}/shops`, { headers });
+  const shops = await fetch(`${etsyBase}/v3/application/users/${userId}/shops`, { headers });
   if (!shops.ok) return null;
   const shop = await shops.json();
 

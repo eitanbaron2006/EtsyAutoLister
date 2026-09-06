@@ -1,0 +1,31 @@
+{
+  "id": "531545a8-52ba-41ef-b835-b10e65d97415",
+  "name": "updateShopShippingProfile",
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/shipping-profiles/[^/]+$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "shipping_profile_id": 1,
+      "title": "The name string of this shippi",
+      "user_id": 1,
+      "origin_country_iso": "The ISO code of the country fr",
+      "is_deleted": true,
+      "shipping_profile_destinations": [
+        {}
+      ],
+      "shipping_profile_upgrades": [
+        {}
+      ],
+      "origin_postal_code": "The postal code string (not ne",
+      "profile_type": "manual",
+      "domestic_handling_fee": 0,
+      "international_handling_fee": 0
+    }
+  }
+}

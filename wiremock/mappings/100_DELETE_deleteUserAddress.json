@@ -1,0 +1,15 @@
+{
+  "id": "61bae0a8-8b0f-48b6-ad99-64e8722fe46d",
+  "name": "deleteUserAddress",
+  "request": {
+    "method": "DELETE",
+    "urlPathPattern": "^/v3/application/user/addresses/[^/]+$"
+  },
+  "response": {
+    "status": 204,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {}
+  }
+}

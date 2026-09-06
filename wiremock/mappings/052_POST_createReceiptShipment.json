@@ -1,0 +1,62 @@
+{
+  "id": "7e927c51-43b1-43f6-a3b7-2638bd94a1da",
+  "name": "createReceiptShipment",
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/receipts/[^/]+/tracking$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "receipt_id": 1,
+      "receipt_type": 0,
+      "seller_user_id": 1,
+      "seller_email": "The email address string for t",
+      "buyer_user_id": 1,
+      "buyer_email": "The email address string for t",
+      "name": "The name string for the recipi",
+      "first_line": "The first address line string ",
+      "second_line": "The optional second address li",
+      "city": "The city string for the recipi",
+      "state": "The state string for the recip",
+      "zip": "The zip code string (not neces",
+      "status": "paid",
+      "formatted_address": "The formatted shipping address",
+      "country_iso": "The ISO-3166 alpha-2 country c",
+      "payment_method": "The payment method string iden",
+      "payment_email": "The email address string for t",
+      "message_from_seller": "An optional message string fro",
+      "message_from_buyer": "An optional message string fro",
+      "message_from_payment": "The machine-generated acknowle",
+      "is_paid": true,
+      "is_shipped": true,
+      "create_timestamp": 946684800,
+      "created_timestamp": 946684800,
+      "update_timestamp": 946684800,
+      "updated_timestamp": 946684800,
+      "is_gift": true,
+      "gift_message": "A gift message string the buye",
+      "gift_sender": "The name of the person who sen",
+      "grandtotal": {},
+      "subtotal": {},
+      "total_price": {},
+      "total_shipping_cost": {},
+      "total_tax_cost": {},
+      "total_vat_cost": {},
+      "discount_amt": {},
+      "gift_wrap_price": {},
+      "shipments": [
+        {}
+      ],
+      "transactions": [
+        {}
+      ],
+      "refunds": [
+        {}
+      ]
+    }
+  }
+}

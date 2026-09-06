@@ -1,0 +1,26 @@
+{
+  "id": "323b6f68-72ca-47ad-ae10-31a692dbd06b",
+  "name": "getShopReturnPolicies",
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "^/v3/application/shops/[^/]+/policies/return$"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "count": 0,
+      "results": [
+        {
+          "return_policy_id": 1,
+          "shop_id": 1,
+          "accepts_returns": true,
+          "accepts_exchanges": true,
+          "return_deadline": 123456789
+        }
+      ]
+    }
+  }
+}

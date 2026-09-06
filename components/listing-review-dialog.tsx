@@ -779,9 +779,20 @@ export function ListingReviewDialog({
 
               {selectedMode === 'etsy' ? (
                 activeProduct?.status === 'published' ? (
-                  <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-xs uppercase tracking-wider rounded-lg px-6">
-                    <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" disabled className="text-[#6e7448] border-[#6e7448]/35 bg-[#efe7d2] font-mono text-xs uppercase tracking-wider rounded-lg px-4">
+                      <Check className="w-4 h-4 mr-1 text-[#6e7448]" /> Active Draft Added
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (activeProduct) publishToEtsySnapshot(activeProduct);
+                      }}
+                      className="bg-[#ed6f5c] hover:bg-[#e25e4a] text-white font-mono text-xs rounded-full px-5 transition-colors uppercase tracking-wider cursor-pointer border-0"
+                      title="Publish this listing again as a new draft"
+                    >
+                      Publish Again
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     onClick={() => {
