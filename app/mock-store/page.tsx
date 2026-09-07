@@ -37,7 +37,8 @@ import {
   CreditCard,
   HelpCircle,
   Award,
-  Lock
+  Lock,
+  Paperclip
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -181,7 +182,42 @@ export default function MockStorePage() {
 
   const activeListing = listings[selectedListingIndex] || listings[0];
   const images = activeListing?.images || [];
-  const currentImage = images[selectedImageIndex] || images[0];
+  const currentImage = selectedImageIndex >= 0 ? images[selectedImageIndex] || images[0] : null;
+
+  const fileTypesSummary = React.useMemo(() => {
+    if (!activeListing?.files || activeListing.files.length === 0) {
+      return `${activeListing?.filesCount || 2} PDF`;
+    }
+    const extCounts: Record<string, number> = {};
+    activeListing.files.forEach((f) => {
+      const ext = f.filename.split('.').pop()?.toUpperCase() || 'PDF';
+      extCounts[ext] = (extCounts[ext] || 0) + 1;
+    });
+    const parts = Object.entries(extCounts).map(([ext, count]) => `${count} ${ext}`);
+    return parts.join(', ') || '2 PDF';
+  }, [activeListing]);
+
+  const handlePrevImage = () => {
+    if (images.length === 0) return;
+    if (selectedImageIndex === 0) {
+      setSelectedImageIndex(-1); // Video
+    } else if (selectedImageIndex === -1) {
+      setSelectedImageIndex(images.length - 1);
+    } else {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    }
+  };
+
+  const handleNextImage = () => {
+    if (images.length === 0) return;
+    if (selectedImageIndex === -1) {
+      setSelectedImageIndex(0);
+    } else if (selectedImageIndex === images.length - 1) {
+      setSelectedImageIndex(-1); // Video
+    } else {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white text-[#222222] font-sans antialiased selection:bg-[#F1641E]/20" dir="ltr">
@@ -394,100 +430,152 @@ export default function MockStorePage() {
               <div className="lg:col-span-7 space-y-10">
                 
                 {/* Image Showcase */}
-                <div className="flex flex-col-reverse sm:flex-row gap-3 items-start">
+                <div className="flex flex-col-reverse sm:flex-row gap-3.5 items-start">
                   
-                  {/* Vertical Thumbnails list on far left (matching screenshot) */}
-                  <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[640px] pb-2 sm:pb-0 shrink-0 w-full sm:w-16">
-                    {/* Simulated video thumbnail if images exist */}
-                    <button
-                      onClick={() => setSelectedImageIndex(0)}
-                      className={`w-14 h-14 sm:w-15 sm:h-15 rounded-lg overflow-hidden border transition-all bg-gray-100 shrink-0 relative flex items-center justify-center group ${
-                        selectedImageIndex === -1 ? 'border-2 border-black' : 'border-[#E1E1E1] hover:border-gray-500'
-                      }`}
-                      title="Product Video"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-white/90 shadow-xs flex items-center justify-center text-gray-700">
-                        <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                      </div>
-                    </button>
-
-                    {images.map((img, idx) => (
+                  {/* Vertical Thumbnails list on far left (exact Etsy layout from screenshot) */}
+                  <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[640px] pb-2 sm:pb-0 shrink-0 w-full sm:w-16 select-none">
+                    
+                    {/* Thumbnail #1: Primary Mockup Image (Top) */}
+                    {images[0] && (
                       <button
-                        key={idx}
-                        onClick={() => setSelectedImageIndex(idx)}
-                        className={`w-14 h-14 sm:w-15 sm:h-15 rounded-lg overflow-hidden border transition-all bg-[#F9F9F9] shrink-0 relative ${
-                          selectedImageIndex === idx
-                            ? 'border-2 border-black shadow-xs'
-                            : 'border-[#E1E1E1] hover:border-gray-500 opacity-90 hover:opacity-100'
+                        onClick={() => setSelectedImageIndex(0)}
+                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden transition-all bg-[#F9F9F9] shrink-0 relative cursor-pointer ${
+                          selectedImageIndex === 0
+                            ? 'border-2 border-black shadow-sm'
+                            : 'border border-[#E1E1E1] hover:border-gray-500 opacity-90 hover:opacity-100'
                         }`}
+                        title="Primary Cover Photo"
                       >
                         <img
-                          src={img.url}
-                          alt={`Mockup preview ${idx + 1}`}
+                          src={images[0].url}
+                          alt="Primary Mockup"
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
                         />
                       </button>
-                    ))}
-                  </div>
+                    )}
 
-                  {/* Main Large Image Container */}
-                  <div className="flex-1 w-full bg-[#F5F2EC] rounded-2xl overflow-hidden relative shadow-xs min-h-[460px] sm:min-h-[580px] flex items-center justify-center group border border-[#E2DCC8]">
-                    
-                    {/* Etsy's Pick badge (top left) */}
-                    <div className="absolute top-4 left-4 z-10">
-                      <div className="bg-[#FDE047] text-[#1F2937] text-xs font-bold px-3 py-1.5 rounded-r-full rounded-l-md shadow-xs flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 fill-current text-amber-800" />
-                        <span>Etsy&apos;s Pick</span>
-                      </div>
-                    </div>
-
-                    {/* Circular Favorite Heart Button (top right, matching screenshot) */}
+                    {/* Thumbnail #2: Product Video with Play icon overlay */}
                     <button
-                      onClick={() => setIsFavorited(!isFavorited)}
-                      className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 hover:bg-white shadow-md flex items-center justify-center transition-transform hover:scale-105"
-                      title="Add to collection"
+                      onClick={() => setSelectedImageIndex(-1)}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden transition-all bg-gray-100 shrink-0 relative flex items-center justify-center cursor-pointer group ${
+                        selectedImageIndex === -1 ? 'border-2 border-black shadow-sm' : 'border border-[#E1E1E1] hover:border-gray-500'
+                      }`}
+                      title="Product Video Demo"
                     >
-                      <Heart
-                        className={`w-5 h-5 transition-colors ${
-                          isFavorited ? 'fill-[#E11D48] text-[#E11D48]' : 'text-gray-700 hover:text-black'
-                        }`}
-                      />
+                      {images[0] ? (
+                        <img
+                          src={images[0].url}
+                          alt="Video Preview"
+                          className="w-full h-full object-cover opacity-75 group-hover:opacity-90 transition-opacity"
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-white/95 shadow-md flex items-center justify-center text-[#222222] group-hover:scale-105 transition-transform">
+                          <Play className="w-4 h-4 fill-current ml-0.5 text-[#222222]" />
+                        </div>
+                      </div>
                     </button>
 
-                    {/* Main Image */}
-                    {currentImage?.url ? (
-                      <img
-                        src={currentImage.url}
-                        alt={activeListing.title}
-                        className="w-full h-full object-contain max-h-[640px]"
-                      />
-                    ) : (
-                      <div className="text-center p-8 text-gray-400">
-                        <ImageIcon className="w-16 h-16 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Mockup preview will appear here</p>
-                      </div>
-                    )}
+                    {/* Thumbnails #3 to #10: Remaining Mockups */}
+                    {images.slice(1).map((img, idx) => {
+                      const actualIdx = idx + 1;
+                      return (
+                        <button
+                          key={actualIdx}
+                          onClick={() => setSelectedImageIndex(actualIdx)}
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden transition-all bg-[#F9F9F9] shrink-0 relative cursor-pointer ${
+                            selectedImageIndex === actualIdx
+                              ? 'border-2 border-black shadow-sm'
+                              : 'border border-[#E1E1E1] hover:border-gray-500 opacity-90 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={img.url}
+                            alt={`Mockup angle ${actualIdx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    {/* Next / Previous circular floating buttons on left & right */}
-                    {images.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-100"
-                        >
-                          <ChevronLeft className="w-5 h-5 text-gray-800" />
-                        </button>
-                        <button
-                          onClick={() => setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-100"
-                        >
-                          <ChevronRight className="w-5 h-5 text-gray-800" />
-                        </button>
-                      </>
-                    )}
+                  {/* Main Large Image Container (Matching screenshot aspect & floating buttons) */}
+                  <div className="flex-1 w-full relative group">
+                    <div className="w-full bg-[#F5F2EC] rounded-2xl overflow-hidden relative shadow-xs aspect-[4/5] sm:min-h-[580px] max-h-[640px] flex items-center justify-center border border-[#E2DCC8]">
+                      
+                      {/* Etsy's Pick badge (top left, exact yellow with dotted underline) */}
+                      <div className="absolute top-4 left-4 z-10">
+                        <div className="bg-[#FDE293] text-[#222222] text-xs font-bold px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5 border border-[#F2CC59]">
+                          <Sparkles className="w-3.5 h-3.5 fill-current text-[#7A5400]" />
+                          <span className="border-b border-dotted border-[#222222]">Etsy&apos;s Pick</span>
+                        </div>
+                      </div>
+
+                      {/* Circular Favorite Heart Button (top right, matching screenshot) */}
+                      <button
+                        onClick={() => setIsFavorited(!isFavorited)}
+                        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-transform hover:scale-105 border border-black/5 cursor-pointer"
+                        title="Add to collection"
+                      >
+                        <Heart
+                          className={`w-5 h-5 transition-colors ${
+                            isFavorited ? 'fill-[#E11D48] text-[#E11D48]' : 'text-gray-700 hover:text-black'
+                          }`}
+                        />
+                      </button>
+
+                      {/* Main Image or Simulated Listing Video */}
+                      {selectedImageIndex === -1 ? (
+                        <div className="w-full h-full bg-[#18181B] flex flex-col items-center justify-center relative group select-none overflow-hidden">
+                          {images[0] ? (
+                            <img
+                              src={images[0].url}
+                              alt="Video Preview Background"
+                              className="absolute inset-0 w-full h-full object-cover opacity-50 scale-105 transition-transform duration-700 group-hover:scale-110"
+                            />
+                          ) : null}
+                          <div className="relative z-10 flex flex-col items-center gap-3 p-6 text-center">
+                            <div className="w-16 h-16 rounded-full bg-white text-black shadow-2xl flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                              <Play className="w-7 h-7 fill-current ml-1 text-black" />
+                            </div>
+                            <div className="bg-black/75 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-2 border border-white/20 shadow-lg">
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                              <span>Etsy Listing Video (1080p HD)</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : currentImage?.url ? (
+                        <img
+                          src={currentImage.url}
+                          alt={activeListing.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-center p-8 text-gray-400">
+                          <ImageIcon className="w-16 h-16 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Mockup preview will appear here</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Next / Previous circular floating buttons overlapping the borders */}
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
+                      title="Previous image"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-800" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
+                      title="Next image"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-800" />
+                    </button>
                   </div>
                 </div>
 
@@ -846,49 +934,42 @@ export default function MockStorePage() {
                     {openSections.itemDetails && (
                       <div className="pt-4 space-y-4 text-xs text-[#222222]">
                         
-                        {/* Highlights (Designed by, Digital download, File types) */}
-                        <div className="space-y-2">
-                          <div className="font-bold text-[#222222]">Highlights</div>
-                          <div className="space-y-1.5 text-gray-700">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400">🎨</span>
-                              <span>Designed by <strong>BaronArtPrintStudio</strong></span>
+                        {/* Highlights (Designed by, Digital download, File types) - Matching screenshot exactly */}
+                        <div className="space-y-2 pb-1">
+                          <div className="font-bold text-[#222222] text-sm">Highlights</div>
+                          <div className="space-y-2 text-[#222222]">
+                            <div className="flex items-center gap-2.5">
+                              <svg className="w-4 h-4 text-[#222222] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M9 3v18"/>
+                                <path d="M15 3v18"/>
+                                <path d="M3 9h18"/>
+                                <path d="M3 15h18"/>
+                              </svg>
+                              <span className="text-xs">Designed by <strong className="font-semibold text-[#222222]">BaronArtPrintStudio</strong></span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Download className="w-3.5 h-3.5 text-gray-500" />
-                              <span>Digital download</span>
+                            <div className="flex items-center gap-2.5">
+                              <svg className="w-4 h-4 text-[#222222] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+                              </svg>
+                              <span className="text-xs font-normal text-[#222222]">Digital download</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-3.5 h-3.5 text-gray-500" />
-                              <span>Digital file type(s): {activeListing.filesCount || 6} JPG, PDF, ZIP</span>
+                            <div className="flex items-center gap-2.5">
+                              <Paperclip className="w-4 h-4 text-[#222222] shrink-0" />
+                              <span className="text-xs text-[#222222]">Digital file type(s): {fileTypesSummary}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Deliverable files summary */}
-                        {activeListing.files.length > 0 && (
-                          <div className="p-3 rounded-xl bg-purple-50/60 border border-purple-100 text-purple-900 space-y-1.5">
-                            <div className="font-bold text-[11px] flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-purple-600" />
-                              <span>Attached Files ({activeListing.files.length})</span>
-                            </div>
-                            <div className="font-mono text-[10px] space-y-0.5 text-purple-800">
-                              {activeListing.files.map((f, i) => (
-                                <div key={i} className="truncate">• {f.filename}</div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
                         {/* DESCRIPTION TEXT (EXACTLY AS IN SCREENSHOT) */}
-                        <div className="pt-2 border-t border-gray-100">
+                        <div className="pt-3 border-t border-gray-100">
                           <div className={`text-xs text-gray-700 leading-relaxed whitespace-pre-line ${isDescExpanded ? '' : 'line-clamp-6'}`}>
                             {activeListing.description}
                           </div>
 
                           <button
                             onClick={() => setIsDescExpanded(!isDescExpanded)}
-                            className="mt-3 text-xs font-bold text-[#222222] hover:underline block text-center w-full py-1 bg-gray-50 rounded-lg"
+                            className="mt-3 text-xs font-bold text-[#222222] hover:underline block text-center w-full py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                           >
                             {isDescExpanded ? 'Show less' : 'Learn more about this item'}
                           </button>
@@ -909,12 +990,30 @@ export default function MockStorePage() {
                     </button>
 
                     {openSections.delivery && (
-                      <div className="pt-3 space-y-2.5 text-xs text-gray-700 leading-relaxed">
+                      <div className="pt-3 space-y-3 text-xs text-gray-700 leading-relaxed">
                         <div className="font-bold text-black text-sm">Instant Download</div>
                         <p>
                           Your files will be available to download once payment is confirmed.{' '}
                           <span className="underline cursor-pointer font-medium text-black">Here&apos;s how.</span>
                         </p>
+
+                        {/* Deliverable files listing cleanly placed in Delivery */}
+                        {activeListing.files && activeListing.files.length > 0 && (
+                          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-800 space-y-1.5">
+                            <div className="font-semibold text-[11px] flex items-center gap-1.5 text-gray-900">
+                              <FileText className="w-3.5 h-3.5 text-gray-600" />
+                              <span>Files available after download ({activeListing.files.length}):</span>
+                            </div>
+                            <div className="font-mono text-[11px] space-y-1 text-gray-600">
+                              {activeListing.files.map((f, i) => (
+                                <div key={i} className="truncate flex items-center gap-1.5">
+                                  <span className="text-gray-400">•</span>
+                                  <span>{f.filename}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <p className="text-gray-500 text-[11px]">
                           Instant download items don&apos;t accept returns, exchanges or cancellations. Please contact the seller about any problems with your order.
                         </p>
