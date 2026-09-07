@@ -15,7 +15,6 @@ import {
   Copy, 
   ExternalLink,
   Layers,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
@@ -514,15 +513,25 @@ export default function MockStorePage() {
 
                   {/* Main Large Image Container (Cleanly situated BETWEEN both chevrons) */}
                   <div className="flex-1 w-full relative">
-                    <div className="w-full bg-[#F5F2EC] rounded-2xl overflow-hidden relative shadow-xs aspect-[4/5] sm:min-h-[580px] max-h-[640px] flex items-center justify-center border border-[#E2DCC8]">
-                      
-                      {/* Etsy's Pick badge (top left, exact yellow with dotted underline) */}
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="bg-[#FDE293] text-[#222222] text-xs font-bold px-3 py-1.5 rounded-full shadow-xs flex items-center gap-1.5 border border-[#F2CC59]">
-                          <Sparkles className="w-3.5 h-3.5 fill-current text-[#7A5400]" />
-                          <span className="border-b border-dotted border-[#222222]">Etsy&apos;s Pick</span>
-                        </div>
+                    {/* Etsy's Pick badge (exact original Etsy design, colors & placement) */}
+                    <div className="absolute top-1.5 sm:-left-[38px] left-2 z-20 pointer-events-auto">
+                      <div className="bg-[#FFC340] text-[#222222] text-[11px] sm:text-[12px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 select-none shadow-none border-none">
+                        {/* Etsy 4-point sparkle icon with northeast accent dot */}
+                        <svg
+                          className="w-3 h-3 fill-[#222222] shrink-0"
+                          viewBox="0 0 16 16"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M6.5 2Q6.5 8 12.5 8Q6.5 8 6.5 14Q6.5 8 0.5 8Q6.5 8 6.5 2Z" />
+                          <circle cx="12" cy="2.5" r="1.4" />
+                        </svg>
+                        <span className="border-b border-dotted border-[#222222] pb-[1px] leading-none tracking-tight">
+                          Etsy&apos;s Pick
+                        </span>
                       </div>
+                    </div>
+
+                    <div className="w-full bg-[#F5F2EC] rounded-2xl overflow-hidden relative shadow-xs aspect-[4/5] sm:min-h-[580px] max-h-[640px] flex items-center justify-center border border-[#E2DCC8]">
 
                       {/* Circular Favorite Heart Button (top right, matching screenshot) */}
                       <button
