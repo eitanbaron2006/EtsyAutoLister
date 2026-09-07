@@ -5,11 +5,32 @@ import path from 'path';
 const WIREMOCK_URL = process.env.ETSY_API_BASE_URL || 'http://127.0.0.1:8080';
 const DB_FILE = path.join(process.cwd(), 'wiremock', 'mock-store-db.json');
 
+function resolveImageUrl(fn: string): string {
+  if (!fn) return '/placeholder-image.jpg';
+  const mockUploadsFile = path.join(process.cwd(), 'public', 'mock-uploads', fn);
+  if (fs.existsSync(mockUploadsFile)) {
+    return `/mock-uploads/${fn}`;
+  }
+  const extrasFile = path.join(process.cwd(), 'public', 'listing-extras', 'printable_wallart', fn);
+  if (fs.existsSync(extrasFile)) {
+    return `/listing-extras/printable_wallart/${fn}`;
+  }
+  return `/outputs/${fn}`;
+}
+
 function loadSavedListings(): any[] {
   try {
     if (fs.existsSync(DB_FILE)) {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(content) || [];
+      const parsed = JSON.parse(content) || [];
+      parsed.forEach((l: any) => {
+        l.images?.forEach((img: any) => {
+          if (img.filename) {
+            img.url = resolveImageUrl(img.filename);
+          }
+        });
+      });
+      return parsed;
     }
   } catch (e) {
     console.error('Failed to read mock-store-db.json:', e);
@@ -101,7 +122,7 @@ export async function GET() {
             const rank = rankMatch ? parseInt(rankMatch[1], 10) : 999;
             return {
               filename: fn,
-              url: `/outputs/${fn}`,
+              url: resolveImageUrl(fn),
               rank,
             };
           })
@@ -181,6 +202,17 @@ export async function GET() {
 export async function DELETE() {
   try {
     saveListings([]);
+
+    // Also clean up mock uploads folder on store reset
+    const mockUploadsDir = path.join(process.cwd(), 'public', 'mock-uploads');
+    if (fs.existsSync(mockUploadsDir)) {
+      const files = fs.readdirSync(mockUploadsDir);
+      for (const f of files) {
+        try {
+          fs.unlinkSync(path.join(mockUploadsDir, f));
+        } catch { }
+      }
+    }
 
     const res = await fetch(`${WIREMOCK_URL}/__admin/requests`, {
       method: 'DELETE',

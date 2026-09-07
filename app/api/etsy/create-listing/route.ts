@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 
 import { currentUserId, readEtsyToken } from '@/lib/etsy-token';
 
@@ -107,10 +109,26 @@ export async function POST(req: NextRequest) {
     const imageFiles = formData.getAll('image') as File[];
     const ranks = formData.getAll('rank') as string[];
 
+    // Ensure mock uploads folder exists to preserve actual image bytes for local simulation
+    const mockUploadsDir = path.join(process.cwd(), 'public', 'mock-uploads');
+    if (!fs.existsSync(mockUploadsDir)) {
+      fs.mkdirSync(mockUploadsDir, { recursive: true });
+    }
+
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       if (typeof file !== 'object') continue;
       const rank = ranks[i] ? parseInt(ranks[i], 10) : (i + 1);
+
+      // Persist local copy so simulator always serves actual image data
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const filename = file.name || `image_${rank}.jpg`;
+        fs.writeFileSync(path.join(mockUploadsDir, filename), buffer);
+      } catch (saveErr) {
+        console.warn('Could not save image to public/mock-uploads:', saveErr);
+      }
+
       const imageForm = new FormData();
       imageForm.append('image', file);
       imageForm.append('rank', rank.toString());

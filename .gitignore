@@ -11,3 +11,8 @@ tsconfig.tsbuildinfo
 
 # WireMock standalone binary
 wiremock/*.jar
+
+# Mock uploads temporary assets
+public/mock-uploads/*
+!public/mock-uploads/.gitkeep
+

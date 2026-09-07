@@ -1,72 +1,132 @@
 [
   {
-    "id": "a9344aaa-3acd-4df6-88f7-6c6848ca15a3",
-    "timestamp": 1788732871111,
-    "dateFormatted": "7 בספט׳ 2026, 1:14:31",
-    "title": "Surfboard Wall Art Minimalist Beach Photography Printable Coastal Decor Neutral Tones Surf Print Sunrise Beach Poster Digital Download",
-    "price": "5.99",
+    "id": "5c91ee1a-573f-433c-98ac-a6e003f505e0",
+    "timestamp": 1788821650681,
+    "dateFormatted": "8 בספט׳ 2026, 1:54:10",
+    "title": "Golden Hour Gallery Wall Set of 3, Mediterranean Summer Decor, Boho Neutral Wall Art, French Village Print, Ocean Sunset Digital Download",
+    "price": "7.50",
     "quantity": "999",
     "state": "draft",
     "taxonomyId": "10855",
     "whoMade": "i_did",
     "whenMade": "2020_2024",
     "isSupply": false,
-    "description": "Bring the calming essence of the coast into your space with this stunning, minimalist surfboard beach photography print. Featuring soft, warm beige and peach tones of a tranquil sunrise, this aesthetic digital wall art instantly creates a soothing, boho coastal vibe in any room.\r\n\r\nWHY YOU WILL LOVE IT:\r\n\r\n• Instant Atmosphere — Instantly download, print, and frame to effortlessly elevate your home with a relaxed, beachy aesthetic.\r\n\r\n• Versatile Styling — The neutral, earthy color palette perfectly complements bohemian, modern coastal, and minimalist decors.\r\n\r\n• Budget-Friendly Elegance — Achieve a premium interior design look without the high cost or waiting times of shipping physical art.\r\n\r\nWHAT IS INCLUDED:\r\n\r\n• 5 High-Resolution Files — Includes 300 DPI high-quality JPG images scalable to over 20 standard frame ratios.\r\n\r\n• Flexible Sizing Guide — A simple instruction sheet to help you choose the exact file for your specific frame size.\r\n\r\nHOW TO PRINT /\r\n\r\nUSE:\r\n\r\n• Download Immediately — Access your digital files right after purchase through your Etsy account or email receipt.\r\n\r\n• Print Your Way — Print easily at home, upload to an online printing service, or take the files to your local print shop.\r\n\r\nPLEASE NOTE:\r\n\r\n• Digital Download Only — This is a digital product; no physical items or frames will be shipped to your address.\r\n\r\n• Color Variation — Colors may vary slightly due to different monitor displays, printer calibrations, and paper types used.\r\n\r\nThank you for visiting our shop! If you have any questions or custom requests, feel free to send us a message.",
+    "description": "Transform your space with this stunning 3-piece gallery wall set featuring a sun-drenched European village, a serene coastal sunset, and golden pampas grass. Bathed in warm, neutral peach and beige tones, this curated photography collection brings a sophisticated, sun-kissed Mediterranean aesthetic right to your home.\r\n\r\nWHY YOU WILL LOVE IT:\r\n\r\n• Instant Transformation — Instantly download, print, and frame these beautiful images to refresh your living room, bedroom, or office in minutes.\r\n\r\n• Curated Cohesion — Designed to be displayed together, these three prints share a harmonious warm color palette that takes the guesswork out of styling.\r\n\r\n• Endless Versatility — From boho chic to modern Mediterranean, these timeless, sunlit scenes seamlessly blend with any home decor style.\r\n\r\nWHAT IS INCLUDED:\r\n\r\n• High-Resolution Files — You will receive 3 high-quality, 300 DPI JPG files for each design, ensuring crisp and vibrant prints.\r\n\r\n• Multiple Aspect Ratios — Files are scalable to fit over 20 standard frame sizes, making it easy to find the perfect frames for your space.\r\n\r\nHOW TO PRINT /\r\n\r\nUSE:\r\n\r\n• Download Immediately — Access your digital files right after purchase through your Etsy account or email receipt.\r\n\r\n• Print Your Way — Print at home using high-quality cardstock, upload to an online printing service, or take the files to your local print shop.\r\n\r\nPLEASE NOTE:\r\n\r\n• Digital Download Only — This is a digital product; no physical items or frames will be shipped to your address.\r\n\r\n• Color Variation — Colors may vary slightly due to different monitor displays, printer settings, and the type of paper used.\r\n\r\nThank you for visiting our shop! If you have any questions or custom requests, feel free to send us a message.",
     "tags": [
-      "Surfboard Wall Art",
-      "Minimalist Beach",
-      "Neutral Coastal Art",
-      "Boho Surf Print",
-      "Beach Photography",
-      "Sunrise Ocean Print",
-      "Surf Printable",
-      "Calm Beach Decor",
-      "Coastal Poster",
-      "Warm Tone Wall Art",
-      "Digital Download",
-      "Surfer Gift",
-      "Modern Beach Art"
+      "Golden hour prints",
+      "Neutral boho art",
+      "Mediterranean decor",
+      "Gallery wall set 3",
+      "French village art",
+      "Ocean sunset print",
+      "Pampas grass photo",
+      "Warm coastal art",
+      "Beige aesthetic art",
+      "Summer travel prints",
+      "Digital download",
+      "Sunlit wall decor",
+      "European summer art"
     ],
     "images": [
       {
-        "filename": "mockup_20260906_214515_4a32099e79ea490e8b1a7b0eff21eb33.jpg",
-        "url": "/outputs/mockup_20260906_214515_4a32099e79ea490e8b1a7b0eff21eb33.jpg"
+        "filename": "01_MAIN_cover_template_cd1f82e85ae8.jpg",
+        "url": "/mock-uploads/01_MAIN_cover_template_cd1f82e85ae8.jpg",
+        "rank": 1
       },
       {
-        "filename": "mockup_20260906_214514_7affda0d34a94276a8a91ea1b4e88041.jpg",
-        "url": "/outputs/mockup_20260906_214514_7affda0d34a94276a8a91ea1b4e88041.jpg"
+        "filename": "02_mockup_template_130b102bccd1.jpg",
+        "url": "/mock-uploads/02_mockup_template_130b102bccd1.jpg",
+        "rank": 2
       },
       {
-        "filename": "mockup_20260906_214513_27011ffff8ea4cac8a35bf52785a7998.jpg",
-        "url": "/outputs/mockup_20260906_214513_27011ffff8ea4cac8a35bf52785a7998.jpg"
+        "filename": "03_mockup_template_0dfe70ef0983.jpg",
+        "url": "/mock-uploads/03_mockup_template_0dfe70ef0983.jpg",
+        "rank": 3
       },
       {
-        "filename": "mockup_20260906_214511_aca070f3acf345489ddbc73cb63b31e9.jpg",
-        "url": "/outputs/mockup_20260906_214511_aca070f3acf345489ddbc73cb63b31e9.jpg"
+        "filename": "04_mockup_template_1763bb17f51e.jpg",
+        "url": "/mock-uploads/04_mockup_template_1763bb17f51e.jpg",
+        "rank": 4
       },
       {
-        "filename": "mockup_20260906_214510_c474f46b56824204b53cbda0476ef8dc.jpg",
-        "url": "/outputs/mockup_20260906_214510_c474f46b56824204b53cbda0476ef8dc.jpg"
+        "filename": "05_mockup_template_25291ba82c57.jpg",
+        "url": "/mock-uploads/05_mockup_template_25291ba82c57.jpg",
+        "rank": 5
       },
       {
-        "filename": "mockup_20260906_214508_c383d7636ea84fbbbb80f648bd424cf3.jpg",
-        "url": "/outputs/mockup_20260906_214508_c383d7636ea84fbbbb80f648bd424cf3.jpg"
+        "filename": "06_mockup_template_27038c375a0f.jpg",
+        "url": "/mock-uploads/06_mockup_template_27038c375a0f.jpg",
+        "rank": 6
       },
       {
-        "filename": "mockup_20260906_214506_8dbd0466a06a48c38dd9874ab7597511.jpg",
-        "url": "/outputs/mockup_20260906_214506_8dbd0466a06a48c38dd9874ab7597511.jpg"
+        "filename": "07_mockup_template_434f45ebea83.jpg",
+        "url": "/mock-uploads/07_mockup_template_434f45ebea83.jpg",
+        "rank": 7
+      },
+      {
+        "filename": "08_info_image.png",
+        "url": "/mock-uploads/08_info_image.png",
+        "rank": 8
       }
     ],
     "files": [
-      { "filename": "ChatGPT Image Sep 2, 2026, 10_14_21 AM (8).png" },
-      { "filename": "iso-a_ratio_A1_inch.jpg" },
-      { "filename": "11x14_ratio_22x28_inch.jpg" },
-      { "filename": "4x5_ratio_24x30_inch.jpg" },
-      { "filename": "3x4_ratio_18x24_inch.jpg" },
-      { "filename": "2x3_ratio_24x36_inch.jpg" }
+      {
+        "filename": "ChatGPT Image Sep 2, 2026, 10_25_08 AM (2).png"
+      },
+      {
+        "filename": "ChatGPT Image Sep 2, 2026, 10_28_27 AM (10).png"
+      },
+      {
+        "filename": "ChatGPT Image Sep 2, 2026, 10_28_26 AM (7).png"
+      },
+      {
+        "filename": "5x7_ratio_50x70cm_inch.jpg"
+      },
+      {
+        "filename": "1x1_ratio_24x24_inch.jpg"
+      },
+      {
+        "filename": "iso-a_ratio_A1_inch.jpg"
+      },
+      {
+        "filename": "4x5_ratio_24x30_inch.jpg"
+      },
+      {
+        "filename": "2x3_ratio_24x36_inch.jpg"
+      },
+      {
+        "filename": "5x7_ratio_50x70cm_inch.jpg"
+      },
+      {
+        "filename": "1x1_ratio_24x24_inch.jpg"
+      },
+      {
+        "filename": "iso-a_ratio_A1_inch.jpg"
+      },
+      {
+        "filename": "4x5_ratio_24x30_inch.jpg"
+      },
+      {
+        "filename": "2x3_ratio_24x36_inch.jpg"
+      },
+      {
+        "filename": "5x7_ratio_50x70cm_inch.jpg"
+      },
+      {
+        "filename": "1x1_ratio_24x24_inch.jpg"
+      },
+      {
+        "filename": "iso-a_ratio_A1_inch.jpg"
+      },
+      {
+        "filename": "4x5_ratio_24x30_inch.jpg"
+      },
+      {
+        "filename": "2x3_ratio_24x36_inch.jpg"
+      }
     ],
-    "imagesCount": 7,
-    "filesCount": 6,
+    "imagesCount": 8,
+    "filesCount": 18,
     "url": "/v3/application/shops/12345678/listings"
   }
 ]
