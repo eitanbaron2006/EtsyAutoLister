@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "mock": "java -jar wiremock/wiremock-standalone.jar --port 8080 --root-dir wiremock",
+    "dev:all": "concurrently -k -n \"WireMock,NextApp\" -c \"yellow.bold,cyan.bold\" \"npm run mock\" \"npm run dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -37,6 +39,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.8",
     "tailwindcss": "4.1.11",
