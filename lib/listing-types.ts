@@ -87,4 +87,6 @@ export type GeneratedMockup = {
   frameAssignment?: string[]; // frameAssignment[i] = artwork file name placed in frame i+1
   file: File;
   url: string; // object URL for in-app display
+  isMain?: boolean;
+  rank?: number;
 };

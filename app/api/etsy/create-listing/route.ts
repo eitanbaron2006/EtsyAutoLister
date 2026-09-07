@@ -103,36 +103,44 @@ export async function POST(req: NextRequest) {
     const listingData = await createListingRes.json();
     const listingId = listingData.listing_id;
 
-    // We expect files to be passed in FormData under 'image' or 'file'
-    for (const [key, value] of formData.entries()) {
-      if (key === 'image' && typeof value === 'object') {
-        const imageForm = new FormData();
-        imageForm.append('image', value);
-        const imgRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/images`, {
-          method: 'POST',
-          headers: {
-            'x-api-key': process.env.ETSY_API_KEY!,
-            'Authorization': `Bearer ${token}`
-          },
-          body: imageForm
-        });
-        if (!imgRes.ok) console.error('Image upload failed', await imgRes.text());
-      }
+    // Upload images with explicit rank numbering
+    const imageFiles = formData.getAll('image') as File[];
+    const ranks = formData.getAll('rank') as string[];
 
-      if (key === 'file' && typeof value === 'object') {
-        const fileForm = new FormData();
-        fileForm.append('file', value);
-        fileForm.append('name', (value as unknown as File).name || 'product_file');
-        const fileRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/files`, {
-          method: 'POST',
-          headers: {
-            'x-api-key': process.env.ETSY_API_KEY!,
-            'Authorization': `Bearer ${token}`
-          },
-          body: fileForm
-        });
-        if (!fileRes.ok) console.error('File upload failed', await fileRes.text());
-      }
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      if (typeof file !== 'object') continue;
+      const rank = ranks[i] ? parseInt(ranks[i], 10) : (i + 1);
+      const imageForm = new FormData();
+      imageForm.append('image', file);
+      imageForm.append('rank', rank.toString());
+      const imgRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/images`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.ETSY_API_KEY!,
+          'Authorization': `Bearer ${token}`
+        },
+        body: imageForm
+      });
+      if (!imgRes.ok) console.error(`Image upload failed for rank ${rank}:`, await imgRes.text());
+    }
+
+    // Upload downloadable files
+    const deliverableFiles = formData.getAll('file') as File[];
+    for (const file of deliverableFiles) {
+      if (typeof file !== 'object') continue;
+      const fileForm = new FormData();
+      fileForm.append('file', file);
+      fileForm.append('name', file.name || 'product_file');
+      const fileRes = await fetch(`${etsyBase}/v3/application/shops/${shopId}/listings/${listingId}/files`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.ETSY_API_KEY!,
+          'Authorization': `Bearer ${token}`
+        },
+        body: fileForm
+      });
+      if (!fileRes.ok) console.error('File upload failed', await fileRes.text());
     }
 
     return NextResponse.json({ success: true, listingId, url: listingData.url });

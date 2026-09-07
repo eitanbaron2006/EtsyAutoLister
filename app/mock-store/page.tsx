@@ -411,7 +411,6 @@ export default function MockStorePage() {
           <div>
             {/* Breadcrumbs (Centered as seen in screenshot) */}
             <div className="flex items-center justify-center text-xs text-[#595959] mb-6 gap-1.5 font-sans">
-              <span className="text-amber-800 font-bold">|</span>
               <span className="hover:underline cursor-pointer">Homepage</span>
               <span>›</span>
               <span className="hover:underline cursor-pointer">Art & Collectibles</span>
@@ -429,11 +428,11 @@ export default function MockStorePage() {
               {/* ======================================================== */}
               <div className="lg:col-span-7 space-y-10">
                 
-                {/* Image Showcase */}
-                <div className="flex flex-col-reverse sm:flex-row gap-3.5 items-start">
+                {/* Image Showcase - Thumbnails on far left, Left Arrow column, Main Image, Right Arrow column */}
+                <div className="flex flex-col-reverse sm:flex-row items-center gap-2 sm:gap-3.5">
                   
                   {/* Vertical Thumbnails list on far left (exact Etsy layout from screenshot) */}
-                  <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[640px] pb-2 sm:pb-0 shrink-0 w-full sm:w-16 select-none">
+                  <div className="flex sm:flex-col gap-2 overflow-x-auto sm:overflow-y-auto max-h-[640px] pb-2 sm:pb-0 shrink-0 w-full sm:w-16 select-none self-start">
                     
                     {/* Thumbnail #1: Primary Mockup Image (Top) */}
                     {images[0] && (
@@ -502,8 +501,19 @@ export default function MockStorePage() {
                     })}
                   </div>
 
-                  {/* Main Large Image Container (Matching screenshot aspect & floating buttons) */}
-                  <div className="flex-1 w-full relative group">
+                  {/* Left Chevron Button Column (In its own column between thumbnails and image, NOT overlapping) */}
+                  <div className="hidden sm:flex items-center justify-center shrink-0 w-11">
+                    <button
+                      onClick={handlePrevImage}
+                      className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
+                      title="Previous image"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-800" />
+                    </button>
+                  </div>
+
+                  {/* Main Large Image Container (Cleanly situated BETWEEN both chevrons) */}
+                  <div className="flex-1 w-full relative">
                     <div className="w-full bg-[#F5F2EC] rounded-2xl overflow-hidden relative shadow-xs aspect-[4/5] sm:min-h-[580px] max-h-[640px] flex items-center justify-center border border-[#E2DCC8]">
                       
                       {/* Etsy's Pick badge (top left, exact yellow with dotted underline) */}
@@ -560,23 +570,19 @@ export default function MockStorePage() {
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* Next / Previous circular floating buttons overlapping the borders */}
-                    <button
-                      onClick={handlePrevImage}
-                      className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
-                      title="Previous image"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-800" />
-                    </button>
+                  {/* Right Chevron Button Column (In its own column between image and right sidebar, NOT overlapping) */}
+                  <div className="hidden sm:flex items-center justify-center shrink-0 w-11">
                     <button
                       onClick={handleNextImage}
-                      className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
+                      className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center transition-all hover:bg-gray-50 border border-gray-200 cursor-pointer hover:scale-105 active:scale-95"
                       title="Next image"
                     >
                       <ChevronRight className="w-5 h-5 text-gray-800" />
                     </button>
                   </div>
+
                 </div>
 
                 {/* Report link under main image (matching screenshot) */}

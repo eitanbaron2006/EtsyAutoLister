@@ -1862,13 +1862,19 @@ export default function Home() {
         // Output filenames are timestamped by the server, so they are unique per run
         const fileName = item.output_url.split('/').pop() || `${item.id}.jpg`;
         const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+        const isMain = Boolean(
+          item.id?.toLowerCase().includes('main') ||
+          item.template_id?.toLowerCase().includes('main') ||
+          (item.template_id && isMainTemplate(item.template_id))
+        );
         results.push({
           id: `mockup-${folderName}-${fileName}`,
           templateId: item.template_id || '',
           sourceFileNames: (item.artworks || Object.keys(fileMap)).map(field => fieldToName[field] || field),
           frameAssignment: item.frame_assignment?.map(field => fieldToName[field] || field),
           file,
-          url: URL.createObjectURL(file)
+          url: URL.createObjectURL(file),
+          isMain
         });
       } catch (err: any) {
         toast.warning(`Could not download a rendered mockup: ${err.message || 'Unknown error'}`);
@@ -1876,10 +1882,14 @@ export default function Home() {
     }
 
     if (results.length > 0) {
+      // Ensure the MAIN mockup is always at index 0
+      results.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
       pendingPersistRef.current.mockups.add(folderName);
       setMockupResultsMap(prev => {
         if (options?.append) {
-          return { ...prev, [folderName]: [...(prev[folderName] || []), ...results] };
+          const merged = [...(prev[folderName] || []), ...results];
+          merged.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0));
+          return { ...prev, [folderName]: merged };
         }
         (prev[folderName] || []).forEach(m => URL.revokeObjectURL(m.url));
         return { ...prev, [folderName]: results };
@@ -1931,9 +1941,19 @@ export default function Home() {
     }
   };
 
-  // A mockup is the Etsy "cover" when its template is a main-* category
-  const isMainTemplate = (templateId: string) =>
-    studioTemplates.find(t => t.template_id === templateId)?.product_type?.startsWith('main-') ?? false;
+  // A mockup is the Etsy "cover" when its template is a main-* category or named MAIN
+  const isMainTemplate = (templateId: string) => {
+    if (!templateId) return false;
+    const t = studioTemplates.find(tmpl => tmpl.template_id === templateId);
+    if (t) {
+      return (
+        t.product_type?.toLowerCase().startsWith('main') ||
+        t.name?.toLowerCase().startsWith('main') ||
+        false
+      );
+    }
+    return templateId.toLowerCase().includes('main');
+  };
 
   // Signature of the mockup the Add flow WOULD produce for a template:
   // `templateId::sorted(actual source artworks)`. A set is trimmed to the
@@ -2914,14 +2934,58 @@ export default function Home() {
       // the listing as a photo hands it to anyone who right-clicks.
       const ETSY_MAX_PHOTOS = 20;
       const extras = await fetchListingExtras(item.productType);
-      const photoFiles: File[] = [
-        ...(mockupResultsMap[item.folderName] || []).map(mockup => mockup.file),
-        ...extras.map(extra => extra.file),
+      const rawMockups = mockupResultsMap[item.folderName] || [];
+
+      // Sort mockups deterministically:
+      // MAIN mockup (category main-*, name MAIN-*, isMain flag) is GUARANTEED to be rank 1 (first).
+      const isMockupMain = (m: GeneratedMockup) => {
+        if (m.isMain) return true;
+        if (m.templateId && isMainTemplate(m.templateId)) return true;
+        if (m.id && m.id.toLowerCase().includes('main')) return true;
+        const tmpl = studioTemplates.find(t => t.template_id === m.templateId);
+        if (tmpl) {
+          return (
+            tmpl.name.toLowerCase().startsWith('main') ||
+            tmpl.product_type.toLowerCase().startsWith('main')
+          );
+        }
+        return false;
+      };
+
+      const mainMockups = rawMockups.filter(isMockupMain);
+      const regularMockups = rawMockups.filter(m => !isMockupMain(m));
+      const orderedMockups = [...mainMockups, ...regularMockups];
+
+      // Number and rank each image file explicitly (01_MAIN_cover_..., 02_mockup_...)
+      const photoFiles: { file: File; rank: number }[] = [
+        ...orderedMockups.map((mockup, idx) => {
+          const rank = idx + 1;
+          const ext = mockup.file.name.split('.').pop() || 'jpg';
+          const isLead = rank === 1;
+          const numberedName = `${String(rank).padStart(2, '0')}_${isLead ? 'MAIN_cover' : 'mockup'}_${mockup.templateId || 'photo'}.${ext}`;
+          return {
+            file: new File([mockup.file], numberedName, { type: mockup.file.type || 'image/jpeg' }),
+            rank
+          };
+        }),
+        ...extras.map((extra, idx) => {
+          const rank = orderedMockups.length + idx + 1;
+          const ext = extra.file.name.split('.').pop() || 'jpg';
+          const numberedName = `${String(rank).padStart(2, '0')}_info_${extra.file.name}`;
+          return {
+            file: new File([extra.file], numberedName, { type: extra.file.type || 'image/jpeg' }),
+            rank
+          };
+        }),
       ];
+
       if (photoFiles.length > ETSY_MAX_PHOTOS) {
         toast.info(`Etsy allows ${ETSY_MAX_PHOTOS} photos — ${photoFiles.length - ETSY_MAX_PHOTOS} trimmed from the end of the package.`);
       }
-      photoFiles.slice(0, ETSY_MAX_PHOTOS).forEach(file => formData.append('image', file));
+      photoFiles.slice(0, ETSY_MAX_PHOTOS).forEach(({ file, rank }) => {
+        formData.append('image', file);
+        formData.append('rank', rank.toString());
+      });
 
       // The digital files the buyer downloads: the print sizes made during
       // Compile, plus anything the shop attached by hand. This is the one

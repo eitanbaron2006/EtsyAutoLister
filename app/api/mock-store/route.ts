@@ -92,16 +92,24 @@ export async function GET() {
         const imgsToUse = associatedImages.length > 0 ? associatedImages : imageReqs;
         const filesToUse = associatedFiles.length > 0 ? associatedFiles : fileReqs;
 
-        const parsedImages = imgsToUse
+        const parsedImages = (imgsToUse
           .map((img) => {
-            const fn = extractFilename(img.request.body || '');
+            const body = img.request.body || '';
+            const fn = extractFilename(body);
             if (!fn) return null;
+            const rankMatch = body.match(/name="rank"\r?\n\r?\n(\d+)/) || body.match(/rank=(\d+)/);
+            const rank = rankMatch ? parseInt(rankMatch[1], 10) : 999;
             return {
               filename: fn,
-              url: fn.startsWith('mockup_') ? `/outputs/${fn}` : `/outputs/${fn}`,
+              url: `/outputs/${fn}`,
+              rank,
             };
           })
-          .filter(Boolean);
+          .filter(Boolean) as { filename: string; url: string; rank: number }[])
+          .sort((a, b) => {
+            if (a.rank !== b.rank) return a.rank - b.rank;
+            return a.filename.localeCompare(b.filename);
+          });
 
         const parsedFiles = filesToUse.map((f) => {
           const fn = extractFilename(f.request.body || '');
