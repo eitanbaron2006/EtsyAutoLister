@@ -27,7 +27,7 @@ server-side with `gemini-3.1-pro-preview` and the configured Google Cloud
 project. Add the fallback values to `.env.local`:
 
 ```env
-VERTEX_PROJECT_ID="vertextai-project-497513"
+VERTEX_PROJECT_ID="vertextai-project-49..."
 VERTEX_LOCATION="global"
 VERTEX_MODEL="gemini-3.1-pro-preview"
 ```
